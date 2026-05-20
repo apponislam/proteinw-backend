@@ -1,0 +1,71 @@
+import mongoose from "mongoose";
+
+export type UserRole = "SUPER_ADMIN" | "TEACHER" | "STUDENT" | "ADMIN" | "GUEST";
+export type TeacherApprovalStatus = "PENDING" | "APPROVED" | "REJECTED" | "BLOCKED";
+
+export interface User {
+    name: string;
+    email: string;
+    password: string;
+    role: UserRole;
+    phone?: string;
+    profileImage?: string;
+    location?: {
+        lat?: number;
+        lng?: number;
+    };
+    language?: string;
+    aboutme?: string;
+    address?: {
+        street?: string;
+        city?: string;
+        state?: string;
+        zipCode?: string;
+        country?: string;
+    };
+    isActive: boolean;
+    isEmailVerified: boolean;
+    isDeleted: boolean;
+    lastLogin?: Date;
+    teacherApprovalStatus?: TeacherApprovalStatus;
+    approvedBy?: mongoose.Types.ObjectId;
+    approvalDate?: Date;
+
+    availabilityLocation?: {
+        address?: string;
+        lat?: number;
+        lng?: number;
+        radiusKm?: number;
+    };
+
+    driveFolderId?: string;
+
+    preferences?: {
+        subjects?: string[];
+        curriculum?: string[];
+        teacherGender?: "Male" | "Female";
+        languages?: string[];
+    };
+
+    percentage?: number;
+    balance?: number;
+
+    // Password reset fields
+    resetPasswordOtp?: string;
+    resetPasswordOtpExpiry?: Date;
+    resetPasswordToken?: string;
+    resetPasswordTokenExpiry?: Date;
+
+    // Email verification fields
+    verificationToken?: string;
+    verificationCode?: string;
+    verificationExpiry?: Date;
+
+    // Email update fields
+    pendingEmail?: string;
+    emailVerificationToken?: string;
+    emailVerificationExpiry?: Date;
+
+    createdAt: Date;
+    updatedAt: Date;
+}
