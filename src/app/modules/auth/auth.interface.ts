@@ -14,12 +14,16 @@ export interface User {
     aboutme?: string;
     profession?: UserProfession;
     address?: {
+        organizationName?: string;
         street?: string;
         city?: string;
         state?: string;
         zipCode?: string;
         country?: string;
     };
+    goal?: string;
+    salesStartDate?: Date;
+    salesEndDate?: Date;
     isActive: boolean;
     isEmailVerified: boolean;
     isDeleted: boolean;

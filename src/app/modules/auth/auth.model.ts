@@ -46,6 +46,7 @@ const UserSchema = new Schema<User>(
         },
 
         address: {
+            organizationName: String,
             street: String,
             city: String,
             state: String,
@@ -54,6 +55,15 @@ const UserSchema = new Schema<User>(
         },
         aboutme: {
             type: String,
+        },
+        goal: {
+            type: String,
+        },
+        salesStartDate: {
+            type: Date,
+        },
+        salesEndDate: {
+            type: Date,
         },
 
         isActive: {

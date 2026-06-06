@@ -8,6 +8,7 @@ export interface IProduct {
     className: string;
     shortDescription: string;
     category: string;
+    subCategory?: string;
     productImage?: string;
     createdBy?: Types.ObjectId;
     isActive: boolean;

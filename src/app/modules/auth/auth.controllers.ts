@@ -28,7 +28,13 @@ const register = catchAsync(async (req: Request, res: Response) => {
         role: data.role,
         phone: data.phone,
         ...(profileImageUrl && { profileImage: profileImageUrl }),
-        ...(data.preferences && { preferences: data.preferences }),
+        ...(data.language && { language: data.language }),
+        ...(data.aboutme && { aboutme: data.aboutme }),
+        ...(data.profession && { profession: data.profession }),
+        ...(data.address && { address: data.address }),
+        ...(data.goal && { goal: data.goal }),
+        ...(data.salesStartDate && { salesStartDate: data.salesStartDate }),
+        ...(data.salesEndDate && { salesEndDate: data.salesEndDate }),
     };
 
     // Basic validation
@@ -221,11 +227,12 @@ const updateProfile = catchAsync(async (req: Request, res: Response) => {
         ...(data.phone && { phone: data.phone }),
         ...(data.language && { language: data.language }),
         ...(profileImageUrl && { profileImage: profileImageUrl }),
-        ...(data.location && { location: data.location }),
         ...(data.address && { address: data.address }),
-        ...(data.availabilityLocation && { availabilityLocation: data.availabilityLocation }),
-        ...(data.preferences && { preferences: data.preferences }),
         ...(data.aboutme && { aboutme: data.aboutme }),
+        ...(data.profession && { profession: data.profession }),
+        ...(data.goal && { goal: data.goal }),
+        ...(data.salesStartDate && { salesStartDate: data.salesStartDate }),
+        ...(data.salesEndDate && { salesEndDate: data.salesEndDate }),
     };
 
     const updatedUser = await authServices.updateProfile(req.user._id, updateData);
