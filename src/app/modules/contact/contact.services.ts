@@ -55,10 +55,24 @@ const deleteContact = async (contactId: string) => {
     return contact;
 };
 
+// Mark all unread messages as read
+const markAllAsRead = async () => {
+    const result = await ContactModel.updateMany({ isRead: false, isDeleted: false }, { $set: { isRead: true } });
+    return { modifiedCount: result.modifiedCount };
+};
+
+// Get total unread count
+const getUnreadCount = async () => {
+    const count = await ContactModel.countDocuments({ isRead: false, isDeleted: false });
+    return { count };
+};
+
 export const contactServices = {
     createContact,
     getAllContacts,
     getContactById,
     markAsRead,
     deleteContact,
+    markAllAsRead,
+    getUnreadCount,
 };
