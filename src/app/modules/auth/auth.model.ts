@@ -40,6 +40,11 @@ const UserSchema = new Schema<User>(
             type: String,
         },
 
+        profession: {
+            type: String,
+            enum: ["LEADER", "TEACHER", "PARENT", "COACH"],
+        },
+
         address: {
             street: String,
             city: String,
@@ -75,6 +80,16 @@ const UserSchema = new Schema<User>(
         },
         campaignAssigned: {
             type: Schema.Types.ObjectId,
+        },
+
+        // Referral fields
+        referralCode: {
+            type: String,
+            unique: true,
+        },
+        referredBy: {
+            type: Schema.Types.ObjectId,
+            ref: "User",
         },
 
         resetPasswordOtp: String,
@@ -113,6 +128,18 @@ const UserSchema = new Schema<User>(
     },
 );
 
+UserSchema.pre("save", async function () {
+    if (this.isNew && !this.referralCode) {
+        // Generate a random 8-character uppercase alphanumeric code
+        const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        let code = "";
+        for (let i = 0; i < 8; i++) {
+            code += characters.charAt(Math.floor(Math.random() * characters.length));
+        }
+        this.referralCode = code;
+    }
+});
+
 /*
 |--------------------------------------------------------------------------
 | Index Strategy (Production Safe)
@@ -124,6 +151,7 @@ UserSchema.index({ email: 1 }, { unique: true });
 
 UserSchema.index({ role: 1 });
 UserSchema.index({ isActive: 1 });
+UserSchema.index({ referredBy: 1 });
 
 UserSchema.index({ isEmailVerified: 1 });
 

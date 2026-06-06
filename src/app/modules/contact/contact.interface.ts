@@ -1,19 +1,14 @@
 export interface IContactUs {
-  _id?: string;
+    _id?: string;
 
-  customerServiceEmail?: string;
-  customerServicePhone?: string;
+    name: string;
+    email: string;
+    subject: string;
+    phone?: string;
+    message: string;
+    isRead: boolean;
+    isDeleted: boolean;
 
-  whatsapp?: string;
-
-  website?: string;
-
-  facebook?: string;
-  twitter?: string;
-  instagram?: string;
-
-  address?: string;
-
-  createdAt?: Date;
-  updatedAt?: Date;
+    createdAt?: Date;
+    updatedAt?: Date;
 }

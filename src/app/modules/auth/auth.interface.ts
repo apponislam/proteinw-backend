@@ -1,6 +1,7 @@
-import mongoose from "mongoose";
+import { Types } from "mongoose";
 
 export type UserRole = "SUPER_ADMIN" | "ADMIN" | "MEMBER";
+export type UserProfession = "LEADER" | "TEACHER" | "PARENT" | "COACH";
 
 export interface User {
     name: string;
@@ -11,6 +12,7 @@ export interface User {
     profileImage?: string;
     language?: string;
     aboutme?: string;
+    profession?: UserProfession;
     address?: {
         street?: string;
         city?: string;
@@ -23,8 +25,12 @@ export interface User {
     isDeleted: boolean;
     lastLogin?: Date;
 
-    groupAssigned?: mongoose.Types.ObjectId;
-    campaignAssigned?: mongoose.Types.ObjectId;
+    groupAssigned?: Types.ObjectId;
+    campaignAssigned?: Types.ObjectId;
+
+    // Referral fields
+    referralCode: string;
+    referredBy?: Types.ObjectId;
 
     // Password reset fields
     resetPasswordOtp?: string;
