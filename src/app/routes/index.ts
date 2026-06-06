@@ -5,6 +5,7 @@ import { faqRoutes } from "../modules/faq/faq.routes";
 import { contactRoutes } from "../modules/contact/contact.routes";
 import { productRoutes } from "../modules/product/product.routes";
 import { tierRoutes } from "../modules/tier/tier.routes";
+import { groupRoutes } from "../modules/group/group.routes";
 const router = express.Router();
 
 const moduleRoutes = [
@@ -32,6 +33,10 @@ const moduleRoutes = [
     {
         path: "/tiers",
         route: tierRoutes,
+    },
+    {
+        path: "/groups",
+        route: groupRoutes,
     },
 ];
 
