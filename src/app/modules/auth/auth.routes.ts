@@ -19,7 +19,6 @@ router.post("/reset-password", authControllers.resetPassword);
 router.get("/me", auth, authControllers.getMe);
 router.post("/logout", auth, authControllers.logout);
 router.patch("/profile", auth, uploadProfileImage, authControllers.updateProfile);
-router.patch("/location", auth, authControllers.updateLocation);
 router.post("/change-password", auth, authControllers.changePassword);
 router.post("/update-email", auth, authControllers.updateEmail);
 router.get("/verify-new-email", authControllers.verifyNewEmail);

@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
 
-export type UserRole = "SUPER_ADMIN" | "TEACHER" | "STUDENT" | "ADMIN" | "GUEST";
-export type TeacherApprovalStatus = "PENDING" | "APPROVED" | "REJECTED" | "BLOCKED";
+export type UserRole = "SUPER_ADMIN" | "ADMIN" | "MEMBER";
 
 export interface User {
     name: string;
@@ -10,10 +9,6 @@ export interface User {
     role: UserRole;
     phone?: string;
     profileImage?: string;
-    location?: {
-        lat?: number;
-        lng?: number;
-    };
     language?: string;
     aboutme?: string;
     address?: {
@@ -27,28 +22,9 @@ export interface User {
     isEmailVerified: boolean;
     isDeleted: boolean;
     lastLogin?: Date;
-    teacherApprovalStatus?: TeacherApprovalStatus;
-    approvedBy?: mongoose.Types.ObjectId;
-    approvalDate?: Date;
 
-    availabilityLocation?: {
-        address?: string;
-        lat?: number;
-        lng?: number;
-        radiusKm?: number;
-    };
-
-    driveFolderId?: string;
-
-    preferences?: {
-        subjects?: string[];
-        curriculum?: string[];
-        teacherGender?: "Male" | "Female";
-        languages?: string[];
-    };
-
-    percentage?: number;
-    balance?: number;
+    groupAssigned?: mongoose.Types.ObjectId;
+    campaignAssigned?: mongoose.Types.ObjectId;
 
     // Password reset fields
     resetPasswordOtp?: string;

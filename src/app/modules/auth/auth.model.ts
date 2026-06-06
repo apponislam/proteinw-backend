@@ -24,8 +24,7 @@ const UserSchema = new Schema<User>(
 
         role: {
             type: String,
-            enum: ["SUPER_ADMIN", "TEACHER", "STUDENT", "ADMIN", "GUEST"],
-            default: "STUDENT",
+            enum: ["SUPER_ADMIN", "ADMIN", "MEMBER"],
             required: true,
         },
 
@@ -35,11 +34,6 @@ const UserSchema = new Schema<User>(
 
         profileImage: {
             type: String,
-        },
-
-        location: {
-            lat: { type: Number },
-            lng: { type: Number },
         },
 
         language: {
@@ -76,50 +70,11 @@ const UserSchema = new Schema<User>(
             type: Date,
         },
 
-        // Teacher approval workflow
-        teacherApprovalStatus: {
-            type: String,
-            enum: ["PENDING", "APPROVED", "REJECTED", "BLOCKED"],
-        },
-
-        approvedBy: {
+        groupAssigned: {
             type: Schema.Types.ObjectId,
-            ref: "User",
         },
-
-        approvalDate: {
-            type: Date,
-        },
-
-        availabilityLocation: {
-            address: String,
-            lat: Number,
-            lng: Number,
-            radiusKm: Number,
-        },
-
-        driveFolderId: {
-            type: String,
-        },
-
-        preferences: {
-            subjects: [String],
-            curriculum: [String],
-            teacherGender: { type: String, enum: ["Male", "Female"] },
-            languages: [String],
-        },
-
-        balance: {
-            type: Number,
-            default: 0,
-            min: 0,
-        },
-
-        percentage: {
-            type: Number,
-            default: 20,
-            min: 0,
-            max: 100,
+        campaignAssigned: {
+            type: Schema.Types.ObjectId,
         },
 
         resetPasswordOtp: String,
@@ -152,7 +107,6 @@ const UserSchema = new Schema<User>(
                 delete ret.emailVerificationToken;
                 delete ret.emailVerificationExpiry;
                 delete ret.pendingEmail;
-                delete ret.availabilityLocation;
                 return ret;
             },
         },
