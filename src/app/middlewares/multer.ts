@@ -4,9 +4,11 @@ import fs from "fs";
 import { Request, Response, NextFunction } from "express";
 import sharp from "sharp";
 
-// Ensure upload directory exists
+// Ensure upload directories exist
 const profileImageDir = path.join(process.cwd(), "uploads", "profile-images");
+const productImageDir = path.join(process.cwd(), "uploads", "product-images");
 if (!fs.existsSync(profileImageDir)) fs.mkdirSync(profileImageDir, { recursive: true });
+if (!fs.existsSync(productImageDir)) fs.mkdirSync(productImageDir, { recursive: true });
 
 // Multer memory storage
 const storage = multer.memoryStorage();
@@ -15,7 +17,7 @@ const storage = multer.memoryStorage();
 const fileFilter = (_req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
     const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
     if (allowedTypes.includes(file.mimetype)) cb(null, true);
-    else cb(new Error("Profile image must be JPG, PNG, or WEBP"));
+    else cb(new Error("Image must be JPG, PNG, or WEBP"));
 };
 
 // Multer setup
@@ -26,10 +28,10 @@ const upload = multer({
 });
 
 // Helper to generate unique filename
-const generateFileName = (originalName: string) => {
+const generateFileName = (prefix: string, originalName: string) => {
     const timestamp = Date.now().toString().slice(-6);
     const randomNum = Math.floor(Math.random() * 10000);
-    return `profile-${timestamp}-${randomNum}.webp`;
+    return `${prefix}-${timestamp}-${randomNum}.webp`;
 };
 
 // Middleware for single profile image upload
@@ -43,8 +45,37 @@ export const uploadProfileImage = (req: Request, res: Response, next: NextFuncti
         if (req.file) {
             try {
                 const file = req.file;
-                const newName = generateFileName(file.originalname);
+                const newName = generateFileName("profile", file.originalname);
                 const outputPath = path.join(profileImageDir, newName);
+
+                // Convert to webp
+                await sharp(file.buffer).webp({ quality: 80 }).toFile(outputPath);
+
+                file.filename = newName;
+                file.path = outputPath;
+                file.mimetype = "image/webp";
+            } catch (error) {
+                return next(error);
+            }
+        }
+
+        next();
+    });
+};
+
+// Middleware for single product image upload
+export const uploadProductImage = (req: Request, res: Response, next: NextFunction) => {
+    const uploadSingle = upload.single("productImage");
+
+    uploadSingle(req, res, async (err) => {
+        if (err) return next(err);
+
+        // Process productImage file if uploaded
+        if (req.file) {
+            try {
+                const file = req.file;
+                const newName = generateFileName("product", file.originalname);
+                const outputPath = path.join(productImageDir, newName);
 
                 // Convert to webp
                 await sharp(file.buffer).webp({ quality: 80 }).toFile(outputPath);

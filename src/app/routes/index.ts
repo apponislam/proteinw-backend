@@ -3,6 +3,8 @@ import { authRoutes } from "../modules/auth/auth.routes";
 import { publicRoutes } from "../modules/public/public.routes";
 import { faqRoutes } from "../modules/faq/faq.routes";
 import { contactRoutes } from "../modules/contact/contact.routes";
+import { productRoutes } from "../modules/product/product.routes";
+import { tierRoutes } from "../modules/tier/tier.routes";
 const router = express.Router();
 
 const moduleRoutes = [
@@ -22,6 +24,14 @@ const moduleRoutes = [
     {
         path: "/contact",
         route: contactRoutes,
+    },
+    {
+        path: "/products",
+        route: productRoutes,
+    },
+    {
+        path: "/tiers",
+        route: tierRoutes,
     },
 ];
 
