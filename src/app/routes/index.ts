@@ -7,6 +7,7 @@ import { productRoutes } from "../modules/product/product.routes";
 import { tierRoutes } from "../modules/tier/tier.routes";
 import { groupRoutes } from "../modules/group/group.routes";
 import { invitationRoutes } from "../modules/invitation/invitation.routes";
+import { campaignRoutes } from "../modules/campaign/campaign.routes";
 const router = express.Router();
 
 const moduleRoutes = [
@@ -42,6 +43,10 @@ const moduleRoutes = [
     {
         path: "/invitations",
         route: invitationRoutes,
+    },
+    {
+        path: "/campaigns",
+        route: campaignRoutes,
     },
 ];
 

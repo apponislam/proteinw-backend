@@ -7,6 +7,7 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { sendOtpEmail, sendVerificationEmail, sendWelcomeEmail, sendEmailUpdateVerification } from "../../../utils/emailTemplates";
 import { invitationServices } from "../invitation/invitation.services";
+import { CampaignModel } from "../campaign/campaign.model";
 
 const registerUser = async (data: any) => {
     // Check existing user
@@ -389,6 +390,14 @@ const registerMember = async (data: any) => {
     const existing = await UserModel.findOne({ email: data.email });
     if (existing) throw new ApiError(httpStatus.BAD_REQUEST, "Email already in use");
 
+    // Find active campaign for the group
+    const activeCampaign = await CampaignModel.findOne({
+        groupId: invitation.groupId,
+        isDeleted: false,
+        isActive: true,
+        endDate: { $gt: new Date() },
+    });
+
     // Hash password
     const hashedPassword = await bcrypt.hash(data.password, Number(config.bcrypt_salt_rounds));
 
@@ -397,8 +406,8 @@ const registerMember = async (data: any) => {
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
     const verificationExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    // Create user with role MEMBER and assigned group
-    const userData = {
+    // Create user with role MEMBER and assigned group & campaign if available
+    const userData: any = {
         ...data,
         password: hashedPassword,
         isActive: true,
@@ -409,6 +418,10 @@ const registerMember = async (data: any) => {
         verificationCode,
         verificationExpiry,
     };
+
+    if (activeCampaign) {
+        userData.campaignAssigned = activeCampaign._id;
+    }
 
     const createdUser = await UserModel.create(userData);
 

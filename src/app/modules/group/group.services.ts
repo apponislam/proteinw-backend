@@ -2,12 +2,17 @@ import httpStatus from "http-status";
 import { Types } from "mongoose";
 import ApiError from "../../../errors/ApiError";
 import { GroupModel } from "./group.model";
+import { UserModel } from "../auth/auth.model";
 
 const createGroup = async (userId: string, payload: any) => {
     const group = await GroupModel.create({
         ...payload,
         createdBy: new Types.ObjectId(userId),
     });
+
+    // Assign this group to the user who created it
+    await UserModel.findByIdAndUpdate(userId, { $set: { groupAssigned: group._id } }, { new: true });
+
     return group;
 };
 
