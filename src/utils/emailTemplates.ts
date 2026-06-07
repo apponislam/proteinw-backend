@@ -94,3 +94,79 @@ export const sendGroupInvitationEmail = (email: string, groupName: string) => {
     `;
     sendMail(email, `You've Been Invited to Join ${groupName}`, html);
 };
+
+export const sendOrderConfirmationEmail = (email: string, customerName: string, orderDetails: any) => {
+    const { items, totalPrice, address, status } = orderDetails;
+
+    const itemsHtml = items
+        .map(
+            (item: any) => `
+        <tr style="border-bottom: 1px solid #f0f0f0;">
+            <td style="padding: 12px 8px; color: #4a4a4a;">${item.productName}</td>
+            <td style="padding: 12px 8px; text-align: center; color: #4a4a4a;">${item.quantity}x</td>
+            <td style="padding: 12px 8px; text-align: right; color: #4a4a4a;">${item.singlePrice.toFixed(2)} SEK</td>
+            <td style="padding: 12px 8px; text-align: right; color: #4a4a4a; font-weight: 500;">${item.lineTotal.toFixed(2)} SEK</td>
+        </tr>
+    `,
+        )
+        .join("");
+
+    const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 0; background: white; border: 1px solid #f0f0f0; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden;">
+            <div style="background: linear-gradient(135deg, #7C5800 0%, #FFB800 100%); padding: 32px 24px; text-align: center;">
+                <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold;">Order Confirmed!</h1>
+                <p style="color: rgba(255,255,255,0.9); margin: 12px 0 0 0; font-size: 15px;">Thank you for your order</p>
+            </div>
+            
+            <div style="padding: 32px 28px;">
+                <h2 style="color: #1a1a1a; margin: 0 0 20px 0; font-size: 20px;">Hello ${customerName},</h2>
+                
+                <p style="color: #4a4a4a; line-height: 1.8; margin: 0 0 28px 0; font-size: 15px;">
+                    We've received your order! Your order status is: <strong style="color: #7C5800;">${status}</strong>.
+                </p>
+                
+                <div style="background: #fffaf0; border: 1px solid #ffe8b8; border-radius: 10px; padding: 20px; margin-bottom: 28px;">
+                    <h3 style="color: #1a1a1a; margin: 0 0 16px 0; font-size: 18px;">Order Summary</h3>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #f9f9f9;">
+                                <th style="padding: 12px 8px; text-align: left; font-size: 13px; color: #7C5800;">Item</th>
+                                <th style="padding: 12px 8px; text-align: center; font-size: 13px; color: #7C5800;">Qty</th>
+                                <th style="padding: 12px 8px; text-align: right; font-size: 13px; color: #7C5800;">Price</th>
+                                <th style="padding: 12px 8px; text-align: right; font-size: 13px; color: #7C5800;">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${itemsHtml}
+                        </tbody>
+                        <tfoot>
+                            <tr style="background: #f9f9f9;">
+                                <td colspan="3" style="padding: 12px 8px; text-align: right; font-weight: bold; color: #1a1a1a; font-size: 16px;">Order Total:</td>
+                                <td style="padding: 12px 8px; text-align: right; font-weight: bold; color: #7C5800; font-size: 18px;">${totalPrice.toFixed(2)} SEK</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                
+                <div style="background: #f9f9f9; border-radius: 10px; padding: 20px; margin-bottom: 28px;">
+                    <h3 style="color: #1a1a1a; margin: 0 0 12px 0; font-size: 16px;">Shipping Address</h3>
+                    <p style="color: #4a4a4a; margin: 0; line-height: 1.7; font-size: 14px;">
+                        ${address.street}<br>
+                        ${address.city}, ${address.postalCode}<br>
+                        ${address.country}
+                    </p>
+                </div>
+                
+                <p style="color: #8a8a8a; font-size: 13px; line-height: 1.7; margin: 0;">
+                    If you have any questions about your order, feel free to reach out to our support team.
+                </p>
+            </div>
+            
+            <div style="background: #fafafa; padding: 20px 28px; text-align: center; border-top: 1px solid #f0f0f0;">
+                <p style="color: #8a8a8a; margin: 0; font-size: 12px;">© 2026 ProteinW. All rights reserved.</p>
+            </div>
+        </div>
+    `;
+
+    sendMail(email, "Your Order Confirmation - ProteinW", html);
+};

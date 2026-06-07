@@ -10,6 +10,7 @@ import { invitationRoutes } from "../modules/invitation/invitation.routes";
 import { campaignRoutes } from "../modules/campaign/campaign.routes";
 import { campaignProductRoutes } from "../modules/campaignProduct/campaignProduct.routes";
 import { orderRoutes } from "../modules/order/order.routes";
+
 const router = express.Router();
 
 const moduleRoutes = [
@@ -21,7 +22,6 @@ const moduleRoutes = [
         path: "/public",
         route: publicRoutes,
     },
-
     {
         path: "/faqs",
         route: faqRoutes,

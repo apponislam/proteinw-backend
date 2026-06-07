@@ -6,6 +6,7 @@ import { ProductModel } from "../product/product.model";
 import { CampaignProductModel } from "../campaignProduct/campaignProduct.model";
 import { UserModel } from "../auth/auth.model";
 import { CampaignModel } from "../campaign/campaign.model";
+import { sendOrderConfirmationEmail } from "../../../utils/emailTemplates";
 
 // Create a guest order
 const createOrder = async (payload: any) => {
@@ -65,6 +66,19 @@ const createOrder = async (payload: any) => {
         campaignId: campaignId ? new Types.ObjectId(campaignId) : undefined,
         groupId: groupId ? new Types.ObjectId(groupId) : undefined,
     });
+
+    // Send order confirmation email
+    try {
+        sendOrderConfirmationEmail(customerData.customerEmail, customerData.customerName, {
+            items: orderItems,
+            totalPrice,
+            address: customerData.address,
+            status: order.status,
+        });
+    } catch (emailError) {
+        console.error("Failed to send order confirmation email:", emailError);
+        // Continue even if email fails
+    }
 
     return order;
 };
