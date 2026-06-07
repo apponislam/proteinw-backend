@@ -154,6 +154,15 @@ const updateOrderStatus = async (orderId: string, status: string) => {
         throw new ApiError(httpStatus.BAD_REQUEST, "Invalid status");
     }
 
+    // First check if order exists and is not deleted
+    const existingOrder = await OrderModel.findOne({ _id: orderId, isDeleted: false });
+    if (!existingOrder) throw new ApiError(httpStatus.NOT_FOUND, "Order not found");
+
+    // Check if current status is delivered
+    if (existingOrder.status === "delivered") {
+        throw new ApiError(httpStatus.BAD_REQUEST, "Cannot change status of a delivered order");
+    }
+
     const order = await OrderModel.findOneAndUpdate({ _id: orderId, isDeleted: false }, { $set: { status } }, { returnDocument: "after", runValidators: true });
 
     if (!order) throw new ApiError(httpStatus.NOT_FOUND, "Order not found");
