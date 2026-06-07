@@ -25,6 +25,9 @@ const createCampaign = async (userId: string, groupId: string, payload: any) => 
         createdBy: new Types.ObjectId(userId),
     });
 
+    // Update group to set runningCampaignId
+    await GroupModel.findOneAndUpdate({ _id: groupId }, { $set: { runningCampaignId: campaign._id } });
+
     // Assign this campaign to all users in the group
     await UserModel.updateMany({ groupAssigned: new Types.ObjectId(groupId), isDeleted: false }, { $set: { campaignAssigned: campaign._id } });
 
@@ -116,6 +119,11 @@ const deleteCampaign = async (campaignId: string) => {
 
     // Remove campaign from all users
     await UserModel.updateMany({ campaignAssigned: new Types.ObjectId(campaignId) }, { $unset: { campaignAssigned: "" } });
+
+    // Remove runningCampaignId from group
+    if (campaign.groupId) {
+        await GroupModel.findOneAndUpdate({ _id: campaign.groupId }, { $unset: { runningCampaignId: "" } });
+    }
 
     return campaign;
 };

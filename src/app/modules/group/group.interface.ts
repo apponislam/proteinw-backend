@@ -9,6 +9,7 @@ export interface IGroup {
     endDate: Date;
     code: string;
 
+    runningCampaignId?: Types.ObjectId;
     createdBy?: Types.ObjectId;
     isActive: boolean;
     isDeleted: boolean;
