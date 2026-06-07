@@ -8,7 +8,6 @@ export interface ITier {
     minSalesVolume: number;
     maxSalesVolume?: number;
     isPopular?: boolean;
-    description?: string;
     createdBy?: Types.ObjectId;
     isActive: boolean;
     isDeleted: boolean;
