@@ -303,6 +303,60 @@ const setUserPassword = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const registerMember = catchAsync(async (req: Request, res: Response) => {
+    // Handle profile image if uploaded
+    let profileImageUrl = undefined;
+    if (req.file) {
+        profileImageUrl = `/uploads/profile-images/${req.file.filename}`;
+    }
+
+    // Parse the body field if it's a string
+    let data: any = {};
+    if (req.body.body && typeof req.body.body === "string") {
+        data = JSON.parse(req.body.body);
+    }
+
+    // Parse JSON fields
+    const userData: any = {
+        name: data.name,
+        email: data.email,
+        password: data.password,
+        phone: data.phone,
+        ...(profileImageUrl && { profileImage: profileImageUrl }),
+        ...(data.language && { language: data.language }),
+        ...(data.aboutme && { aboutme: data.aboutme }),
+        ...(data.profession && { profession: data.profession }),
+        ...(data.address && { address: data.address }),
+        ...(data.goal && { goal: data.goal }),
+        ...(data.salesStartDate && { salesStartDate: data.salesStartDate }),
+        ...(data.salesEndDate && { salesEndDate: data.salesEndDate }),
+    };
+
+    // Basic validation
+    if (!userData.name || !userData.email || !userData.password) {
+        throw new ApiError(httpStatus.BAD_REQUEST, "Name, email, and password are required");
+    }
+
+    const result = await authServices.registerMember(userData);
+
+    res.cookie("refreshToken", result.refreshToken, {
+        httpOnly: true,
+        secure: config.node_env === "production",
+        sameSite: "strict",
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+
+    sendResponse(res, {
+        statusCode: httpStatus.CREATED,
+        success: true,
+        message: "Member registered successfully",
+        data: {
+            user: result.user,
+            accessToken: result.accessToken,
+        },
+    });
+});
+
 export const authControllers = {
     register,
     login,
@@ -321,4 +375,5 @@ export const authControllers = {
     resendEmailUpdate,
     verifyNewEmail,
     setUserPassword,
+    registerMember,
 };

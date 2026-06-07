@@ -6,6 +6,7 @@ const router = Router();
 
 // Public routes
 router.post("/register", uploadProfileImage, authControllers.register);
+router.post("/register-member", uploadProfileImage, authControllers.registerMember);
 router.post("/login", authControllers.login);
 router.get("/verify-email", authControllers.verifyEmail);
 router.post("/resend-verification", authControllers.resendVerificationEmail);

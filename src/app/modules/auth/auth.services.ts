@@ -6,6 +6,7 @@ import { UserModel } from "./auth.model";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { sendOtpEmail, sendVerificationEmail, sendWelcomeEmail, sendEmailUpdateVerification } from "../../../utils/emailTemplates";
+import { invitationServices } from "../invitation/invitation.services";
 
 const registerUser = async (data: any) => {
     // Check existing user
@@ -380,6 +381,62 @@ const setUserPassword = async (userId: string, newPassword: string) => {
     await user.save();
 };
 
+const registerMember = async (data: any) => {
+    // Check invitation exists
+    const invitation = await invitationServices.getInvitationByEmail(data.email);
+
+    // Check existing user
+    const existing = await UserModel.findOne({ email: data.email });
+    if (existing) throw new ApiError(httpStatus.BAD_REQUEST, "Email already in use");
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(data.password, Number(config.bcrypt_salt_rounds));
+
+    // Generate verification token
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const verificationExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    // Create user with role MEMBER and assigned group
+    const userData = {
+        ...data,
+        password: hashedPassword,
+        isActive: true,
+        isEmailVerified: false,
+        role: "MEMBER",
+        groupAssigned: invitation.groupId,
+        verificationToken,
+        verificationCode,
+        verificationExpiry,
+    };
+
+    const createdUser = await UserModel.create(userData);
+
+    // Mark invitation as accepted
+    await invitationServices.acceptInvitation(data.email);
+
+    // Send emails
+    const verificationUrl = `${config.client_url}/verify-email?token=${verificationToken}&email=${createdUser.email}`;
+    sendVerificationEmail(createdUser.email as string, createdUser.name as string, verificationUrl, verificationCode);
+    sendWelcomeEmail(createdUser.email as string, createdUser.name as string);
+
+    // Generate tokens
+    const jwtPayload = {
+        _id: createdUser._id,
+        name: createdUser.name,
+        email: createdUser.email,
+        role: createdUser.role,
+    };
+
+    const accessToken = jwtHelper.generateToken(jwtPayload, config.jwt_access_secret as string, config.jwt_access_expire as string);
+    const refreshToken = jwtHelper.generateToken(jwtPayload, config.jwt_refresh_secret as string, config.jwt_refresh_expire as string);
+
+    const userObject = createdUser.toObject();
+    const { password: pwd, verificationToken: vToken, verificationExpiry: vExpiry, verificationCode: vCode, ...userWithoutSensitive } = userObject;
+
+    return { user: userWithoutSensitive, accessToken, refreshToken };
+};
+
 export const authServices = {
     registerUser,
     loginUser,
@@ -397,4 +454,5 @@ export const authServices = {
     resendEmailUpdate,
     verifyNewEmail,
     setUserPassword,
+    registerMember,
 };

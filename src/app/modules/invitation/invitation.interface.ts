@@ -7,10 +7,7 @@ export interface IInvitation {
     groupId: Types.ObjectId;
     inviterId: Types.ObjectId;
     email: string;
-    code: string;
     status: InvitationStatus;
-    expiresAt: Date;
-    isDeleted: boolean;
     createdAt?: Date;
     updatedAt?: Date;
 }

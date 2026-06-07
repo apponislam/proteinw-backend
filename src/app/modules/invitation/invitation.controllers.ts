@@ -27,35 +27,13 @@ const getInvitationsByGroup = catchAsync(async (req: Request, res: Response) => 
     });
 });
 
-const getInvitationByCode = catchAsync(async (req: Request, res: Response) => {
-    const result = await invitationServices.getInvitationByCode(req.params.code as string);
+const getInvitationByEmail = catchAsync(async (req: Request, res: Response) => {
+    const result = await invitationServices.getInvitationByEmail(req.params.email as string);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
         message: "Invitation retrieved successfully",
-        data: result,
-    });
-});
-
-const acceptInvitation = catchAsync(async (req: Request, res: Response) => {
-    const result = await invitationServices.acceptInvitation(req.params.code as string, req.user?._id as string);
-
-    sendResponse(res, {
-        statusCode: httpStatus.OK,
-        success: true,
-        message: result.message,
-        data: { groupId: result.groupId },
-    });
-});
-
-const declineInvitation = catchAsync(async (req: Request, res: Response) => {
-    const result = await invitationServices.declineInvitation(req.params.code as string);
-
-    sendResponse(res, {
-        statusCode: httpStatus.OK,
-        success: true,
-        message: result.message,
         data: result,
     });
 });
@@ -67,27 +45,13 @@ const cancelInvitation = catchAsync(async (req: Request, res: Response) => {
         statusCode: httpStatus.OK,
         success: true,
         message: result.message,
-        data: result,
-    });
-});
-
-const resendInvitation = catchAsync(async (req: Request, res: Response) => {
-    const result = await invitationServices.resendInvitation(req.params.invitationId as string);
-
-    sendResponse(res, {
-        statusCode: httpStatus.OK,
-        success: true,
-        message: "Invitation resent successfully",
-        data: result,
+        data: null,
     });
 });
 
 export const invitationControllers = {
     sendInvitation,
     getInvitationsByGroup,
-    getInvitationByCode,
-    acceptInvitation,
-    declineInvitation,
+    getInvitationByEmail,
     cancelInvitation,
-    resendInvitation,
 };

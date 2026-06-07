@@ -14,12 +14,10 @@ const sendInvitation = async (inviterId: string, groupId: string, email: string)
     const existingUser = await UserModel.findOne({ email, isDeleted: false });
     if (existingUser) throw new ApiError(httpStatus.BAD_REQUEST, "User already exists with this email");
 
-    // Check if pending invitation already exists for this email and group
+    // Check if pending invitation already exists for this email
     const existingInvitation = await InvitationModel.findOne({
         email,
-        groupId,
         status: "pending",
-        isDeleted: false,
     });
     if (existingInvitation) throw new ApiError(httpStatus.BAD_REQUEST, "Invitation already sent to this email");
 
@@ -34,18 +32,14 @@ const sendInvitation = async (inviterId: string, groupId: string, email: string)
 };
 
 const getInvitationsByGroup = async (groupId: string, query: any = {}) => {
-    const filter: any = { groupId, isDeleted: false };
+    const filter: any = { groupId };
     if (query.status) filter.status = query.status;
 
     const page = parseInt(query.page as string) || 1;
     const limit = parseInt(query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    const invitations = await InvitationModel.find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .populate("inviterId", "name email");
+    const invitations = await InvitationModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate("inviterId", "name email");
 
     const total = await InvitationModel.countDocuments(filter);
 
@@ -62,26 +56,18 @@ const getInvitationsByGroup = async (groupId: string, query: any = {}) => {
     };
 };
 
-const getInvitationByCode = async (code: string) => {
+const getInvitationByEmail = async (email: string) => {
     const invitation = await InvitationModel.findOne({
-        code,
+        email,
         status: "pending",
-        isDeleted: false,
-        expiresAt: { $gt: new Date() },
     }).populate("groupId", "name");
 
-    if (!invitation) throw new ApiError(httpStatus.NOT_FOUND, "Invitation not found or expired");
+    if (!invitation) throw new ApiError(httpStatus.NOT_FOUND, "Invitation not found");
     return invitation;
 };
 
-const acceptInvitation = async (code: string, userId: string) => {
-    const invitation = await getInvitationByCode(code);
-
-    // Update user to assign group and role MEMBER
-    await UserModel.findByIdAndUpdate(userId, {
-        groupAssigned: invitation.groupId,
-        role: "MEMBER",
-    });
+const acceptInvitation = async (email: string) => {
+    const invitation = await getInvitationByEmail(email);
 
     // Mark invitation as accepted
     invitation.status = "accepted";
@@ -90,8 +76,8 @@ const acceptInvitation = async (code: string, userId: string) => {
     return { message: "Invitation accepted successfully", groupId: invitation.groupId };
 };
 
-const declineInvitation = async (code: string) => {
-    const invitation = await getInvitationByCode(code);
+const declineInvitation = async (email: string) => {
+    const invitation = await getInvitationByEmail(email);
 
     invitation.status = "declined";
     await invitation.save();
@@ -100,42 +86,19 @@ const declineInvitation = async (code: string) => {
 };
 
 const cancelInvitation = async (invitationId: string) => {
-    const invitation = await InvitationModel.findOne({ _id: invitationId, isDeleted: false });
+    const invitation = await InvitationModel.findById(invitationId);
     if (!invitation) throw new ApiError(httpStatus.NOT_FOUND, "Invitation not found");
 
-    invitation.isDeleted = true;
-    await invitation.save();
+    await InvitationModel.findByIdAndDelete(invitationId);
 
     return { message: "Invitation canceled successfully" };
-};
-
-const resendInvitation = async (invitationId: string) => {
-    const invitation = await InvitationModel.findOne({ _id: invitationId, isDeleted: false });
-    if (!invitation) throw new ApiError(httpStatus.NOT_FOUND, "Invitation not found");
-
-    if (invitation.status !== "pending") {
-        throw new ApiError(httpStatus.BAD_REQUEST, "Cannot resend invitation that is not pending");
-    }
-
-    // Regenerate code and reset expiration
-    const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let code = "";
-    for (let i = 0; i < 8; i++) {
-        code += characters.charAt(Math.floor(Math.random() * characters.length));
-    }
-    invitation.code = code;
-    invitation.expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    await invitation.save();
-
-    return invitation;
 };
 
 export const invitationServices = {
     sendInvitation,
     getInvitationsByGroup,
-    getInvitationByCode,
+    getInvitationByEmail,
     acceptInvitation,
     declineInvitation,
     cancelInvitation,
-    resendInvitation,
 };
