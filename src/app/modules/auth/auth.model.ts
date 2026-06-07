@@ -36,10 +36,6 @@ const UserSchema = new Schema<User>(
             type: String,
         },
 
-        language: {
-            type: String,
-        },
-
         profession: {
             type: String,
             enum: ["LEADER", "TEACHER", "PARENT", "COACH"],
@@ -52,9 +48,6 @@ const UserSchema = new Schema<User>(
             state: String,
             zipCode: String,
             country: String,
-        },
-        aboutme: {
-            type: String,
         },
         goal: {
             type: String,

@@ -16,8 +16,6 @@ export const registerSchema = z.object({
     role: z.enum(["SUPER_ADMIN", "ADMIN", "MEMBER"]).default("MEMBER"),
     phone: z.string().optional(),
     profileImage: z.string().optional(),
-    language: z.string().optional(),
-    aboutme: z.string().optional(),
     profession: z.enum(["LEADER", "TEACHER", "PARENT", "COACH"]).optional(),
     address: z
         .string()
@@ -26,8 +24,14 @@ export const registerSchema = z.object({
         .pipe(addressSchema)
         .optional(),
     goal: z.string().optional(),
-    salesStartDate: z.string().transform((val) => (val ? new Date(val) : undefined)).optional(),
-    salesEndDate: z.string().transform((val) => (val ? new Date(val) : undefined)).optional(),
+    salesStartDate: z
+        .string()
+        .transform((val) => (val ? new Date(val) : undefined))
+        .optional(),
+    salesEndDate: z
+        .string()
+        .transform((val) => (val ? new Date(val) : undefined))
+        .optional(),
 });
 
 export const loginSchema = z.object({
@@ -43,8 +47,6 @@ export const verifyEmailSchema = z.object({
 export const updateProfileSchema = z.object({
     name: z.string().min(2).optional(),
     phone: z.string().optional(),
-    language: z.string().optional(),
-    aboutme: z.string().optional(),
     profession: z.enum(["LEADER", "TEACHER", "PARENT", "COACH"]).optional(),
     profileImage: z.string().optional(),
     address: z
@@ -54,8 +56,14 @@ export const updateProfileSchema = z.object({
         .pipe(addressSchema)
         .optional(),
     goal: z.string().optional(),
-    salesStartDate: z.string().transform((val) => (val ? new Date(val) : undefined)).optional(),
-    salesEndDate: z.string().transform((val) => (val ? new Date(val) : undefined)).optional(),
+    salesStartDate: z
+        .string()
+        .transform((val) => (val ? new Date(val) : undefined))
+        .optional(),
+    salesEndDate: z
+        .string()
+        .transform((val) => (val ? new Date(val) : undefined))
+        .optional(),
 });
 
 export const changePasswordSchema = z.object({

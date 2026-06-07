@@ -10,8 +10,6 @@ export interface User {
     role: UserRole;
     phone?: string;
     profileImage?: string;
-    language?: string;
-    aboutme?: string;
     profession?: UserProfession;
     address?: {
         organizationName?: string;
