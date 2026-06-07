@@ -92,3 +92,17 @@ export const sendZoomMeetingInvitation = (email: string, name: string, topic: st
     `;
     sendMail(email, `Meeting Invitation: ${topic}`, html);
 };
+
+export const sendGroupInvitationEmail = (email: string, groupName: string) => {
+    const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 5px;">
+            <h2 style="color: #333;">Hello,</h2>
+            <p style="color: #666;">You have been invited to join the group: <strong>${groupName}</strong>.</p>
+            <p style="color: #666;">Please register using this email address to accept the invitation.</p>
+            <div style="text-align: center; margin: 30px 0;">
+                <p style="font-size: 14px; color: #999;">Make sure to use this exact email when registering!</p>
+            </div>
+        </div>
+    `;
+    sendMail(email, `You've Been Invited to Join ${groupName}`, html);
+};

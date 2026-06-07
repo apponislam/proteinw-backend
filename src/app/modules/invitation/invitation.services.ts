@@ -4,6 +4,7 @@ import ApiError from "../../../errors/ApiError";
 import { InvitationModel } from "./invitation.model";
 import { UserModel } from "../auth/auth.model";
 import { GroupModel } from "../group/group.model";
+import { sendGroupInvitationEmail } from "../../../utils/emailTemplates";
 
 const sendInvitation = async (inviterId: string, groupId: string, email: string) => {
     // Check if group exists
@@ -27,6 +28,9 @@ const sendInvitation = async (inviterId: string, groupId: string, email: string)
         inviterId: new Types.ObjectId(inviterId),
         email,
     });
+
+    // Send invitation email
+    sendGroupInvitationEmail(email, group.name);
 
     return invitation;
 };
@@ -69,9 +73,8 @@ const getInvitationByEmail = async (email: string) => {
 const acceptInvitation = async (email: string) => {
     const invitation = await getInvitationByEmail(email);
 
-    // Mark invitation as accepted
-    invitation.status = "accepted";
-    await invitation.save();
+    // Delete the invitation
+    await InvitationModel.findByIdAndDelete(invitation._id);
 
     return { message: "Invitation accepted successfully", groupId: invitation.groupId };
 };
@@ -79,8 +82,8 @@ const acceptInvitation = async (email: string) => {
 const declineInvitation = async (email: string) => {
     const invitation = await getInvitationByEmail(email);
 
-    invitation.status = "declined";
-    await invitation.save();
+    // Delete the invitation
+    await InvitationModel.findByIdAndDelete(invitation._id);
 
     return { message: "Invitation declined successfully" };
 };
