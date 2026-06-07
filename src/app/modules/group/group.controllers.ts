@@ -51,6 +51,17 @@ const getGroupById = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const getGroupByCode = catchAsync(async (req: Request, res: Response) => {
+    const result = await groupServices.getGroupByCode(req.params.code as string);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Group retrieved successfully",
+        data: result,
+    });
+});
+
 const updateGroup = catchAsync(async (req: Request, res: Response) => {
     const result = await groupServices.updateGroup(req.params.groupId as string, req.body);
 
@@ -89,6 +100,7 @@ export const groupControllers = {
     getAllGroups,
     getActiveGroups,
     getGroupById,
+    getGroupByCode,
     updateGroup,
     toggleGroupStatus,
     deleteGroup,

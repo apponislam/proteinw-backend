@@ -46,6 +46,12 @@ const getGroupById = async (groupId: string) => {
     return group;
 };
 
+const getGroupByCode = async (code: string) => {
+    const group = await GroupModel.findOne({ code, isDeleted: false });
+    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Group not found");
+    return group;
+};
+
 const updateGroup = async (groupId: string, payload: any) => {
     const group = await GroupModel.findOneAndUpdate({ _id: groupId, isDeleted: false }, { $set: payload }, { returnDocument: "after", runValidators: true });
     if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Group not found");
@@ -71,6 +77,7 @@ export const groupServices = {
     getAllGroups,
     getActiveGroups,
     getGroupById,
+    getGroupByCode,
     updateGroup,
     toggleGroupStatus,
     deleteGroup,

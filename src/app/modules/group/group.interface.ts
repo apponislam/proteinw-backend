@@ -7,6 +7,7 @@ export interface IGroup {
     shortDescription: string;
     goal: string;
     endDate: Date;
+    code: string;
 
     createdBy?: Types.ObjectId;
     isActive: boolean;
