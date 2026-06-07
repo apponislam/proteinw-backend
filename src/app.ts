@@ -9,7 +9,7 @@ import router from "./app/routes";
 const app: Application = express();
 
 const corsOptions = {
-    origin: ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://10.10.7.58:3000", "http://10.10.7.58:3001", "http://10.10.7.58:3050", "http://localhost:3010", "http://10.10.7.24:3010", "https://educate.apponislam.top", "http://educate.apponislam.top"],
+    origin: ["http://localhost:3030", "http://10.10.7.24:3030", "http://fundraising.apponislam.top", "https://fundraising.apponislam.top"],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
