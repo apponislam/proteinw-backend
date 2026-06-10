@@ -24,20 +24,21 @@ const getAllProducts = catchAsync(async (req: Request, res: Response) => {
         statusCode: httpStatus.OK,
         success: true,
         message: "Products retrieved successfully",
-        data: result,
+        data: result.data,
+        meta: result.meta,
     });
 });
 
 // Public: get only active products, optionally filtered by category
 const getActiveProducts = catchAsync(async (req: Request, res: Response) => {
-    const category = req.query.category as string | undefined;
-    const result = await productServices.getActiveProducts(category);
+    const result = await productServices.getActiveProducts(req.query);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
         message: "Products retrieved successfully",
-        data: result,
+        data: result.data,
+        meta: result.meta,
     });
 });
 
@@ -86,6 +87,17 @@ const deleteProduct = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const getProductStats = catchAsync(async (req: Request, res: Response) => {
+    const result = await productServices.getProductStats();
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Product stats retrieved successfully",
+        data: result,
+    });
+});
+
 export const productControllers = {
     createProduct,
     getAllProducts,
@@ -94,4 +106,5 @@ export const productControllers = {
     updateProduct,
     toggleProductStatus,
     deleteProduct,
+    getProductStats,
 };

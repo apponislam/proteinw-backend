@@ -10,7 +10,7 @@ router.get("/", publicControllers.getAllPolicies);
 router.get("/:type", publicControllers.getPolicyByType);
 
 // Admin-only routes — create/update/delete policies
-router.post("/", auth, authorize(["ADMIN", "SUPER_ADMIN"]), publicControllers.upsertPolicy);
-router.delete("/:type", auth, authorize(["ADMIN", "SUPER_ADMIN"]), publicControllers.deletePolicy);
+router.post("/", auth, authorize(["SUPER_ADMIN"]), publicControllers.upsertPolicy);
+router.delete("/:type", auth, authorize(["SUPER_ADMIN"]), publicControllers.deletePolicy);
 
 export const publicRoutes = router;

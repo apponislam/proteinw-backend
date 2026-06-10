@@ -15,19 +15,58 @@ const createProduct = async (userId: string, payload: any, productImage?: string
 const getAllProducts = async (query: any = {}) => {
     const filter: any = { isDeleted: false };
     if (query.category) filter.category = query.category;
+    if (query.subCategory) filter.subCategory = query.subCategory;
     if (query.isActive !== undefined) filter.isActive = query.isActive === "true";
 
-    const products = await ProductModel.find(filter).sort({ createdAt: -1 });
-    return products;
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const total = await ProductModel.countDocuments(filter);
+    const products = await ProductModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit);
+    const totalPages = Math.ceil(total / limit);
+    const hasNext = page < totalPages;
+    const hasPrev = page > 1;
+
+    return {
+        data: products,
+        meta: {
+            page,
+            limit,
+            total,
+            totalPages,
+            hasNext,
+            hasPrev,
+        },
+    };
 };
 
-const getActiveProducts = async (category?: string) => {
+const getActiveProducts = async (query: any = {}) => {
     const filter: any = { isActive: true, isDeleted: false };
-    if (category) {
-        filter.category = category;
-    }
-    const products = await ProductModel.find(filter).sort({ createdAt: -1 });
-    return products;
+    if (query.category) filter.category = query.category;
+    if (query.subCategory) filter.subCategory = query.subCategory;
+
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const total = await ProductModel.countDocuments(filter);
+    const products = await ProductModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit);
+    const totalPages = Math.ceil(total / limit);
+    const hasNext = page < totalPages;
+    const hasPrev = page > 1;
+
+    return {
+        data: products,
+        meta: {
+            page,
+            limit,
+            total,
+            totalPages,
+            hasNext,
+            hasPrev,
+        },
+    };
 };
 
 const getProductById = async (productId: string) => {
@@ -41,12 +80,8 @@ const updateProduct = async (productId: string, payload: any, productImage?: str
     if (productImage) {
         updateData.productImage = productImage;
     }
-    
-    const product = await ProductModel.findOneAndUpdate(
-        { _id: productId, isDeleted: false },
-        { $set: updateData },
-        { returnDocument: "after", runValidators: true },
-    );
+
+    const product = await ProductModel.findOneAndUpdate({ _id: productId, isDeleted: false }, { $set: updateData }, { returnDocument: "after", runValidators: true });
     if (!product) throw new ApiError(httpStatus.NOT_FOUND, "Product not found");
     return product;
 };
@@ -60,13 +95,15 @@ const toggleProductStatus = async (productId: string) => {
 };
 
 const deleteProduct = async (productId: string) => {
-    const product = await ProductModel.findOneAndUpdate(
-        { _id: productId, isDeleted: false },
-        { $set: { isDeleted: true, isActive: false } },
-        { returnDocument: "after" },
-    );
+    const product = await ProductModel.findOneAndUpdate({ _id: productId, isDeleted: false }, { $set: { isDeleted: true, isActive: false } }, { returnDocument: "after" });
     if (!product) throw new ApiError(httpStatus.NOT_FOUND, "Product not found");
     return product;
+};
+
+const getProductStats = async () => {
+    const total = await ProductModel.countDocuments({ isDeleted: false });
+    const active = await ProductModel.countDocuments({ isDeleted: false, isActive: true });
+    return { total, active };
 };
 
 export const productServices = {
@@ -77,4 +114,5 @@ export const productServices = {
     updateProduct,
     toggleProductStatus,
     deleteProduct,
+    getProductStats,
 };
