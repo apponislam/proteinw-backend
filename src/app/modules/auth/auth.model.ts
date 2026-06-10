@@ -43,6 +43,7 @@ const UserSchema = new Schema<User>(
 
         address: {
             organizationName: String,
+            organizationType: String,
             street: String,
             city: String,
             state: String,
@@ -50,7 +51,7 @@ const UserSchema = new Schema<User>(
             country: String,
         },
         goal: {
-            type: String,
+            type: Number,
         },
         salesStartDate: {
             type: Date,

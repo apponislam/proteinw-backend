@@ -8,6 +8,8 @@ import { authServices } from "./auth.services";
 import { getSocket } from "../../socket/socket";
 
 const register = catchAsync(async (req: Request, res: Response) => {
+    console.log(req.body);
+
     // Handle profile image if uploaded
     let profileImageUrl = undefined;
     if (req.file) {

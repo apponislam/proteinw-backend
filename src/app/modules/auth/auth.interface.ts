@@ -13,13 +13,14 @@ export interface User {
     profession?: UserProfession;
     address?: {
         organizationName?: string;
+        organizationType?: string;
         street?: string;
         city?: string;
         state?: string;
         zipCode?: string;
         country?: string;
     };
-    goal?: string;
+    goal?: number;
     salesStartDate?: Date;
     salesEndDate?: Date;
     isActive: boolean;
