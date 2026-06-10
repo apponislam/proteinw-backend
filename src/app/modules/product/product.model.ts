@@ -7,7 +7,6 @@ const ProductSchema = new Schema<ProductDocument>(
     {
         name: { type: String, required: true, trim: true },
         price: { type: Number, required: true },
-        className: { type: String, required: true, trim: true },
         shortDescription: { type: String, required: true, trim: true },
         category: { type: String, required: true, trim: true },
         subCategory: { type: String, trim: true },

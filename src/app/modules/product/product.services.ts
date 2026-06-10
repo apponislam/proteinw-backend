@@ -23,7 +23,37 @@ const getAllProducts = async (query: any = {}) => {
     const skip = (page - 1) * limit;
 
     const total = await ProductModel.countDocuments(filter);
-    const products = await ProductModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit);
+    const products = await ProductModel.aggregate([
+        { $match: filter },
+        { $sort: { createdAt: -1 } },
+        { $skip: skip },
+        { $limit: limit },
+        {
+            $lookup: {
+                from: "campaignproducts",
+                let: { productId: "$_id" },
+                pipeline: [
+                    { $match: { $expr: { $eq: ["$productId", "$$productId"] }, isDeleted: false } },
+                    { $sort: { createdAt: 1 } },
+                    { $limit: 10 },
+                    {
+                        $lookup: {
+                            from: "campaigns",
+                            localField: "campaignId",
+                            foreignField: "_id",
+                            as: "campaign",
+                        },
+                    },
+                    { $unwind: "$campaign" },
+                    { $match: { "campaign.isDeleted": false, "campaign.isActive": true } },
+                    { $project: { _id: 0, name: "$campaign.name" } },
+                ],
+                as: "campaigns",
+            },
+        },
+        { $addFields: { campaigns: "$campaigns.name" } },
+    ]);
+
     const totalPages = Math.ceil(total / limit);
     const hasNext = page < totalPages;
     const hasPrev = page > 1;

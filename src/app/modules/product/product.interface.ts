@@ -5,7 +5,6 @@ export interface IProduct {
 
     name: string;
     price: number;
-    className: string;
     shortDescription: string;
     category: string;
     subCategory?: string;
