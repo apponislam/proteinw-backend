@@ -19,7 +19,6 @@ const getAllPolicies = async () => {
 
 const getPolicyByType = async (type: PolicyTypeEnum) => {
     const policy = await PolicyModel.findOne({ type, isDeleted: false });
-    if (!policy) throw new ApiError(httpStatus.NOT_FOUND, "Policy not found");
     return policy;
 };
 
