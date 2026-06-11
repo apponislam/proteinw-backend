@@ -10,6 +10,7 @@ import { invitationRoutes } from "../modules/invitation/invitation.routes";
 import { campaignRoutes } from "../modules/campaign/campaign.routes";
 import { campaignProductRoutes } from "../modules/campaignProduct/campaignProduct.routes";
 import { orderRoutes } from "../modules/order/order.routes";
+import { dashboardRoutes } from "../modules/dashboard/dashboard.routes";
 
 const router = express.Router();
 
@@ -57,6 +58,10 @@ const moduleRoutes = [
     {
         path: "/orders",
         route: orderRoutes,
+    },
+    {
+        path: "/dashboard",
+        route: dashboardRoutes,
     },
 ];
 

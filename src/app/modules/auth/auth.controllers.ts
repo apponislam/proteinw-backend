@@ -369,13 +369,14 @@ const createAdmin = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getAdminsWithStats = catchAsync(async (req: Request, res: Response) => {
-    const result = await authServices.getAdminsWithStats();
+    const result = await authServices.getAdminsWithStats(req.query);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
         message: "Admins stats retrieved successfully",
-        data: result,
+        data: result.data,
+        meta: result.meta,
     });
 });
 

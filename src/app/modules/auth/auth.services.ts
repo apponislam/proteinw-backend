@@ -482,10 +482,15 @@ const createAdmin = async (data: any) => {
     return userWithoutSensitive;
 };
 
-const getAdminsWithStats = async () => {
-    const admins = await UserModel.find({ role: "ADMIN", isDeleted: false });
+const getAdminsWithStats = async (query: any) => {
+    const page = parseInt(query.page as string) || 1;
+    const limit = parseInt(query.limit as string) || 10;
+    const skip = (page - 1) * limit;
 
-    const result = await Promise.all(
+    const total = await UserModel.countDocuments({ role: "ADMIN", isDeleted: false });
+    const admins = await UserModel.find({ role: "ADMIN", isDeleted: false }).sort({ createdAt: -1 }).skip(skip).limit(limit);
+
+    const data = await Promise.all(
         admins.map(async (admin) => {
             const group = await GroupModel.findOne({ createdBy: admin._id, isDeleted: false });
             let groupName = null;
@@ -513,7 +518,17 @@ const getAdminsWithStats = async () => {
         })
     );
 
-    return result;
+    return {
+        data,
+        meta: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+            hasNext: page < Math.ceil(total / limit),
+            hasPrev: page > 1,
+        },
+    };
 };
 
 export const authServices = {
