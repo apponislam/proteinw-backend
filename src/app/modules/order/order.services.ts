@@ -6,6 +6,7 @@ import { ProductModel } from "../product/product.model";
 import { CampaignProductModel } from "../campaignProduct/campaignProduct.model";
 import { UserModel } from "../auth/auth.model";
 import { CampaignModel } from "../campaign/campaign.model";
+import { TierModel } from "../tier/tier.model";
 import { sendOrderConfirmationEmail } from "../../../utils/emailTemplates";
 
 // Create a guest order
@@ -59,7 +60,6 @@ const createOrder = async (payload: any) => {
         };
     });
 
-    // Create order
     const order = await OrderModel.create({
         ...customerData,
         items: orderItems,
@@ -69,6 +69,32 @@ const createOrder = async (payload: any) => {
         campaignId: campaignId ? new Types.ObjectId(campaignId) : undefined,
         groupId: groupId ? new Types.ObjectId(groupId) : undefined,
     });
+
+    // Update campaign tier based on total packages sold
+    if (campaignId) {
+        try {
+            const campaignOrders = await OrderModel.aggregate([
+                { $match: { campaignId: new Types.ObjectId(campaignId), isDeleted: false } },
+                { $group: { _id: null, totalPackages: { $sum: "$totalPackage" } } }
+            ]);
+            const totalPackagesForCampaign = campaignOrders.length > 0 ? campaignOrders[0].totalPackages : 0;
+
+            const eligibleTier = await TierModel.findOne({
+                isActive: true,
+                isDeleted: false,
+                minSalesVolume: { $lte: totalPackagesForCampaign }
+            }).sort({ minSalesVolume: -1 });
+
+            if (eligibleTier) {
+                await CampaignModel.updateOne(
+                    { _id: new Types.ObjectId(campaignId) },
+                    { $set: { tierId: eligibleTier._id } }
+                );
+            }
+        } catch (tierError) {
+            console.error("Failed to update campaign tier:", tierError);
+        }
+    }
 
     // Send order confirmation email
     try {

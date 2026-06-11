@@ -11,6 +11,7 @@ export interface ICampaign {
 
     groupId?: Types.ObjectId;
     createdBy?: Types.ObjectId;
+    tierId?: Types.ObjectId;
     isActive: boolean;
     isDeleted: boolean;
     createdAt?: Date;

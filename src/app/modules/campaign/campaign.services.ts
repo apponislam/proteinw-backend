@@ -21,6 +21,7 @@ const createCampaign = async (userId: string, groupId: string, payload: any) => 
     // Create the campaign
     const campaign = await CampaignModel.create({
         ...payload,
+        target: group.goal,
         groupId: new Types.ObjectId(groupId),
         createdBy: new Types.ObjectId(userId),
     });

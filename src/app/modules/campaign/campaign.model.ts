@@ -12,6 +12,7 @@ const CampaignSchema = new Schema<CampaignDocument>(
         code: { type: String, unique: true, trim: true },
         groupId: { type: Schema.Types.ObjectId, ref: "Group" },
         createdBy: { type: Schema.Types.ObjectId, ref: "User" },
+        tierId: { type: Schema.Types.ObjectId, ref: "Tier" },
         isActive: { type: Boolean, default: true },
         isDeleted: { type: Boolean, default: false },
     },
