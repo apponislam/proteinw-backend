@@ -47,5 +47,6 @@ OrderSchema.index({ memberId: 1, isDeleted: 1, createdAt: -1 });
 OrderSchema.index({ campaignId: 1, isDeleted: 1, createdAt: -1 });
 OrderSchema.index({ groupId: 1, isDeleted: 1, createdAt: -1 });
 OrderSchema.index({ customerEmail: 1, isDeleted: 1 });
+OrderSchema.index({ isDeleted: 1, createdAt: -1, totalPackage: 1 });
 
 export const OrderModel = mongoose.model<OrderDocument>("Order", OrderSchema);
