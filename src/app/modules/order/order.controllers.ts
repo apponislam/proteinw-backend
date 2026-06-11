@@ -46,7 +46,7 @@ const getOrdersByMember = catchAsync(async (req: Request, res: Response) => {
 // Get single order by ID
 const getOrderById = catchAsync(async (req: Request, res: Response) => {
     const { orderId } = req.params;
-    const result = await orderServices.getOrderById(orderId);
+    const result = await orderServices.getOrderById(orderId as string);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
@@ -60,7 +60,7 @@ const getOrderById = catchAsync(async (req: Request, res: Response) => {
 const updateOrderStatus = catchAsync(async (req: Request, res: Response) => {
     const { orderId } = req.params;
     const { status } = req.body;
-    const result = await orderServices.updateOrderStatus(orderId, status);
+    const result = await orderServices.updateOrderStatus(orderId as string, status as string);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
@@ -73,7 +73,7 @@ const updateOrderStatus = catchAsync(async (req: Request, res: Response) => {
 // Soft delete an order (admin and super admin only)
 const deleteOrder = catchAsync(async (req: Request, res: Response) => {
     const { orderId } = req.params;
-    const result = await orderServices.deleteOrder(orderId);
+    const result = await orderServices.deleteOrder(orderId as string);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,

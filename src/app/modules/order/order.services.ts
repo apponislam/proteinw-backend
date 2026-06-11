@@ -39,6 +39,7 @@ const createOrder = async (payload: any) => {
 
     // Build order items with product info
     let totalPrice = 0;
+    let totalPackage = 0;
     const orderItems = items.map((item: any) => {
         const product = products.find((p: any) => p._id.toString() === item.productId.toString());
         if (!product) {
@@ -47,6 +48,7 @@ const createOrder = async (payload: any) => {
 
         const lineTotal = product.price * item.quantity;
         totalPrice += lineTotal;
+        totalPackage += item.quantity;
 
         return {
             productId: product._id,
@@ -62,6 +64,7 @@ const createOrder = async (payload: any) => {
         ...customerData,
         items: orderItems,
         totalPrice,
+        totalPackage,
         memberId: memberId ? new Types.ObjectId(memberId) : undefined,
         campaignId: campaignId ? new Types.ObjectId(campaignId) : undefined,
         groupId: groupId ? new Types.ObjectId(groupId) : undefined,

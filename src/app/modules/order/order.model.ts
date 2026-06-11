@@ -24,6 +24,7 @@ const OrderSchema = new Schema<OrderDocument>(
             country: { type: String, required: true, trim: true },
         },
         items: [OrderItemSchema],
+        totalPackage: { type: Number, required: true, min: 0 },
         totalPrice: { type: Number, required: true, min: 0 },
         memberId: { type: Schema.Types.ObjectId, ref: "User" },
         campaignId: { type: Schema.Types.ObjectId, ref: "Campaign" },

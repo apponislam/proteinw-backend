@@ -27,6 +27,7 @@ export interface IOrder {
 
     // Order items
     items: IOrderItem[];
+    totalPackage: number;
     totalPrice: number;
 
     // Association - who's store/member the order is for
