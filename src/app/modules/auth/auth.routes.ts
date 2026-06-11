@@ -6,7 +6,7 @@ const router = Router();
 
 // Public routes
 router.post("/register", uploadProfileImage, authControllers.register);
-router.post("/register-member", uploadProfileImage, authControllers.registerMember);
+router.post("/register-seller", uploadProfileImage, authControllers.registerSeller);
 router.post("/login", authControllers.login);
 router.get("/verify-email", authControllers.verifyEmail);
 router.post("/resend-verification", authControllers.resendVerificationEmail);
@@ -28,5 +28,6 @@ router.post("/resend-email-update", auth, authControllers.resendEmailUpdate);
 // Admin only routes
 router.post("/set-password/:userId", auth, authControllers.setUserPassword);
 router.post("/create-admin", authControllers.createAdmin);
+router.get("/admins-with-stats", authControllers.getAdminsWithStats);
 
 export const authRoutes = router;

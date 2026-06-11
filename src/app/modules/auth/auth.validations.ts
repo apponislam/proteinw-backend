@@ -13,7 +13,7 @@ export const registerSchema = z.object({
     name: z.string().min(2),
     email: z.string().email(),
     password: z.string().min(6),
-    role: z.enum(["SUPER_ADMIN", "ADMIN", "MEMBER"]).default("MEMBER"),
+    role: z.enum(["SUPER_ADMIN", "ADMIN", "SELLER"]).default("SELLER"),
     phone: z.string().optional(),
     profileImage: z.string().optional(),
     profession: z.enum(["LEADER", "TEACHER", "PARENT", "COACH"]).optional(),

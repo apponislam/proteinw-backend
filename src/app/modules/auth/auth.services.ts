@@ -8,6 +8,8 @@ import crypto from "crypto";
 import { sendOtpEmail, sendVerificationEmail, sendWelcomeEmail, sendEmailUpdateVerification, sendAdminCreatedEmail } from "../../../utils/emailTemplates";
 import { invitationServices } from "../invitation/invitation.services";
 import { CampaignModel } from "../campaign/campaign.model";
+import { GroupModel } from "../group/group.model";
+import { OrderModel } from "../order/order.model";
 
 const registerUser = async (data: any) => {
     // Check existing user
@@ -382,7 +384,7 @@ const setUserPassword = async (userId: string, newPassword: string) => {
     await user.save();
 };
 
-const registerMember = async (data: any) => {
+const registerSeller = async (data: any) => {
     // Check invitation exists
     const invitation = await invitationServices.getInvitationByEmail(data.email);
 
@@ -406,13 +408,13 @@ const registerMember = async (data: any) => {
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
     const verificationExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    // Create user with role MEMBER and assigned group & campaign if available
+    // Create user with role SELLER and assigned group & campaign if available
     const userData: any = {
         ...data,
         password: hashedPassword,
         isActive: true,
         isEmailVerified: false,
-        role: "MEMBER",
+        role: "SELLER",
         groupAssigned: invitation.groupId,
         verificationToken,
         verificationCode,
@@ -480,6 +482,40 @@ const createAdmin = async (data: any) => {
     return userWithoutSensitive;
 };
 
+const getAdminsWithStats = async () => {
+    const admins = await UserModel.find({ role: "ADMIN", isDeleted: false });
+
+    const result = await Promise.all(
+        admins.map(async (admin) => {
+            const group = await GroupModel.findOne({ createdBy: admin._id, isDeleted: false });
+            let groupName = null;
+            let sellerCount = 0;
+            let orderCount = 0;
+
+            if (group) {
+                groupName = group.name;
+                sellerCount = await UserModel.countDocuments({ groupAssigned: group._id, role: "SELLER", isDeleted: false });
+
+                if (group.runningCampaignId) {
+                    orderCount = await OrderModel.countDocuments({ campaignId: group.runningCampaignId, isDeleted: false });
+                }
+            }
+
+            return {
+                _id: admin._id,
+                name: admin.name,
+                email: admin.email,
+                isActive: admin.isActive,
+                groupName,
+                sellerCount,
+                orderCount,
+            };
+        })
+    );
+
+    return result;
+};
+
 export const authServices = {
     registerUser,
     loginUser,
@@ -497,6 +533,7 @@ export const authServices = {
     resendEmailUpdate,
     verifyNewEmail,
     setUserPassword,
-    registerMember,
+    registerSeller,
     createAdmin,
+    getAdminsWithStats,
 };

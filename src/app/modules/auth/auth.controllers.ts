@@ -301,7 +301,7 @@ const setUserPassword = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
-const registerMember = catchAsync(async (req: Request, res: Response) => {
+const registerSeller = catchAsync(async (req: Request, res: Response) => {
     // Handle profile image if uploaded
     let profileImageUrl = undefined;
     if (req.file) {
@@ -333,7 +333,7 @@ const registerMember = catchAsync(async (req: Request, res: Response) => {
         throw new ApiError(httpStatus.BAD_REQUEST, "Name, email, and password are required");
     }
 
-    const result = await authServices.registerMember(userData);
+    const result = await authServices.registerSeller(userData);
 
     res.cookie("refreshToken", result.refreshToken, {
         httpOnly: true,
@@ -345,7 +345,7 @@ const registerMember = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.CREATED,
         success: true,
-        message: "Member registered successfully",
+        message: "Seller registered successfully",
         data: {
             user: result.user,
             accessToken: result.accessToken,
@@ -368,6 +368,17 @@ const createAdmin = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const getAdminsWithStats = catchAsync(async (req: Request, res: Response) => {
+    const result = await authServices.getAdminsWithStats();
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Admins stats retrieved successfully",
+        data: result,
+    });
+});
+
 export const authControllers = {
     register,
     login,
@@ -386,6 +397,7 @@ export const authControllers = {
     resendEmailUpdate,
     verifyNewEmail,
     setUserPassword,
-    registerMember,
+    registerSeller,
     createAdmin,
+    getAdminsWithStats,
 };

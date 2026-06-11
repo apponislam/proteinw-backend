@@ -66,7 +66,7 @@ export const sendWelcomeEmail = (email: string, name: string) => {
 };
 
 export const sendAdminCreatedEmail = (email: string, name: string, password: string) => {
-    const loginUrl = `${config.client_url}/login`;
+    const loginUrl = `${config.client_url}/auth/login`;
     const html = `
         <div style="${containerStyle}">
             <h2 style="color: #1a1a1a; margin-top: 0;">Hello ${name},</h2>

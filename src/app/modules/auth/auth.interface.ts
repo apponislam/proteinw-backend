@@ -1,6 +1,6 @@
 import { Types } from "mongoose";
 
-export type UserRole = "SUPER_ADMIN" | "ADMIN" | "MEMBER";
+export type UserRole = "SUPER_ADMIN" | "ADMIN" | "SELLER";
 export type UserProfession = "LEADER" | "TEACHER" | "PARENT" | "COACH";
 
 export interface User {
