@@ -353,6 +353,21 @@ const registerMember = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const createAdmin = catchAsync(async (req: Request, res: Response) => {
+    if (!req.body.name || !req.body.email || !req.body.password) {
+        throw new ApiError(httpStatus.BAD_REQUEST, "Name, email, and password are required");
+    }
+
+    const result = await authServices.createAdmin(req.body);
+
+    sendResponse(res, {
+        statusCode: httpStatus.CREATED,
+        success: true,
+        message: "Admin created successfully",
+        data: result,
+    });
+});
+
 export const authControllers = {
     register,
     login,
@@ -372,4 +387,5 @@ export const authControllers = {
     verifyNewEmail,
     setUserPassword,
     registerMember,
+    createAdmin,
 };

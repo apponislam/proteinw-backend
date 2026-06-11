@@ -5,7 +5,7 @@ import config from "../../config";
 import { UserModel } from "./auth.model";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
-import { sendOtpEmail, sendVerificationEmail, sendWelcomeEmail, sendEmailUpdateVerification } from "../../../utils/emailTemplates";
+import { sendOtpEmail, sendVerificationEmail, sendWelcomeEmail, sendEmailUpdateVerification, sendAdminCreatedEmail } from "../../../utils/emailTemplates";
 import { invitationServices } from "../invitation/invitation.services";
 import { CampaignModel } from "../campaign/campaign.model";
 
@@ -450,6 +450,36 @@ const registerMember = async (data: any) => {
     return { user: userWithoutSensitive, accessToken, refreshToken };
 };
 
+const createAdmin = async (data: any) => {
+    // Check existing user
+    const existing = await UserModel.findOne({ email: data.email });
+    if (existing) throw new ApiError(httpStatus.BAD_REQUEST, "Email already in use");
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(data.password, Number(config.bcrypt_salt_rounds));
+
+    // Create user with role ADMIN
+    const userData = {
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        password: hashedPassword,
+        role: "ADMIN" as const,
+        isActive: true,
+        isEmailVerified: true, // Auto-verify admin
+    };
+
+    const [createdUser] = await UserModel.create([userData]);
+
+    // Send email with credentials
+    sendAdminCreatedEmail(createdUser.email as string, createdUser.name as string, data.password);
+
+    const userObject = createdUser.toObject();
+    const { password: pwd, ...userWithoutSensitive } = userObject;
+
+    return userWithoutSensitive;
+};
+
 export const authServices = {
     registerUser,
     loginUser,
@@ -468,4 +498,5 @@ export const authServices = {
     verifyNewEmail,
     setUserPassword,
     registerMember,
+    createAdmin,
 };

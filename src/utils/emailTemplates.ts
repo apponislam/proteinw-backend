@@ -65,6 +65,26 @@ export const sendWelcomeEmail = (email: string, name: string) => {
     sendMail(email, "Welcome to ProteinW!", html);
 };
 
+export const sendAdminCreatedEmail = (email: string, name: string, password: string) => {
+    const loginUrl = `${config.client_url}/login`;
+    const html = `
+        <div style="${containerStyle}">
+            <h2 style="color: #1a1a1a; margin-top: 0;">Hello ${name},</h2>
+            <p style="color: #4a4a4a; line-height: 1.6;">You have been added as an Administrator for ProteinW.</p>
+            <p style="color: #4a4a4a; line-height: 1.6;">Here are your temporary login credentials:</p>
+            <div style="background: #fffaf0; border: 1px solid #ffe8b8; padding: 16px; margin: 20px 0; border-radius: 8px;">
+                <p style="margin: 0 0 8px 0; color: #4a4a4a;"><strong>Email:</strong> ${email}</p>
+                <p style="margin: 0; color: #4a4a4a;"><strong>Password:</strong> ${password}</p>
+            </div>
+            <p style="color: #4a4a4a; line-height: 1.6;">Please login using the button below and change your password immediately.</p>
+            <div style="text-align: center; margin: 32px 0;">
+                <a href="${loginUrl}" style="${buttonStyle}">Login to Dashboard</a>
+            </div>
+        </div>
+    `;
+    sendMail(email, "Your Admin Account Has Been Created", html);
+};
+
 export const sendEmailUpdateVerification = (email: string, name: string, verificationUrl: string) => {
     const html = `
         <div style="${containerStyle}">

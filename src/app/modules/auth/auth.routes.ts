@@ -27,5 +27,6 @@ router.post("/resend-email-update", auth, authControllers.resendEmailUpdate);
 
 // Admin only routes
 router.post("/set-password/:userId", auth, authControllers.setUserPassword);
+router.post("/create-admin", authControllers.createAdmin);
 
 export const authRoutes = router;
