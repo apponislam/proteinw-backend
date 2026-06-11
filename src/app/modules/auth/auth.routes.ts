@@ -2,6 +2,7 @@ import { Router } from "express";
 import { authControllers } from "./auth.controllers";
 import auth from "../../middlewares/auth";
 import { uploadProfileImage } from "../../middlewares/multer";
+import authorize from "../../middlewares/authorized";
 const router = Router();
 
 // Public routes
@@ -27,7 +28,7 @@ router.post("/resend-email-update", auth, authControllers.resendEmailUpdate);
 
 // Admin only routes
 router.post("/set-password/:userId", auth, authControllers.setUserPassword);
-router.post("/create-admin", authControllers.createAdmin);
-router.get("/admins-with-stats", authControllers.getAdminsWithStats);
+router.post("/create-admin", auth, authorize(["SUPER_ADMIN"]), authControllers.createAdmin);
+router.get("/admins-with-stats", auth, authorize(["SUPER_ADMIN"]), authControllers.getAdminsWithStats);
 
 export const authRoutes = router;
