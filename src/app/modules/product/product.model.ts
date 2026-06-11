@@ -6,7 +6,10 @@ export interface ProductDocument extends Omit<IProduct, "_id">, Document {}
 const ProductSchema = new Schema<ProductDocument>(
     {
         name: { type: String, required: true, trim: true },
-        price: { type: Number, required: true },
+        price: {
+            type: Number,
+            default: 180,
+        },
         shortDescription: { type: String, required: true, trim: true },
         category: { type: String, required: true, trim: true },
         subCategory: { type: String, trim: true },
