@@ -5,6 +5,8 @@ import { Request, Response } from "express";
 import { productServices } from "./product.services";
 
 const createProduct = catchAsync(async (req: Request, res: Response) => {
+    console.log(req.file);
+    console.log(req.body);
     const productImage = req.file?.filename;
     const result = await productServices.createProduct(req.user._id, req.body, productImage);
 

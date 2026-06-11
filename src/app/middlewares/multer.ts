@@ -34,6 +34,11 @@ const generateFileName = (prefix: string, originalName: string) => {
     return `${prefix}-${timestamp}-${randomNum}.webp`;
 };
 
+// Helper to get relative path for database
+const getRelativeImagePath = (dirName: string, filename: string): string => {
+    return `/uploads/${dirName}/${filename}`;
+};
+
 // Middleware for single profile image upload
 export const uploadProfileImage = (req: Request, res: Response, next: NextFunction) => {
     const uploadSingle = upload.single("profileImage");
@@ -51,7 +56,8 @@ export const uploadProfileImage = (req: Request, res: Response, next: NextFuncti
                 // Convert to webp
                 await sharp(file.buffer).webp({ quality: 80 }).toFile(outputPath);
 
-                file.filename = newName;
+                // Store the relative path instead of just filename
+                file.filename = getRelativeImagePath("profile-images", newName);
                 file.path = outputPath;
                 file.mimetype = "image/webp";
             } catch (error) {
@@ -80,7 +86,8 @@ export const uploadProductImage = (req: Request, res: Response, next: NextFuncti
                 // Convert to webp
                 await sharp(file.buffer).webp({ quality: 80 }).toFile(outputPath);
 
-                file.filename = newName;
+                // Store the relative path instead of just filename
+                file.filename = getRelativeImagePath("product-images", newName);
                 file.path = outputPath;
                 file.mimetype = "image/webp";
             } catch (error) {
