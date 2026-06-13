@@ -11,6 +11,7 @@ import { campaignRoutes } from "../modules/campaign/campaign.routes";
 import { campaignProductRoutes } from "../modules/campaignProduct/campaignProduct.routes";
 import { orderRoutes } from "../modules/order/order.routes";
 import { dashboardRoutes } from "../modules/dashboard/dashboard.routes";
+import { activityLogRoutes } from "../modules/activityLog/activityLog.routes";
 
 const router = express.Router();
 
@@ -62,6 +63,10 @@ const moduleRoutes = [
     {
         path: "/dashboard",
         route: dashboardRoutes,
+    },
+    {
+        path: "/activities",
+        route: activityLogRoutes,
     },
 ];
 

@@ -4,6 +4,7 @@ import ApiError from "../../../errors/ApiError";
 import { CampaignModel } from "./campaign.model";
 import { GroupModel } from "../group/group.model";
 import { UserModel } from "../auth/auth.model";
+import { activityLogServices } from "../activityLog/activityLog.services";
 
 const createCampaign = async (userId: string, groupId: string, payload: any) => {
     // Check if group exists
@@ -25,6 +26,18 @@ const createCampaign = async (userId: string, groupId: string, payload: any) => 
         groupId: new Types.ObjectId(groupId),
         createdBy: new Types.ObjectId(userId),
     });
+
+    // Log Activity (Campaign Started)
+    try {
+        await activityLogServices.createActivityLog({
+            groupId: new Types.ObjectId(groupId),
+            type: "CAMPAIGN",
+            title: "Campaign Started",
+            description: `${campaign.name} shop is now officially live`,
+        });
+    } catch (activityError) {
+        console.error("Failed to create activity log for campaign start:", activityError);
+    }
 
     // Update group to set runningCampaignId
     await GroupModel.findOneAndUpdate({ _id: groupId }, { $set: { runningCampaignId: campaign._id } });

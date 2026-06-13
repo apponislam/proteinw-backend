@@ -8,6 +8,8 @@ import { UserModel } from "../auth/auth.model";
 import { CampaignModel } from "../campaign/campaign.model";
 import { TierModel } from "../tier/tier.model";
 import { sendOrderConfirmationEmail } from "../../../utils/emailTemplates";
+import { activityLogServices } from "../activityLog/activityLog.services";
+import { ActivityLogModel } from "../activityLog/activityLog.model";
 
 // Create a guest order
 const createOrder = async (payload: any) => {
@@ -107,6 +109,69 @@ const createOrder = async (payload: any) => {
     } catch (emailError) {
         console.error("Failed to send order confirmation email:", emailError);
         // Continue even if email fails
+    }
+
+    // Log Activity (New Sale Logged & Milestone Reached)
+    try {
+        let sellerName = customerData.customerName || "Someone";
+        if (memberId) {
+            const member = await UserModel.findById(memberId);
+            if (member) sellerName = member.name;
+        }
+        const firstItem = orderItems[0];
+        const itemText = firstItem ? `${firstItem.quantity}x '${firstItem.productName}'` : "products";
+        const description = `${sellerName} sold ${itemText}`;
+
+        const campaign = campaignId ? await CampaignModel.findById(campaignId) : null;
+        const dbGroupId = groupId 
+            ? new Types.ObjectId(groupId) 
+            : (campaign?.groupId ? campaign.groupId : undefined);
+
+        if (dbGroupId) {
+            await activityLogServices.createActivityLog({
+                groupId: dbGroupId,
+                type: "SALE",
+                title: "New Sale Logged",
+                description,
+            });
+
+            // Check Milestone reached for Campaign
+            if (campaignId) {
+                const campaignOrders = await OrderModel.aggregate([
+                    { $match: { campaignId: new Types.ObjectId(campaignId), isDeleted: false } },
+                    { $group: { _id: null, totalPackages: { $sum: "$totalPackage" } } }
+                ]);
+                const totalPackagesForCampaign = campaignOrders.length > 0 ? campaignOrders[0].totalPackages : 0;
+
+                if (campaign && campaign.target > 0) {
+                    const percentage = Math.round((totalPackagesForCampaign / campaign.target) * 100);
+                    
+                    let thresholdReached = 0;
+                    if (percentage >= 100) thresholdReached = 100;
+                    else if (percentage >= 70) thresholdReached = 70;
+                    else if (percentage >= 50) thresholdReached = 50;
+                    else if (percentage >= 25) thresholdReached = 25;
+
+                    if (thresholdReached > 0) {
+                        const milestoneDesc = `${thresholdReached}% of Group Goal Achieved!`;
+                        const alreadyLogged = await ActivityLogModel.findOne({
+                            type: "MILESTONE",
+                            description: milestoneDesc,
+                        });
+                        if (!alreadyLogged) {
+                            await activityLogServices.createActivityLog({
+                                groupId: dbGroupId,
+                                type: "MILESTONE",
+                                title: "Milestone Reached",
+                                description: milestoneDesc,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    } catch (activityError) {
+        console.error("Failed to create activity log for sale:", activityError);
     }
 
     return order;

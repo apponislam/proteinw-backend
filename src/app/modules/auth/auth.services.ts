@@ -10,6 +10,8 @@ import { invitationServices } from "../invitation/invitation.services";
 import { CampaignModel } from "../campaign/campaign.model";
 import { GroupModel } from "../group/group.model";
 import { OrderModel } from "../order/order.model";
+import { activityLogServices } from "../activityLog/activityLog.services";
+import { Types } from "mongoose";
 
 const registerUser = async (data: any) => {
     // Check existing user
@@ -430,6 +432,23 @@ const registerSeller = async (data: any) => {
     // Mark invitation as accepted
     await invitationServices.acceptInvitation(data.email);
 
+    // Log Activity (New Member Joined)
+    try {
+        let groupName = "the team";
+        const group = await GroupModel.findById(invitation.groupId);
+        if (group) {
+            groupName = group.name;
+        }
+        await activityLogServices.createActivityLog({
+            groupId: new Types.ObjectId(invitation.groupId),
+            type: "MEMBER",
+            title: "New Member Joined",
+            description: `${createdUser.name} joined the ${groupName} team`,
+        });
+    } catch (activityError) {
+        console.error("Failed to create activity log for member join:", activityError);
+    }
+
     // Send emails
     const verificationUrl = `${config.client_url}/verify-email?token=${verificationToken}&email=${createdUser.email}`;
     sendVerificationEmail(createdUser.email as string, createdUser.name as string, verificationUrl, verificationCode);
@@ -515,7 +534,7 @@ const getAdminsWithStats = async (query: any) => {
                 sellerCount,
                 orderCount,
             };
-        })
+        }),
     );
 
     return {
