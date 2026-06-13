@@ -380,6 +380,18 @@ const getAdminsWithStats = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const getGroupSellers = catchAsync(async (req: Request, res: Response) => {
+    const result = await authServices.getGroupSellers(req.params.groupId as string, req.query);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Group sellers retrieved successfully",
+        data: result.data,
+        meta: result.pagination,
+    });
+});
+
 export const authControllers = {
     register,
     login,
@@ -401,4 +413,5 @@ export const authControllers = {
     registerSeller,
     createAdmin,
     getAdminsWithStats,
+    getGroupSellers,
 };

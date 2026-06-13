@@ -30,5 +30,6 @@ router.post("/resend-email-update", auth, authControllers.resendEmailUpdate);
 router.post("/set-password/:userId", auth, authControllers.setUserPassword);
 router.post("/create-admin", auth, authorize(["SUPER_ADMIN"]), authControllers.createAdmin);
 router.get("/admins-with-stats", auth, authorize(["SUPER_ADMIN"]), authControllers.getAdminsWithStats);
+router.get("/group-members/:groupId", auth, authorize(["ADMIN", "SUPER_ADMIN"]), authControllers.getGroupSellers);
 
 export const authRoutes = router;

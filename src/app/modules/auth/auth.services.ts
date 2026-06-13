@@ -550,6 +550,37 @@ const getAdminsWithStats = async (query: any) => {
     };
 };
 
+const getGroupSellers = async (groupId: string, query: any = {}) => {
+    const filter: any = {
+        groupAssigned: new Types.ObjectId(groupId),
+        role: "SELLER",
+        isDeleted: false,
+    };
+
+    const page = parseInt(query.page as string) || 1;
+    const limit = parseInt(query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
+    const sellers = await UserModel.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .select("-password -verificationToken -verificationCode -verificationExpiry");
+    const total = await UserModel.countDocuments(filter);
+
+    return {
+        data: sellers,
+        pagination: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+            hasNext: page < Math.ceil(total / limit),
+            hasPrev: page > 1,
+        },
+    };
+};
+
 export const authServices = {
     registerUser,
     loginUser,
@@ -570,4 +601,5 @@ export const authServices = {
     registerSeller,
     createAdmin,
     getAdminsWithStats,
+    getGroupSellers,
 };
