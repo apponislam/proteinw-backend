@@ -2,6 +2,7 @@ import { Server, Socket } from "socket.io";
 import http from "http";
 import { contactServices } from "../modules/contact/contact.services";
 import { UserModel } from "../modules/auth/auth.model";
+import { GroupModel } from "../modules/group/group.model";
 
 let io: Server;
 
@@ -30,16 +31,27 @@ export const initSocket = (server: http.Server) => {
             socket.join(`user_${userId}`);
             console.log("User joined room:", userId);
 
-            // Check if user is SUPER_ADMIN to join super_admins room
+            // Fetch user to join group room and super_admins
             try {
                 const user = await UserModel.findById(userId);
-                if (user?.role === "SUPER_ADMIN") {
-                    socket.join("super_admins");
-                    console.log("SUPER_ADMIN joined room:", userId);
+                if (user) {
+                    if (user.role === "SUPER_ADMIN") {
+                        socket.join("super_admins");
+                        console.log("SUPER_ADMIN joined room:", userId);
 
-                    // Send initial unread count only to SUPER_ADMINs
-                    const unreadCount = await contactServices.getUnreadCount();
-                    socket.emit("contact:unreadCount", unreadCount);
+                        // Send initial unread count only to SUPER_ADMINs
+                        const unreadCount = await contactServices.getUnreadCount();
+                        socket.emit("contact:unreadCount", unreadCount);
+                    } else if (user.role === "SELLER" && user.groupAssigned) {
+                        socket.join(`group_${user.groupAssigned.toString()}`);
+                        console.log(`User ${userId} joined group room: group_${user.groupAssigned}`);
+                    } else if (user.role === "ADMIN") {
+                        const group = await GroupModel.findOne({ createdBy: user._id, isDeleted: false });
+                        if (group) {
+                            socket.join(`group_${group._id.toString()}`);
+                            console.log(`Admin ${userId} joined group room: group_${group._id}`);
+                        }
+                    }
                 }
             } catch (error) {
                 console.error("Error fetching user for socket:", error);
