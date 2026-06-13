@@ -9,17 +9,10 @@ import { TierModel } from "./tier.model";
  * @param max - maxSalesVolume of the new/updated tier (optional / unlimited)
  * @param excludeTierId - tier ID to exclude from the check (used during update)
  */
-const checkRangeOverlap = async (
-    min: number,
-    max: number | undefined | null,
-    excludeTierId?: string,
-) => {
+const checkRangeOverlap = async (min: number, max: number | undefined | null, excludeTierId?: string) => {
     // Basic validation: min must be less than max (when max is provided)
     if (max !== undefined && max !== null && min >= max) {
-        throw new ApiError(
-            httpStatus.BAD_REQUEST,
-            "minSalesVolume must be less than maxSalesVolume",
-        );
+        throw new ApiError(httpStatus.BAD_REQUEST, "minSalesVolume must be less than maxSalesVolume");
     }
 
     const filter: any = { isDeleted: false };
@@ -40,10 +33,7 @@ const checkRangeOverlap = async (
         const tierMax = existingMax ?? Infinity;
 
         if (min < tierMax && newMax > existingMin) {
-            throw new ApiError(
-                httpStatus.CONFLICT,
-                `Sales volume range ${min}–${max ?? "∞"} overlaps with existing tier "${tier.name}" (${existingMin}–${existingMax ?? "∞"})`,
-            );
+            throw new ApiError(httpStatus.CONFLICT, `Sales volume range ${min}–${max ?? "∞"} overlaps with existing tier "${tier.name}" (${existingMin}–${existingMax ?? "∞"})`);
         }
     }
 };
@@ -61,6 +51,8 @@ const createTier = async (userId: string, payload: any) => {
 const getAllTiers = async (query: any = {}) => {
     const filter: any = { isDeleted: false };
     if (query.isActive !== undefined) filter.isActive = query.isActive === "true";
+
+    console.log("filter", filter);
 
     const tiers = await TierModel.find(filter).sort({ minSalesVolume: 1 });
     return tiers;
@@ -86,18 +78,12 @@ const updateTier = async (tierId: string, payload: any) => {
         if (!currentTier) throw new ApiError(httpStatus.NOT_FOUND, "Tier not found");
 
         const newMin = payload.minSalesVolume ?? currentTier.minSalesVolume;
-        const newMax = payload.maxSalesVolume !== undefined
-            ? payload.maxSalesVolume
-            : currentTier.maxSalesVolume;
+        const newMax = payload.maxSalesVolume !== undefined ? payload.maxSalesVolume : currentTier.maxSalesVolume;
 
         await checkRangeOverlap(newMin, newMax, tierId);
     }
 
-    const tier = await TierModel.findOneAndUpdate(
-        { _id: tierId, isDeleted: false },
-        { $set: payload },
-        { returnDocument: "after", runValidators: true },
-    );
+    const tier = await TierModel.findOneAndUpdate({ _id: tierId, isDeleted: false }, { $set: payload }, { returnDocument: "after", runValidators: true });
     if (!tier) throw new ApiError(httpStatus.NOT_FOUND, "Tier not found");
     return tier;
 };
@@ -111,11 +97,7 @@ const toggleTierStatus = async (tierId: string) => {
 };
 
 const deleteTier = async (tierId: string) => {
-    const tier = await TierModel.findOneAndUpdate(
-        { _id: tierId, isDeleted: false },
-        { $set: { isDeleted: true, isActive: false } },
-        { returnDocument: "after" },
-    );
+    const tier = await TierModel.findOneAndUpdate({ _id: tierId, isDeleted: false }, { $set: { isDeleted: true, isActive: false } }, { returnDocument: "after" });
     if (!tier) throw new ApiError(httpStatus.NOT_FOUND, "Tier not found");
     return tier;
 };
