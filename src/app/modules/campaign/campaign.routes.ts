@@ -8,6 +8,7 @@ const router = Router();
 // Public routes
 router.get("/active", campaignControllers.getActiveCampaigns);
 router.get("/code/:code", campaignControllers.getCampaignByCode);
+router.get("/admin/all", auth, authorize(["ADMIN", "SUPER_ADMIN"]), campaignControllers.getAllCampaignsWithStats);
 router.get("/:campaignId", campaignControllers.getCampaignById);
 
 // Protected routes

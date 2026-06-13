@@ -31,6 +31,18 @@ const getAllCampaigns = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const getAllCampaignsWithStats = catchAsync(async (req: Request, res: Response) => {
+    const result = await campaignServices.getAllCampaignsWithStats(req.query);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Campaigns with stats retrieved successfully",
+        data: result.data,
+        meta: result.pagination,
+    });
+});
+
 const getActiveCampaigns = catchAsync(async (req: Request, res: Response) => {
     const result = await campaignServices.getActiveCampaigns();
 
@@ -112,6 +124,7 @@ const deleteCampaign = catchAsync(async (req: Request, res: Response) => {
 export const campaignControllers = {
     createCampaign,
     getAllCampaigns,
+    getAllCampaignsWithStats,
     getActiveCampaigns,
     getCampaignById,
     getCampaignByCode,

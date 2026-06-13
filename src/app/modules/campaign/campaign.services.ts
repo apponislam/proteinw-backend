@@ -4,7 +4,27 @@ import ApiError from "../../../errors/ApiError";
 import { CampaignModel } from "./campaign.model";
 import { GroupModel } from "../group/group.model";
 import { UserModel } from "../auth/auth.model";
+import { OrderModel } from "../order/order.model";
 import { activityLogServices } from "../activityLog/activityLog.services";
+
+const getCampaignStats = async (campaignId: Types.ObjectId) => {
+    const ordersResult = await OrderModel.aggregate([
+        { $match: { campaignId, isDeleted: false, status: { $ne: "cancelled" } } },
+        {
+            $group: {
+                _id: null,
+                totalPackages: { $sum: "$totalPackage" },
+                totalRevenue: { $sum: "$totalPrice" },
+            },
+        },
+    ]);
+    return ordersResult.length > 0
+        ? {
+              totalPackagesSold: ordersResult[0].totalPackages,
+              totalRevenueSold: ordersResult[0].totalRevenue,
+          }
+        : { totalPackagesSold: 0, totalRevenueSold: 0 };
+};
 
 const createCampaign = async (userId: string, groupId: string, payload: any) => {
     // Check if group exists
@@ -61,6 +81,41 @@ const getAllCampaigns = async (query: any = {}) => {
 
     return {
         data: campaigns,
+        pagination: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+            hasNext: page < Math.ceil(total / limit),
+            hasPrev: page > 1,
+        },
+    };
+};
+
+const getAllCampaignsWithStats = async (query: any = {}) => {
+    const filter: any = { isDeleted: false };
+    if (query.isActive !== undefined) filter.isActive = query.isActive === "true";
+
+    const page = parseInt(query.page as string) || 1;
+    const limit = parseInt(query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
+    const campaigns = await CampaignModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean();
+    const total = await CampaignModel.countDocuments(filter);
+
+    const campaignsWithStats = await Promise.all(
+        campaigns.map(async (campaign) => {
+            const stats = await getCampaignStats(campaign._id as Types.ObjectId);
+            return {
+                ...campaign,
+                totalPackagesSold: stats.totalPackagesSold,
+                totalRevenueSold: stats.totalRevenueSold,
+            };
+        })
+    );
+
+    return {
+        data: campaignsWithStats,
         pagination: {
             page,
             limit,
@@ -145,6 +200,7 @@ const deleteCampaign = async (campaignId: string) => {
 export const campaignServices = {
     createCampaign,
     getAllCampaigns,
+    getAllCampaignsWithStats,
     getActiveCampaigns,
     getCampaignById,
     getCampaignByCode,
