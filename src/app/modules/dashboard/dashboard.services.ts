@@ -76,6 +76,25 @@ const getDashboardStats = async () => {
     };
 };
 
+const getDashboardStatus = async (userId: string) => {
+    const group = await GroupModel.findOne({ createdBy: userId, isDeleted: false });
+    
+    if (!group) {
+        return {
+            hasGroup: false,
+            hasCampaign: false,
+        };
+    }
+
+    const campaign = await CampaignModel.findOne({ groupId: group._id, isDeleted: false });
+
+    return {
+        hasGroup: true,
+        hasCampaign: !!campaign,
+    };
+};
+
 export const dashboardServices = {
     getDashboardStats,
+    getDashboardStatus,
 };
