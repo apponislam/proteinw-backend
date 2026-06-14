@@ -155,6 +155,27 @@ const getMyCampaignProducts = async (user: any, query: any = {}) => {
     return getProductsByCampaign(campaignId.toString(), query);
 };
 
+// Get all products in a campaign by campaign code
+const getProductsByCampaignCode = async (code: string, query: any = {}) => {
+    const campaign = await CampaignModel.findOne({ code, isDeleted: false });
+    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Campaign not found");
+    
+    return getProductsByCampaign(campaign._id.toString(), query);
+};
+
+// Get product count in a campaign by campaign code
+const getProductCountByCampaignCode = async (code: string) => {
+    const campaign = await CampaignModel.findOne({ code, isDeleted: false });
+    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Campaign not found");
+    
+    const count = await CampaignProductModel.countDocuments({
+        campaignId: campaign._id,
+        isDeleted: false,
+    });
+    
+    return { count };
+};
+
 export const campaignProductServices = {
     addProductToCampaign,
     addMultipleProductsToCampaign,
@@ -163,4 +184,6 @@ export const campaignProductServices = {
     getProductsByCampaign,
     getCampaignsByProduct,
     getMyCampaignProducts,
+    getProductsByCampaignCode,
+    getProductCountByCampaignCode,
 };
