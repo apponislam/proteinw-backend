@@ -32,7 +32,31 @@ const getDashboardStatus = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const getStoreInfo = catchAsync(async (req: Request, res: Response) => {
+    const campaignCode = req.query.campaign as string;
+    const referralCode = req.query.referral as string;
+
+    if (!campaignCode || !referralCode) {
+        return sendResponse(res, {
+            statusCode: httpStatus.OK,
+            success: true,
+            message: "Validation failed - missing parameters",
+            data: { validation: false },
+        });
+    }
+
+    const result = await dashboardServices.getStoreInfo(campaignCode, referralCode);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Store information retrieved successfully",
+        data: result,
+    });
+});
+
 export const dashboardControllers = {
     getDashboardStats,
     getDashboardStatus,
+    getStoreInfo,
 };

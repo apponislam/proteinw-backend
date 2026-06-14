@@ -6,5 +6,6 @@ const router = Router();
 
 router.get("/stats", auth, dashboardControllers.getDashboardStats);
 router.get("/status", auth, dashboardControllers.getDashboardStatus);
+router.get("/store-info", dashboardControllers.getStoreInfo);
 
 export const dashboardRoutes = router;

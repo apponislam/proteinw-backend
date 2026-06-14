@@ -14,7 +14,7 @@ router.delete("/campaign/:campaignId/products", auth, authorize(["SUPER_ADMIN"])
 // Public/Protected routes (can be accessed by others if needed)
 router.get("/my-campaign/products", auth, campaignProductControllers.getMyCampaignProducts);
 router.get("/campaign/:campaignId/products", campaignProductControllers.getProductsByCampaign);
-router.get("/campaign/code/:code/products/count", campaignProductControllers.getProductCountByCampaignCode);
+// router.get("/campaign/code/:code/products/count", campaignProductControllers.getProductCountByCampaignCode);
 router.get("/campaign/code/:code/products", campaignProductControllers.getProductsByCampaignCode);
 router.get("/product/:productId/campaigns", campaignProductControllers.getCampaignsByProduct);
 

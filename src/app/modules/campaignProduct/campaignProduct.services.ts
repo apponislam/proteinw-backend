@@ -39,13 +39,13 @@ const addMultipleProductsToCampaign = async (campaignId: string, productIds: str
     if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Campaign not found");
 
     // Check if products exist
-    const products = await ProductModel.find({ _id: { $in: productIds.map(id => new Types.ObjectId(id)) }, isDeleted: false });
+    const products = await ProductModel.find({ _id: { $in: productIds.map((id) => new Types.ObjectId(id)) }, isDeleted: false });
     if (products.length !== productIds.length) {
         throw new ApiError(httpStatus.NOT_FOUND, "One or more products not found");
     }
 
     // Prepare operations for bulk write
-    const operations = productIds.map(productId => ({
+    const operations = productIds.map((productId) => ({
         updateOne: {
             filter: {
                 campaignId: new Types.ObjectId(campaignId),
@@ -62,7 +62,7 @@ const addMultipleProductsToCampaign = async (campaignId: string, productIds: str
     // Return the added products
     return CampaignProductModel.find({
         campaignId: new Types.ObjectId(campaignId),
-        productId: { $in: productIds.map(id => new Types.ObjectId(id)) },
+        productId: { $in: productIds.map((id) => new Types.ObjectId(id)) },
         isDeleted: false,
     }).populate("productId");
 };
@@ -76,7 +76,7 @@ const removeProductFromCampaign = async (campaignId: string, productId: string) 
             isDeleted: false,
         },
         { $set: { isDeleted: true } },
-        { returnDocument: "after" }
+        { returnDocument: "after" },
     );
 
     if (!campaignProduct) throw new ApiError(httpStatus.NOT_FOUND, "Product not found in campaign");
@@ -88,10 +88,10 @@ const removeMultipleProductsFromCampaign = async (campaignId: string, productIds
     const result = await CampaignProductModel.updateMany(
         {
             campaignId: new Types.ObjectId(campaignId),
-            productId: { $in: productIds.map(id => new Types.ObjectId(id)) },
+            productId: { $in: productIds.map((id) => new Types.ObjectId(id)) },
             isDeleted: false,
         },
-        { $set: { isDeleted: true } }
+        { $set: { isDeleted: true } },
     );
     return result;
 };
@@ -104,16 +104,12 @@ const getProductsByCampaign = async (campaignId: string, query: any = {}) => {
     const limit = parseInt(query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    const campaignProducts = await CampaignProductModel.find(filter)
-        .populate("productId")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit);
+    const campaignProducts = await CampaignProductModel.find(filter).populate("productId").sort({ createdAt: -1 }).skip(skip).limit(limit);
 
     const total = await CampaignProductModel.countDocuments(filter);
 
     return {
-        data: campaignProducts.map(cp => cp.productId), // Return just the product data
+        data: campaignProducts.map((cp) => cp.productId), // Return just the product data
         pagination: {
             page,
             limit,
@@ -132,7 +128,7 @@ const getCampaignsByProduct = async (productId: string) => {
         isDeleted: false,
     }).populate("campaignId");
 
-    return campaignProducts.map(cp => cp.campaignId);
+    return campaignProducts.map((cp) => cp.campaignId);
 };
 
 // Get products of the logged in user's campaign
@@ -159,22 +155,22 @@ const getMyCampaignProducts = async (user: any, query: any = {}) => {
 const getProductsByCampaignCode = async (code: string, query: any = {}) => {
     const campaign = await CampaignModel.findOne({ code, isDeleted: false });
     if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Campaign not found");
-    
+
     return getProductsByCampaign(campaign._id.toString(), query);
 };
 
-// Get product count in a campaign by campaign code
-const getProductCountByCampaignCode = async (code: string) => {
-    const campaign = await CampaignModel.findOne({ code, isDeleted: false });
-    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Campaign not found");
-    
-    const count = await CampaignProductModel.countDocuments({
-        campaignId: campaign._id,
-        isDeleted: false,
-    });
-    
-    return { count };
-};
+// // Get product count in a campaign by campaign code
+// const getProductCountByCampaignCode = async (code: string) => {
+//     const campaign = await CampaignModel.findOne({ code, isDeleted: false });
+//     if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Campaign not found");
+
+//     const count = await CampaignProductModel.countDocuments({
+//         campaignId: campaign._id,
+//         isDeleted: false,
+//     });
+
+//     return { count };
+// };
 
 export const campaignProductServices = {
     addProductToCampaign,
@@ -185,5 +181,5 @@ export const campaignProductServices = {
     getCampaignsByProduct,
     getMyCampaignProducts,
     getProductsByCampaignCode,
-    getProductCountByCampaignCode,
+    // getProductCountByCampaignCode,
 };

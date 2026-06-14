@@ -3,6 +3,7 @@ import { GroupModel } from "../group/group.model";
 import { CampaignModel } from "../campaign/campaign.model";
 import { OrderModel } from "../order/order.model";
 import { ProductModel } from "../product/product.model";
+import { CampaignProductModel } from "../campaignProduct/campaignProduct.model";
 
 const getDashboardStats = async () => {
     const ordersResult = await OrderModel.aggregate([
@@ -94,7 +95,53 @@ const getDashboardStatus = async (userId: string) => {
     };
 };
 
+const getStoreInfo = async (campaignCode: string, referralCode: string) => {
+    // 1. Find the campaign
+    const campaign = await CampaignModel.findOne({ code: campaignCode, isActive: true, isDeleted: false });
+    if (!campaign) {
+        return { validation: false };
+    }
+
+    // 2. Find the member
+    const member = await UserModel.findOne({ referralCode, isActive: true, isDeleted: false });
+    if (!member) {
+        return { validation: false };
+    }
+
+    // 3. Validate member association with campaign
+    const isAssociated = member.campaignAssigned?.toString() === campaign._id.toString() ||
+                         member.groupAssigned?.toString() === campaign.groupId?.toString();
+    if (!isAssociated) {
+        return { validation: false };
+    }
+
+    // 4. Get the group
+    const group = await GroupModel.findOne({ _id: campaign.groupId, isDeleted: false });
+    if (!group) {
+        return { validation: false };
+    }
+
+    // 5. Get the admin (creator of the group)
+    const admin = await UserModel.findOne({ _id: group.createdBy, isDeleted: false });
+    const adminName = admin ? admin.name : "";
+
+    // 6. Get total count of products in this campaign
+    const totalProducts = await CampaignProductModel.countDocuments({
+        campaignId: campaign._id,
+        isDeleted: false,
+    });
+
+    return {
+        validation: true,
+        adminName,
+        groupName: group.name,
+        campaignName: campaign.name,
+        campaignProductCount: totalProducts,
+    };
+};
+
 export const dashboardServices = {
     getDashboardStats,
     getDashboardStatus,
+    getStoreInfo,
 };

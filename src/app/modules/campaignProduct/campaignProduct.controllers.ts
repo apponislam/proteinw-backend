@@ -113,18 +113,18 @@ const getProductsByCampaignCode = catchAsync(async (req: Request, res: Response)
     });
 });
 
-// Get product count by campaign code
-const getProductCountByCampaignCode = catchAsync(async (req: Request, res: Response) => {
-    const { code } = req.params;
-    const result = await campaignProductServices.getProductCountByCampaignCode(code as string);
+// // Get product count by campaign code
+// const getProductCountByCampaignCode = catchAsync(async (req: Request, res: Response) => {
+//     const { code } = req.params;
+//     const result = await campaignProductServices.getProductCountByCampaignCode(code as string);
 
-    sendResponse(res, {
-        statusCode: httpStatus.OK,
-        success: true,
-        message: "Campaign product count retrieved successfully",
-        data: result,
-    });
-});
+//     sendResponse(res, {
+//         statusCode: httpStatus.OK,
+//         success: true,
+//         message: "Campaign product count retrieved successfully",
+//         data: result,
+//     });
+// });
 
 export const campaignProductControllers = {
     addProductToCampaign,
@@ -135,5 +135,5 @@ export const campaignProductControllers = {
     getCampaignsByProduct,
     getMyCampaignProducts,
     getProductsByCampaignCode,
-    getProductCountByCampaignCode,
+    // getProductCountByCampaignCode,
 };
