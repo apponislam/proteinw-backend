@@ -13,7 +13,51 @@ import { ActivityLogModel } from "../activityLog/activityLog.model";
 
 // Create a guest order
 const createOrder = async (payload: any) => {
-    const { items, memberId, campaignId, groupId, ...customerData } = payload;
+    const { items, memberId, campaignId, ...customerData } = payload;
+
+    // Resolve campaignId (it can be MongoDB ObjectId or Campaign code)
+    let resolvedCampaignId: Types.ObjectId | undefined = undefined;
+    let campaign = null;
+    if (campaignId) {
+        if (Types.ObjectId.isValid(campaignId)) {
+            campaign = await CampaignModel.findOne({ _id: new Types.ObjectId(campaignId), isDeleted: false });
+        }
+        if (!campaign) {
+            campaign = await CampaignModel.findOne({ code: campaignId, isDeleted: false });
+        }
+
+        if (!campaign) {
+            throw new ApiError(httpStatus.NOT_FOUND, "Campaign not found");
+        }
+
+        if (!campaign.isActive) {
+            throw new ApiError(httpStatus.BAD_REQUEST, "Campaign is not active");
+        }
+
+        resolvedCampaignId = campaign._id as Types.ObjectId;
+    }
+
+    // Resolve memberId (it can be MongoDB ObjectId or referralCode)
+    let resolvedMemberId: Types.ObjectId | undefined = undefined;
+    let member = null;
+    if (memberId) {
+        if (Types.ObjectId.isValid(memberId)) {
+            member = await UserModel.findOne({ _id: new Types.ObjectId(memberId), isDeleted: false });
+        }
+        if (!member) {
+            member = await UserModel.findOne({ referralCode: memberId, isDeleted: false });
+        }
+
+        if (!member) {
+            throw new ApiError(httpStatus.NOT_FOUND, "Member not found");
+        }
+
+        resolvedMemberId = member._id as Types.ObjectId;
+    }
+
+    const resolvedGroupId = campaign?.groupId 
+        ? (campaign.groupId as Types.ObjectId) 
+        : undefined;
 
     // Validate items and calculate prices
     const productIds = items.map((item: any) => new Types.ObjectId(item.productId));
@@ -28,9 +72,9 @@ const createOrder = async (payload: any) => {
     }
 
     // If campaign is specified, ensure all products are in the campaign
-    if (campaignId) {
+    if (resolvedCampaignId) {
         const campaignProducts = await CampaignProductModel.find({
-            campaignId: new Types.ObjectId(campaignId),
+            campaignId: resolvedCampaignId,
             productId: { $in: productIds },
             isDeleted: false,
         });
@@ -67,16 +111,16 @@ const createOrder = async (payload: any) => {
         items: orderItems,
         totalPrice,
         totalPackage,
-        memberId: memberId ? new Types.ObjectId(memberId) : undefined,
-        campaignId: campaignId ? new Types.ObjectId(campaignId) : undefined,
-        groupId: groupId ? new Types.ObjectId(groupId) : undefined,
+        memberId: resolvedMemberId,
+        campaignId: resolvedCampaignId,
+        groupId: resolvedGroupId,
     });
 
     // Update campaign tier based on total packages sold
-    if (campaignId) {
+    if (resolvedCampaignId) {
         try {
             const campaignOrders = await OrderModel.aggregate([
-                { $match: { campaignId: new Types.ObjectId(campaignId), isDeleted: false } },
+                { $match: { campaignId: resolvedCampaignId, isDeleted: false } },
                 { $group: { _id: null, totalPackages: { $sum: "$totalPackage" } } }
             ]);
             const totalPackagesForCampaign = campaignOrders.length > 0 ? campaignOrders[0].totalPackages : 0;
@@ -89,7 +133,7 @@ const createOrder = async (payload: any) => {
 
             if (eligibleTier) {
                 await CampaignModel.updateOne(
-                    { _id: new Types.ObjectId(campaignId) },
+                    { _id: resolvedCampaignId },
                     { $set: { tierId: eligibleTier._id } }
                 );
             }
@@ -114,18 +158,14 @@ const createOrder = async (payload: any) => {
     // Log Activity (New Sale Logged & Milestone Reached)
     try {
         let sellerName = customerData.customerName || "Someone";
-        if (memberId) {
-            const member = await UserModel.findById(memberId);
-            if (member) sellerName = member.name;
+        if (member) {
+            sellerName = member.name;
         }
         const firstItem = orderItems[0];
         const itemText = firstItem ? `${firstItem.quantity}x '${firstItem.productName}'` : "products";
         const description = `${sellerName} sold ${itemText}`;
 
-        const campaign = campaignId ? await CampaignModel.findById(campaignId) : null;
-        const dbGroupId = groupId 
-            ? new Types.ObjectId(groupId) 
-            : (campaign?.groupId ? campaign.groupId : undefined);
+        const dbGroupId = resolvedGroupId;
 
         if (dbGroupId) {
             await activityLogServices.createActivityLog({
@@ -136,9 +176,9 @@ const createOrder = async (payload: any) => {
             });
 
             // Check Milestone reached for Campaign
-            if (campaignId) {
+            if (resolvedCampaignId) {
                 const campaignOrders = await OrderModel.aggregate([
-                    { $match: { campaignId: new Types.ObjectId(campaignId), isDeleted: false } },
+                    { $match: { campaignId: resolvedCampaignId, isDeleted: false } },
                     { $group: { _id: null, totalPackages: { $sum: "$totalPackage" } } }
                 ]);
                 const totalPackagesForCampaign = campaignOrders.length > 0 ? campaignOrders[0].totalPackages : 0;
