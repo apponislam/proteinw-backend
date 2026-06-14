@@ -16,9 +16,9 @@ router.post("/forgot-password", authControllers.requestPasswordReset);
 router.post("/verify-otp", authControllers.verifyOtp);
 router.post("/resend-otp", authControllers.resendOtp);
 router.post("/reset-password", authControllers.resetPassword);
-
 // Protected routes (require auth)
 router.get("/me", auth, authControllers.getMe);
+router.get("/referral-campaign", auth, authControllers.getMyReferralAndCampaign);
 router.post("/logout", auth, authControllers.logout);
 router.patch("/profile", auth, uploadProfileImage, authControllers.updateProfile);
 router.post("/change-password", auth, authControllers.changePassword);

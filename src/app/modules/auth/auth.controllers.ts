@@ -392,6 +392,17 @@ const getGroupSellers = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const getMyReferralAndCampaign = catchAsync(async (req: Request, res: Response) => {
+    const result = await authServices.getMyReferralAndCampaign(req.user._id);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Referral and campaign code retrieved successfully",
+        data: result,
+    });
+});
+
 export const authControllers = {
     register,
     login,
@@ -414,4 +425,5 @@ export const authControllers = {
     createAdmin,
     getAdminsWithStats,
     getGroupSellers,
+    getMyReferralAndCampaign,
 };

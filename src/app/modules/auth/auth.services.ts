@@ -581,6 +581,44 @@ const getGroupSellers = async (groupId: string, query: any = {}) => {
     };
 };
 
+const getMyReferralAndCampaign = async (userId: string) => {
+    // 1. Find user by ID
+    const user = await UserModel.findOne({ _id: new Types.ObjectId(userId), isDeleted: false });
+    if (!user) {
+        throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+    }
+
+    // 2. Resolve campaign code
+    let campaignCode: string | false = false;
+    let campaignId = user.campaignAssigned;
+
+    if (!campaignId && user.groupAssigned) {
+        const campaign = await CampaignModel.findOne({
+            groupId: user.groupAssigned,
+            isActive: true,
+            isDeleted: false,
+        });
+        if (campaign) {
+            campaignCode = campaign.code;
+        }
+    } else if (campaignId) {
+        const campaign = await CampaignModel.findOne({
+            _id: campaignId,
+            isActive: true,
+            isDeleted: false,
+        });
+        if (campaign) {
+            campaignCode = campaign.code;
+        }
+    }
+
+    return {
+        referralCode: user.referralCode,
+        campaignCode: campaignCode || false,
+        campaign: campaignCode || false,
+    };
+};
+
 export const authServices = {
     registerUser,
     loginUser,
@@ -602,4 +640,5 @@ export const authServices = {
     createAdmin,
     getAdminsWithStats,
     getGroupSellers,
+    getMyReferralAndCampaign,
 };
