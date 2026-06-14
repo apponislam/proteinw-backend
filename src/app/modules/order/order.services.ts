@@ -13,18 +13,16 @@ import { ActivityLogModel } from "../activityLog/activityLog.model";
 
 // Create a guest order
 const createOrder = async (payload: any) => {
-    const { items, memberId, campaignId, ...customerData } = payload;
+    const { items, memberId, campaignId, referralCode, campaignCode, ...customerData } = payload;
 
-    // Resolve campaignId (it can be MongoDB ObjectId or Campaign code)
+    const targetCampaignCode = campaignCode || campaignId;
+    const targetReferralCode = referralCode || memberId;
+
+    // Resolve campaignCode
     let resolvedCampaignId: Types.ObjectId | undefined = undefined;
     let campaign = null;
-    if (campaignId) {
-        if (Types.ObjectId.isValid(campaignId)) {
-            campaign = await CampaignModel.findOne({ _id: new Types.ObjectId(campaignId), isDeleted: false });
-        }
-        if (!campaign) {
-            campaign = await CampaignModel.findOne({ code: campaignId, isDeleted: false });
-        }
+    if (targetCampaignCode) {
+        campaign = await CampaignModel.findOne({ code: targetCampaignCode, isDeleted: false });
 
         if (!campaign) {
             throw new ApiError(httpStatus.NOT_FOUND, "Campaign not found");
@@ -37,16 +35,11 @@ const createOrder = async (payload: any) => {
         resolvedCampaignId = campaign._id as Types.ObjectId;
     }
 
-    // Resolve memberId (it can be MongoDB ObjectId or referralCode)
+    // Resolve referralCode
     let resolvedMemberId: Types.ObjectId | undefined = undefined;
     let member = null;
-    if (memberId) {
-        if (Types.ObjectId.isValid(memberId)) {
-            member = await UserModel.findOne({ _id: new Types.ObjectId(memberId), isDeleted: false });
-        }
-        if (!member) {
-            member = await UserModel.findOne({ referralCode: memberId, isDeleted: false });
-        }
+    if (targetReferralCode) {
+        member = await UserModel.findOne({ referralCode: targetReferralCode, isDeleted: false });
 
         if (!member) {
             throw new ApiError(httpStatus.NOT_FOUND, "Member not found");
