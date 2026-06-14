@@ -85,6 +85,20 @@ const getCampaignsByProduct = catchAsync(async (req: Request, res: Response) => 
     });
 });
 
+// Get products for the logged in user's campaign
+const getMyCampaignProducts = catchAsync(async (req: Request, res: Response) => {
+    const user = req.user;
+    const result = await campaignProductServices.getMyCampaignProducts(user, req.query);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Campaign products retrieved successfully",
+        data: result.data,
+        meta: result.pagination,
+    });
+});
+
 export const campaignProductControllers = {
     addProductToCampaign,
     addMultipleProductsToCampaign,
@@ -92,4 +106,5 @@ export const campaignProductControllers = {
     removeMultipleProductsFromCampaign,
     getProductsByCampaign,
     getCampaignsByProduct,
+    getMyCampaignProducts,
 };

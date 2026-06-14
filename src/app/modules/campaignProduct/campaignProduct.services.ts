@@ -135,6 +135,26 @@ const getCampaignsByProduct = async (productId: string) => {
     return campaignProducts.map(cp => cp.campaignId);
 };
 
+// Get products of the logged in user's campaign
+const getMyCampaignProducts = async (user: any, query: any = {}) => {
+    let campaignId = user?.campaignAssigned;
+
+    if (!campaignId && user?.groupAssigned) {
+        const campaign = await CampaignModel.findOne({
+            groupId: user.groupAssigned,
+            isActive: true,
+            isDeleted: false,
+        });
+        campaignId = campaign?._id;
+    }
+
+    if (!campaignId) {
+        throw new ApiError(httpStatus.NOT_FOUND, "No active campaign assigned to your account");
+    }
+
+    return getProductsByCampaign(campaignId.toString(), query);
+};
+
 export const campaignProductServices = {
     addProductToCampaign,
     addMultipleProductsToCampaign,
@@ -142,4 +162,5 @@ export const campaignProductServices = {
     removeMultipleProductsFromCampaign,
     getProductsByCampaign,
     getCampaignsByProduct,
+    getMyCampaignProducts,
 };

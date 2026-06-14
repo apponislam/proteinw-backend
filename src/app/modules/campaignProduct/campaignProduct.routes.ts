@@ -12,6 +12,7 @@ router.delete("/campaign/:campaignId/product/:productId", auth, authorize(["SUPE
 router.delete("/campaign/:campaignId/products", auth, authorize(["SUPER_ADMIN"]), campaignProductControllers.removeMultipleProductsFromCampaign);
 
 // Public/Protected routes (can be accessed by others if needed)
+router.get("/my-campaign/products", auth, campaignProductControllers.getMyCampaignProducts);
 router.get("/campaign/:campaignId/products", campaignProductControllers.getProductsByCampaign);
 router.get("/product/:productId/campaigns", campaignProductControllers.getCampaignsByProduct);
 
