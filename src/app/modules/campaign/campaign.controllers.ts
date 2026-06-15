@@ -5,11 +5,7 @@ import sendResponse from "../../../utils/sendResponse";
 import { campaignServices } from "./campaign.services";
 
 const createCampaign = catchAsync(async (req: Request, res: Response) => {
-    const result = await campaignServices.createCampaign(
-        req.user._id as string,
-        req.body.groupId as string,
-        req.body
-    );
+    const result = await campaignServices.createCampaign(req.user._id as string, req.body.groupId as string, req.body);
 
     sendResponse(res, {
         statusCode: httpStatus.CREATED,
@@ -121,6 +117,17 @@ const deleteCampaign = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const getRunningCampaignByGroup = catchAsync(async (req: Request, res: Response) => {
+    const result = await campaignServices.getRunningCampaignByGroup(req.params.groupId as string);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Running campaign for group retrieved successfully",
+        data: result,
+    });
+});
+
 export const campaignControllers = {
     createCampaign,
     getAllCampaigns,
@@ -129,6 +136,7 @@ export const campaignControllers = {
     getCampaignById,
     getCampaignByCode,
     getCampaignsByGroup,
+    getRunningCampaignByGroup,
     updateCampaign,
     toggleCampaignStatus,
     deleteCampaign,

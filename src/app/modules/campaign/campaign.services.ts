@@ -113,7 +113,7 @@ const getAllCampaignsWithStats = async (query: any = {}) => {
                 totalPackagesSold: stats.totalPackagesSold,
                 totalRevenueSold: stats.totalRevenueSold,
             };
-        })
+        }),
     );
 
     return {
@@ -137,9 +137,9 @@ const getActiveCampaigns = async () => {
 const getCampaignById = async (campaignId: string) => {
     const campaign = await CampaignModel.findOne({ _id: campaignId, isDeleted: false }).lean();
     if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Campaign not found");
-    
+
     const stats = await getCampaignStats(campaign._id as Types.ObjectId);
-    
+
     // 1. Fetch Campaign Admin (createdBy user details)
     let campaignAdmin = null;
     if (campaign.createdBy) {
@@ -148,61 +148,60 @@ const getCampaignById = async (campaignId: string) => {
 
     // 2. Fetch Campaign Sellers
     const sellers = await UserModel.find(
-        { 
-            $or: [
-                { campaignAssigned: campaign._id },
-                { groupAssigned: campaign.groupId }
-            ],
+        {
+            $or: [{ campaignAssigned: campaign._id }, { groupAssigned: campaign.groupId }],
             role: "SELLER",
-            isDeleted: false 
-        }, 
-        { password: 0 }
+            isDeleted: false,
+        },
+        { password: 0 },
     ).lean();
 
-    const sellersWithStats = await Promise.all(sellers.map(async (seller) => {
-        const sellerStats = await OrderModel.aggregate([
-            { $match: { campaignId: new Types.ObjectId(campaign._id), memberId: new Types.ObjectId(seller._id), isDeleted: false, status: { $ne: "cancelled" } } },
-            {
-                $group: {
-                    _id: null,
-                    totalPackagesSold: { $sum: "$totalPackage" },
-                    totalRevenueSold: { $sum: "$totalPrice" },
-                }
-            }
-        ]);
-        return {
-            ...seller,
-            totalPackagesSold: sellerStats[0]?.totalPackagesSold || 0,
-            totalRevenueSold: sellerStats[0]?.totalRevenueSold || 0,
-        };
-    }));
+    const sellersWithStats = await Promise.all(
+        sellers.map(async (seller) => {
+            const sellerStats = await OrderModel.aggregate([
+                { $match: { campaignId: new Types.ObjectId(campaign._id), memberId: new Types.ObjectId(seller._id), isDeleted: false, status: { $ne: "cancelled" } } },
+                {
+                    $group: {
+                        _id: null,
+                        totalPackagesSold: { $sum: "$totalPackage" },
+                        totalRevenueSold: { $sum: "$totalPrice" },
+                    },
+                },
+            ]);
+            return {
+                ...seller,
+                totalPackagesSold: sellerStats[0]?.totalPackagesSold || 0,
+                totalRevenueSold: sellerStats[0]?.totalRevenueSold || 0,
+            };
+        }),
+    );
 
     // 3. Fetch Campaign Products
-    const campaignProducts = await CampaignProductModel.find({ campaignId: campaign._id, isDeleted: false })
-        .populate("productId")
-        .lean();
-    
-    const productsWithStats = await Promise.all(campaignProducts.map(async (cp: any) => {
-        const product = cp.productId;
-        if (!product) return null;
+    const campaignProducts = await CampaignProductModel.find({ campaignId: campaign._id, isDeleted: false }).populate("productId").lean();
 
-        const productStats = await OrderModel.aggregate([
-            { $match: { campaignId: new Types.ObjectId(campaign._id), isDeleted: false, status: { $ne: "cancelled" } } },
-            { $unwind: "$items" },
-            { $match: { "items.productId": new Types.ObjectId(product._id) } },
-            {
-                $group: {
-                    _id: null,
-                    totalSold: { $sum: "$items.quantity" },
-                }
-            }
-        ]);
+    const productsWithStats = await Promise.all(
+        campaignProducts.map(async (cp: any) => {
+            const product = cp.productId;
+            if (!product) return null;
 
-        return {
-            ...product,
-            totalSold: productStats[0]?.totalSold || 0,
-        };
-    }));
+            const productStats = await OrderModel.aggregate([
+                { $match: { campaignId: new Types.ObjectId(campaign._id), isDeleted: false, status: { $ne: "cancelled" } } },
+                { $unwind: "$items" },
+                { $match: { "items.productId": new Types.ObjectId(product._id) } },
+                {
+                    $group: {
+                        _id: null,
+                        totalSold: { $sum: "$items.quantity" },
+                    },
+                },
+            ]);
+
+            return {
+                ...product,
+                totalSold: productStats[0]?.totalSold || 0,
+            };
+        }),
+    );
 
     const filteredProducts = productsWithStats.filter(Boolean);
 
@@ -219,7 +218,7 @@ const getCampaignById = async (campaignId: string) => {
 const getCampaignByCode = async (code: string) => {
     const campaign = await CampaignModel.findOne({ code, isDeleted: false }).lean();
     if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Campaign not found");
-    
+
     const stats = await getCampaignStats(campaign._id as Types.ObjectId);
     return {
         ...campaign,
@@ -281,6 +280,26 @@ const deleteCampaign = async (campaignId: string) => {
     return campaign;
 };
 
+const getRunningCampaignByGroup = async (groupId: string) => {
+    const group = await GroupModel.findOne({ _id: groupId, isDeleted: false });
+    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Group not found");
+
+    if (!group.runningCampaignId) {
+        return null;
+    }
+
+    const campaign = await CampaignModel.findOne({ _id: group.runningCampaignId, isDeleted: false }).lean();
+    if (!campaign) return null;
+
+    const stats = await getCampaignStats(campaign._id as Types.ObjectId);
+
+    return {
+        ...campaign,
+        totalPackagesSold: stats.totalPackagesSold,
+        totalRevenueSold: stats.totalRevenueSold,
+    };
+};
+
 export const campaignServices = {
     createCampaign,
     getAllCampaigns,
@@ -289,6 +308,7 @@ export const campaignServices = {
     getCampaignById,
     getCampaignByCode,
     getCampaignsByGroup,
+    getRunningCampaignByGroup,
     updateCampaign,
     toggleCampaignStatus,
     deleteCampaign,

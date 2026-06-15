@@ -13,6 +13,7 @@ router.get("/:campaignId", campaignControllers.getCampaignById);
 
 // Protected routes
 router.get("/group/:groupId", auth, campaignControllers.getCampaignsByGroup);
+router.get("/running-campaign/:groupId", auth, campaignControllers.getRunningCampaignByGroup);
 
 // Admin-only routes
 router.post("/", auth, authorize(["ADMIN", "SUPER_ADMIN"]), campaignControllers.createCampaign);
