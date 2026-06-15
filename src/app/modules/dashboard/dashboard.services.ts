@@ -360,6 +360,143 @@ const getSuperAdminSellers = async (query: any) => {
     };
 };
 
+const getSuperAdminGroupsStats = async (query: any) => {
+    const page = parseInt(query.page as string) || 1;
+    const limit = parseInt(query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+    const sortBy = query.sortBy || "createdAt";
+
+    const groups = await GroupModel.find({ isDeleted: false })
+        .populate({
+            path: "runningCampaignId",
+            model: "Campaign",
+        })
+        .populate({
+            path: "createdBy",
+            model: "User",
+        });
+
+    const tiers = await TierModel.find({ isActive: true, isDeleted: false }).sort({ minSalesVolume: 1 });
+
+    const groupsStats = await Promise.all(
+        groups.map(async (group) => {
+            const campaign = group.runningCampaignId as any;
+            const campaignAdmin = group.createdBy as any;
+
+            const sellersCount = await UserModel.countDocuments({
+                groupAssigned: group._id,
+                role: "SELLER",
+                isDeleted: false,
+            });
+
+            let unitsSold = 0;
+            let revenue = 0;
+            let profitPercentage = 40;
+
+            if (campaign) {
+                const ordersStats = await OrderModel.aggregate([
+                    {
+                        $match: {
+                            campaignId: campaign._id,
+                            status: { $ne: "cancelled" },
+                            isDeleted: false,
+                        },
+                    },
+                    {
+                        $group: {
+                            _id: null,
+                            totalPackagesSold: { $sum: "$totalPackage" },
+                            totalRevenue: { $sum: "$totalPrice" },
+                        },
+                    },
+                ]);
+
+                unitsSold = ordersStats[0]?.totalPackagesSold || 0;
+                revenue = ordersStats[0]?.totalRevenue || 0;
+
+                const currentTier = tiers.find(t => 
+                    unitsSold >= t.minSalesVolume && 
+                    (t.maxSalesVolume === undefined || t.maxSalesVolume === null || unitsSold <= t.maxSalesVolume)
+                );
+                profitPercentage = currentTier ? currentTier.percentage : 40;
+            }
+
+            const groupProfit = revenue * (profitPercentage / 100);
+
+            const nameParts = (group.name || "").trim().split(/\s+/);
+            const groupCode = nameParts.length > 1
+                ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
+                : (nameParts[0]?.[0] || "").toUpperCase();
+
+            // Next tier logic
+            const nextTier = tiers.find(t => t.minSalesVolume > unitsSold);
+            const profitTierStatusText = nextTier 
+                ? `${nextTier.minSalesVolume - unitsSold} units to next tier` 
+                : "Goal Reached";
+
+            // Deadline status logic
+            const campaignEndDate = campaign?.endDate || group.endDate;
+            let deadlineStatusText = "Campaign ended";
+            if (campaignEndDate) {
+                const daysRemaining = Math.ceil((new Date(campaignEndDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                if (daysRemaining > 0) {
+                    if (daysRemaining === 1) {
+                        deadlineStatusText = "1 day left";
+                    } else if (daysRemaining <= 7) {
+                        deadlineStatusText = `${daysRemaining} days left`;
+                    } else {
+                        deadlineStatusText = `In ${daysRemaining} days`;
+                    }
+                }
+            }
+
+            return {
+                _id: group._id,
+                groupCode,
+                groupName: group.name,
+                campaignCode: campaign?.code || "N/A",
+                assignedAdmin: campaignAdmin?.name || "N/A",
+                sellers: sellersCount,
+                packagesSold: unitsSold,
+                profitTier: `${profitPercentage}% Tier`,
+                profitTierStatusText,
+                status: group.isActive, // just true/false
+                deadlineDate: campaignEndDate || null,
+                deadlineStatusText,
+                revenue,
+                groupProfit,
+                createdAt: group.createdAt,
+            };
+        })
+    );
+
+    // Sort groupsStats based on sortBy parameter
+    if (sortBy === "packagesSold") {
+        groupsStats.sort((a, b) => b.packagesSold - a.packagesSold);
+    } else if (sortBy === "revenue") {
+        groupsStats.sort((a, b) => b.revenue - a.revenue);
+    } else if (sortBy === "groupProfit") {
+        groupsStats.sort((a, b) => b.groupProfit - a.groupProfit);
+    } else {
+        // default to createdAt descending
+        groupsStats.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+    }
+
+    const paginatedData = groupsStats.slice(skip, skip + limit);
+
+    return {
+        data: paginatedData,
+        pagination: {
+            page,
+            limit,
+            total: groupsStats.length,
+            totalPages: Math.ceil(groupsStats.length / limit),
+            hasNext: page < Math.ceil(groupsStats.length / limit),
+            hasPrev: page > 1,
+        },
+    };
+};
+
 export const dashboardServices = {
     getDashboardStats,
     getDashboardStatus,
@@ -367,4 +504,5 @@ export const dashboardServices = {
     getSellerDashboardStats,
     getSuperAdminSellersStats,
     getSuperAdminSellers,
+    getSuperAdminGroupsStats,
 };

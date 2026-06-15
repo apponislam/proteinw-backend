@@ -90,6 +90,18 @@ const getSuperAdminSellers = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const getSuperAdminGroupsStats = catchAsync(async (req: Request, res: Response) => {
+    const result = await dashboardServices.getSuperAdminGroupsStats(req.query);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Super admin groups campaign stats retrieved successfully",
+        data: result.data,
+        meta: result.pagination,
+    });
+});
+
 export const dashboardControllers = {
     getDashboardStats,
     getDashboardStatus,
@@ -97,4 +109,5 @@ export const dashboardControllers = {
     getSellerDashboardStats,
     getSuperAdminSellersStats,
     getSuperAdminSellers,
+    getSuperAdminGroupsStats,
 };
