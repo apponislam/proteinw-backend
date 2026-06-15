@@ -122,6 +122,18 @@ const getRunningCampaignStats = catchAsync(async (req: Request, res: Response) =
     });
 });
 
+const getCampaignContributors = catchAsync(async (req: Request, res: Response) => {
+    const groupId = (req.user as any)?.groupAssigned;
+    const result = await orderServices.getCampaignContributors(groupId);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Campaign contributors retrieved successfully",
+        data: result,
+    });
+});
+
 export const orderControllers = {
     createOrder,
     getAllOrders,
@@ -132,4 +144,5 @@ export const orderControllers = {
     getOrderStats,
     getRunningCampaignOrders,
     getRunningCampaignStats,
+    getCampaignContributors,
 };

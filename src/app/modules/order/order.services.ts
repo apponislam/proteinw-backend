@@ -6,6 +6,7 @@ import { ProductModel } from "../product/product.model";
 import { CampaignProductModel } from "../campaignProduct/campaignProduct.model";
 import { UserModel } from "../auth/auth.model";
 import { CampaignModel } from "../campaign/campaign.model";
+import { GroupModel } from "../group/group.model";
 import { TierModel } from "../tier/tier.model";
 import { sendOrderConfirmationEmail } from "../../../utils/emailTemplates";
 import { activityLogServices } from "../activityLog/activityLog.services";
@@ -458,6 +459,71 @@ const getRunningCampaignStats = async (campaignId: Types.ObjectId | string) => {
     };
 };
 
+const getCampaignContributors = async (groupId: string | Types.ObjectId | undefined) => {
+    if (!groupId) {
+        return [];
+    }
+
+    const group = await GroupModel.findOne({ _id: groupId, isDeleted: false });
+    if (!group) {
+        return [];
+    }
+
+    const campaign = await CampaignModel.findOne({ groupId: group._id, isDeleted: false });
+    if (!campaign) {
+        return [];
+    }
+
+    const members = await UserModel.find({ groupAssigned: group._id, isDeleted: false }).select("name email role referralCode");
+
+    if (members.length === 0) {
+        return [];
+    }
+
+    const memberIds = members.map(m => m._id);
+
+    const ordersAggregation = await OrderModel.aggregate([
+        {
+            $match: {
+                campaignId: campaign._id,
+                memberId: { $in: memberIds },
+                status: { $ne: "cancelled" },
+                isDeleted: false,
+            },
+        },
+        {
+            $group: {
+                _id: "$memberId",
+                packagesSold: { $sum: "$totalPackage" },
+                totalSales: { $sum: "$totalPrice" },
+            },
+        },
+    ]);
+
+    const contributors = members.map(member => {
+        const stats = ordersAggregation.find(s => s._id.toString() === member._id.toString());
+        
+        const nameParts = member.name.trim().split(/\s+/);
+        const initials = nameParts.length > 1 
+            ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
+            : (nameParts[0][0] || "").toUpperCase();
+
+        return {
+            _id: member._id,
+            name: member.name,
+            email: member.email,
+            referralCode: member.referralCode,
+            initials,
+            packages: stats ? stats.packagesSold : 0,
+            sales: stats ? stats.totalSales : 0,
+        };
+    });
+
+    contributors.sort((a, b) => b.packages - a.packages);
+
+    return contributors;
+};
+
 export const orderServices = {
     createOrder,
     getAllOrders,
@@ -468,4 +534,5 @@ export const orderServices = {
     getOrderStats,
     getRunningCampaignOrders,
     getRunningCampaignStats,
+    getCampaignContributors,
 };
