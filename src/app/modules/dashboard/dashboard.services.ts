@@ -497,6 +497,82 @@ const getSuperAdminGroupsStats = async (query: any) => {
     };
 };
 
+const getSuperAdminGroupsDashboardCards = async () => {
+    // 1. ACTIVE GROUPS
+    const activeGroupsCount = await GroupModel.countDocuments({ isActive: true, isDeleted: false });
+
+    // 2. PACKAGES SOLD (across all non-cancelled, non-deleted orders)
+    const ordersStats = await OrderModel.aggregate([
+        {
+            $match: {
+                status: { $ne: "cancelled" },
+                isDeleted: false,
+            },
+        },
+        {
+            $group: {
+                _id: null,
+                totalPackages: { $sum: "$totalPackage" },
+            },
+        },
+    ]);
+    const packagesSold = ordersStats[0]?.totalPackages || 0;
+
+    // 3. AVG. PROFIT TIER
+    const activeCampaigns = await CampaignModel.find({ isDeleted: false });
+    const tiers = await TierModel.find({ isActive: true, isDeleted: false }).sort({ minSalesVolume: 1 });
+
+    let totalPercentage = 0;
+    let campaignCountWithStats = 0;
+
+    for (const campaign of activeCampaigns) {
+        const campaignOrders = await OrderModel.aggregate([
+            {
+                $match: {
+                    campaignId: campaign._id,
+                    status: { $ne: "cancelled" },
+                    isDeleted: false,
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalPackages: { $sum: "$totalPackage" },
+                },
+            },
+        ]);
+        const campaignPackages = campaignOrders[0]?.totalPackages || 0;
+        const currentTier = tiers.find(t => 
+            campaignPackages >= t.minSalesVolume && 
+            (t.maxSalesVolume === undefined || t.maxSalesVolume === null || campaignPackages <= t.maxSalesVolume)
+        );
+        const profitPercentage = currentTier ? currentTier.percentage : 40;
+        totalPercentage += profitPercentage;
+        campaignCountWithStats++;
+    }
+
+    const avgProfitTier = campaignCountWithStats > 0 ? (totalPercentage / campaignCountWithStats) : 40;
+
+    // 4. DEADLINES THIS WEEK
+    const now = new Date();
+    const endOfWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    const deadlinesThisWeek = await CampaignModel.countDocuments({
+        isDeleted: false,
+        endDate: {
+            $gte: now,
+            $lte: endOfWeek,
+        },
+    });
+
+    return {
+        activeGroups: activeGroupsCount,
+        packagesSold,
+        avgProfitTier: parseFloat(avgProfitTier.toFixed(1)),
+        deadlinesThisWeek,
+    };
+};
+
 export const dashboardServices = {
     getDashboardStats,
     getDashboardStatus,
@@ -505,4 +581,5 @@ export const dashboardServices = {
     getSuperAdminSellersStats,
     getSuperAdminSellers,
     getSuperAdminGroupsStats,
+    getSuperAdminGroupsDashboardCards,
 };
