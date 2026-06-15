@@ -67,9 +67,21 @@ const getSellerDashboardStats = catchAsync(async (req: Request, res: Response) =
     });
 });
 
+const getSuperAdminSellersStats = catchAsync(async (req: Request, res: Response) => {
+    const result = await dashboardServices.getSuperAdminSellersStats();
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Super admin sellers statistics retrieved successfully",
+        data: result,
+    });
+});
+
 export const dashboardControllers = {
     getDashboardStats,
     getDashboardStatus,
     getStoreInfo,
     getSellerDashboardStats,
+    getSuperAdminSellersStats,
 };

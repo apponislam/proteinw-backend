@@ -221,9 +221,47 @@ const getSellerDashboardStats = async (groupId: string | undefined) => {
     };
 };
 
+const getSuperAdminSellersStats = async () => {
+    const totalSellers = await UserModel.countDocuments({ role: "SELLER", isDeleted: false });
+    const activeGroups = await GroupModel.countDocuments({ isActive: true, isDeleted: false });
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const mtdOrdersCount = await OrderModel.countDocuments({
+        isDeleted: false,
+        status: { $ne: "cancelled" },
+        createdAt: { $gte: startOfMonth },
+    });
+
+    const revenueResult = await OrderModel.aggregate([
+        {
+            $match: {
+                isDeleted: false,
+                status: { $ne: "cancelled" },
+            },
+        },
+        {
+            $group: {
+                _id: null,
+                totalRevenue: { $sum: "$totalPrice" },
+            },
+        },
+    ]);
+    const salesRevenue = revenueResult[0]?.totalRevenue || 0;
+
+    return {
+        totalSellers,
+        activeGroups,
+        mtdOrders: mtdOrdersCount,
+        salesRevenue,
+    };
+};
+
 export const dashboardServices = {
     getDashboardStats,
     getDashboardStatus,
     getStoreInfo,
     getSellerDashboardStats,
+    getSuperAdminSellersStats,
 };
