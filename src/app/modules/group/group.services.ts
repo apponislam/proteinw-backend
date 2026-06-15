@@ -3,6 +3,8 @@ import { Types } from "mongoose";
 import ApiError from "../../../errors/ApiError";
 import { GroupModel } from "./group.model";
 import { UserModel } from "../auth/auth.model";
+import { OrderModel } from "../order/order.model";
+import { TierModel } from "../tier/tier.model";
 
 const createGroup = async (userId: string, payload: any) => {
     const group = await GroupModel.create({
@@ -77,6 +79,71 @@ const deleteGroup = async (groupId: string) => {
     return group;
 };
 
+const getMyGroup = async (groupId: string | Types.ObjectId | undefined) => {
+    if (!groupId) {
+        throw new ApiError(httpStatus.BAD_REQUEST, "No group is assigned to this user");
+    }
+    const group = await GroupModel.findOne({ _id: groupId, isDeleted: false })
+        .populate({
+            path: "runningCampaignId",
+            populate: {
+                path: "tierId"
+            }
+        });
+    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Group not found");
+
+    // Calculate total packages sold for the group's campaign
+    const campaignId = group.runningCampaignId?._id;
+    let totalPackagesSold = 0;
+    if (campaignId) {
+        const ordersStats = await OrderModel.aggregate([
+            {
+                $match: {
+                    campaignId: campaignId,
+                    status: { $ne: "cancelled" },
+                    isDeleted: false
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalPackagesSold: { $sum: "$totalPackage" }
+                }
+            }
+        ]);
+        totalPackagesSold = ordersStats[0]?.totalPackagesSold || 0;
+    }
+
+    // Fetch all active tiers
+    const tiers = await TierModel.find({ isActive: true, isDeleted: false }).sort({ minSalesVolume: 1 });
+
+    // Determine current tier
+    const currentTier = tiers.find(t => 
+        totalPackagesSold >= t.minSalesVolume && 
+        (t.maxSalesVolume === undefined || t.maxSalesVolume === null || totalPackagesSold <= t.maxSalesVolume)
+    );
+
+    // Determine next tier
+    const nextTier = tiers.find(t => t.minSalesVolume > totalPackagesSold);
+
+    const packagesNeededForNextTier = nextTier 
+        ? nextTier.minSalesVolume - totalPackagesSold 
+        : 0;
+
+    // Convert group document to plain object so we can add custom fields
+    const groupObj = group.toObject();
+
+    return {
+        ...groupObj,
+        tierInfo: {
+            totalPackagesSold,
+            currentTier: currentTier || null,
+            nextTier: nextTier || null,
+            packagesNeededForNextTier
+        }
+    };
+};
+
 export const groupServices = {
     createGroup,
     getAllGroups,
@@ -86,4 +153,5 @@ export const groupServices = {
     updateGroup,
     toggleGroupStatus,
     deleteGroup,
+    getMyGroup,
 };
