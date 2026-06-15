@@ -474,21 +474,13 @@ const getCampaignContributors = async (groupId: string | Types.ObjectId | undefi
         return [];
     }
 
-    const members = await UserModel.find({ groupAssigned: group._id, isDeleted: false }).select("name email role referralCode");
-
-    if (members.length === 0) {
-        return [];
-    }
-
-    const memberIds = members.map(m => m._id);
-
     const ordersAggregation = await OrderModel.aggregate([
         {
             $match: {
                 campaignId: campaign._id,
-                memberId: { $in: memberIds },
                 status: { $ne: "cancelled" },
                 isDeleted: false,
+                memberId: { $ne: null },
             },
         },
         {
@@ -498,28 +490,48 @@ const getCampaignContributors = async (groupId: string | Types.ObjectId | undefi
                 totalSales: { $sum: "$totalPrice" },
             },
         },
+        {
+            $sort: { packagesSold: -1 },
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "_id",
+                foreignField: "_id",
+                as: "memberInfo",
+            },
+        },
+        {
+            $unwind: "$memberInfo",
+        },
+        {
+            $project: {
+                _id: "$_id",
+                name: "$memberInfo.name",
+                email: "$memberInfo.email",
+                referralCode: "$memberInfo.referralCode",
+                packages: "$packagesSold",
+                sales: "$totalSales",
+            },
+        },
     ]);
 
-    const contributors = members.map(member => {
-        const stats = ordersAggregation.find(s => s._id.toString() === member._id.toString());
-        
-        const nameParts = member.name.trim().split(/\s+/);
+    const contributors = ordersAggregation.map(item => {
+        const nameParts = (item.name || "").trim().split(/\s+/);
         const initials = nameParts.length > 1 
             ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
-            : (nameParts[0][0] || "").toUpperCase();
+            : (nameParts[0]?.[0] || "").toUpperCase();
 
         return {
-            _id: member._id,
-            name: member.name,
-            email: member.email,
-            referralCode: member.referralCode,
+            _id: item._id,
+            name: item.name,
+            email: item.email,
+            referralCode: item.referralCode,
             initials,
-            packages: stats ? stats.packagesSold : 0,
-            sales: stats ? stats.totalSales : 0,
+            packages: item.packages,
+            sales: item.sales,
         };
     });
-
-    contributors.sort((a, b) => b.packages - a.packages);
 
     return contributors;
 };
