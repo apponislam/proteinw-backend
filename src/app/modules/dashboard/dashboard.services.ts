@@ -188,10 +188,6 @@ const getSellerDashboardStats = async (groupId: string | undefined, userId?: str
         isDeleted: false,
     };
 
-    if (role === "SELLER" && userId) {
-        matchStage.memberId = new Types.ObjectId(userId);
-    }
-
     const ordersStats = await OrderModel.aggregate([
         {
             $match: matchStage,
@@ -218,13 +214,7 @@ const getSellerDashboardStats = async (groupId: string | undefined, userId?: str
 
     const daysRemaining = Math.max(0, Math.ceil((new Date(campaign.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
 
-    let goal = group.goal;
-    if (role === "SELLER" && userId) {
-        const user = await UserModel.findById(userId);
-        if (user && user.goal) {
-            goal = user.goal;
-        }
-    }
+    const goal = group.goal;
 
     return {
         totalSales,
