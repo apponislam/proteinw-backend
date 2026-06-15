@@ -95,6 +95,33 @@ const getOrderStats = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+// Get orders of the running campaign assigned to the logged-in admin
+const getRunningCampaignOrders = catchAsync(async (req: Request, res: Response) => {
+    const campaignId = (req.user as any)?.campaignAssigned;
+    const result = await orderServices.getRunningCampaignOrders(campaignId, req.query);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Running campaign orders retrieved successfully",
+        data: result.data,
+        meta: result.pagination,
+    });
+});
+
+// Get stats of the running campaign assigned to the logged-in admin
+const getRunningCampaignStats = catchAsync(async (req: Request, res: Response) => {
+    const campaignId = (req.user as any)?.campaignAssigned;
+    const result = await orderServices.getRunningCampaignStats(campaignId);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Running campaign statistics retrieved successfully",
+        data: result,
+    });
+});
+
 export const orderControllers = {
     createOrder,
     getAllOrders,
@@ -103,4 +130,6 @@ export const orderControllers = {
     updateOrderStatus,
     deleteOrder,
     getOrderStats,
+    getRunningCampaignOrders,
+    getRunningCampaignStats,
 };
