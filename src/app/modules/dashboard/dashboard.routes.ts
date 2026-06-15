@@ -9,6 +9,7 @@ router.get("/stats", auth, dashboardControllers.getDashboardStats);
 router.get("/status", auth, dashboardControllers.getDashboardStatus);
 router.get("/seller-stats", auth, dashboardControllers.getSellerDashboardStats);
 router.get("/superadmin-sellers-stats", auth, authorize(["SUPER_ADMIN"]), dashboardControllers.getSuperAdminSellersStats);
+router.get("/superadmin-sellers", auth, authorize(["SUPER_ADMIN"]), dashboardControllers.getSuperAdminSellers);
 router.get("/store-info", dashboardControllers.getStoreInfo);
 
 export const dashboardRoutes = router;

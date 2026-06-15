@@ -5,6 +5,7 @@ import { OrderModel } from "../order/order.model";
 import { ProductModel } from "../product/product.model";
 import { CampaignProductModel } from "../campaignProduct/campaignProduct.model";
 import { TierModel } from "../tier/tier.model";
+import config from "../../config";
 
 const getDashboardStats = async () => {
     const ordersResult = await OrderModel.aggregate([
@@ -258,10 +259,93 @@ const getSuperAdminSellersStats = async () => {
     };
 };
 
+const getSuperAdminSellers = async (query: any) => {
+    const page = parseInt(query.page as string) || 1;
+    const limit = parseInt(query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
+    const total = await UserModel.countDocuments({ role: "SELLER", isDeleted: false });
+
+    const sellers = await UserModel.find({ role: "SELLER", isDeleted: false })
+        .populate({
+            path: "groupAssigned",
+            model: "Group",
+            populate: {
+                path: "runningCampaignId",
+                model: "Campaign",
+            },
+        })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+
+    const sellersWithStats = await Promise.all(
+        sellers.map(async (seller) => {
+            const ordersCount = await OrderModel.countDocuments({
+                memberId: seller._id,
+                isDeleted: false,
+            });
+
+            const packagesAgg = await OrderModel.aggregate([
+                {
+                    $match: {
+                        memberId: seller._id,
+                        isDeleted: false,
+                    },
+                },
+                {
+                    $group: {
+                        _id: null,
+                        totalPackages: { $sum: "$totalPackage" },
+                    },
+                },
+            ]);
+            const packagesCount = packagesAgg[0]?.totalPackages || 0;
+
+            const group = seller.groupAssigned as any;
+            const campaign = group?.runningCampaignId as any;
+            const baseUrl = config.client_url || "http://localhost:3000";
+            const salesLink = campaign?.code
+                ? `${baseUrl}/store?campaign=${campaign.code}&referral=${seller.referralCode}`
+                : "N/A";
+
+            const nameParts = (seller.name || "").trim().split(/\s+/);
+            const code = nameParts.length > 1
+                ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
+                : (nameParts[0]?.[0] || "").toUpperCase();
+
+            return {
+                _id: seller._id,
+                name: seller.name,
+                email: seller.email,
+                group: group?.name || "N/A",
+                orders: ordersCount,
+                packages: packagesCount,
+                status: seller.isActive ? "Active" : "Inactive",
+                salesLink,
+                code,
+            };
+        })
+    );
+
+    return {
+        data: sellersWithStats,
+        pagination: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+            hasNext: page < Math.ceil(total / limit),
+            hasPrev: page > 1,
+        },
+    };
+};
+
 export const dashboardServices = {
     getDashboardStats,
     getDashboardStatus,
     getStoreInfo,
     getSellerDashboardStats,
     getSuperAdminSellersStats,
+    getSuperAdminSellers,
 };
