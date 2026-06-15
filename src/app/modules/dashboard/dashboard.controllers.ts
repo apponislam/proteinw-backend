@@ -55,8 +55,21 @@ const getStoreInfo = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const getSellerDashboardStats = catchAsync(async (req: Request, res: Response) => {
+    const groupId = (req.user as any)?.groupAssigned;
+    const result = await dashboardServices.getSellerDashboardStats(groupId);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Seller dashboard stats retrieved successfully",
+        data: result,
+    });
+});
+
 export const dashboardControllers = {
     getDashboardStats,
     getDashboardStatus,
     getStoreInfo,
+    getSellerDashboardStats,
 };
