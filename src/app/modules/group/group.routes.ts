@@ -8,6 +8,7 @@ const router = Router();
 // Public routes
 router.get("/", groupControllers.getActiveGroups);
 router.get("/code/:code", groupControllers.getGroupByCode);
+router.get("/my-campaign-stats", auth, groupControllers.getMyCampaignStats);
 router.get("/my-group", auth, groupControllers.getMyGroup);
 router.get("/:groupId", groupControllers.getGroupById);
 

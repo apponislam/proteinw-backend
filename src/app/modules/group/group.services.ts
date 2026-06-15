@@ -94,6 +94,7 @@ const getMyGroup = async (groupId: string | Types.ObjectId | undefined) => {
     // Calculate total packages sold for the group's campaign
     const campaignId = group.runningCampaignId?._id;
     let totalPackagesSold = 0;
+    let totalRevenue = 0;
     if (campaignId) {
         const ordersStats = await OrderModel.aggregate([
             {
@@ -107,10 +108,12 @@ const getMyGroup = async (groupId: string | Types.ObjectId | undefined) => {
                 $group: {
                     _id: null,
                     totalPackagesSold: { $sum: "$totalPackage" },
+                    totalRevenue: { $sum: "$totalPrice" },
                 },
             },
         ]);
         totalPackagesSold = ordersStats[0]?.totalPackagesSold || 0;
+        totalRevenue = ordersStats[0]?.totalRevenue || 0;
     }
 
     // Fetch all active tiers
@@ -131,10 +134,67 @@ const getMyGroup = async (groupId: string | Types.ObjectId | undefined) => {
         ...groupObj,
         tierInfo: {
             totalPackagesSold,
+            totalRevenue,
             currentTier: currentTier || null,
             nextTier: nextTier || null,
             packagesNeededForNextTier,
         },
+    };
+};
+
+const getMyCampaignStats = async (groupId: string | Types.ObjectId | undefined) => {
+    if (!groupId) {
+        throw new ApiError(httpStatus.BAD_REQUEST, "No group is assigned to this user");
+    }
+    const group = await GroupModel.findOne({ _id: groupId, isDeleted: false }).populate({
+        path: "runningCampaignId",
+        populate: {
+            path: "tierId",
+        },
+    });
+    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Group not found");
+
+    const campaignId = group.runningCampaignId?._id;
+    let totalPackagesSold = 0;
+    let totalRevenue = 0;
+    if (campaignId) {
+        const ordersStats = await OrderModel.aggregate([
+            {
+                $match: {
+                    campaignId: campaignId,
+                    status: { $ne: "cancelled" },
+                    isDeleted: false,
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalPackagesSold: { $sum: "$totalPackage" },
+                    totalRevenue: { $sum: "$totalPrice" },
+                },
+            },
+        ]);
+        totalPackagesSold = ordersStats[0]?.totalPackagesSold || 0;
+        totalRevenue = ordersStats[0]?.totalRevenue || 0;
+    }
+
+    // Fetch all active tiers
+    const tiers = await TierModel.find({ isActive: true, isDeleted: false }).sort({ minSalesVolume: 1 });
+
+    // Determine current tier
+    const currentTier = tiers.find((t) => totalPackagesSold >= t.minSalesVolume && (t.maxSalesVolume === undefined || t.maxSalesVolume === null || totalPackagesSold <= t.maxSalesVolume));
+
+    // Determine next tier
+    const nextTier = tiers.find((t) => t.minSalesVolume > totalPackagesSold);
+
+    const packagesNeededForNextTier = nextTier ? nextTier.minSalesVolume - totalPackagesSold : 0;
+
+    return {
+        totalPackagesSold,
+        totalRevenue,
+        currentTier: currentTier || null,
+        nextTier: nextTier || null,
+        packagesNeededForNextTier,
     };
 };
 
@@ -148,4 +208,5 @@ export const groupServices = {
     toggleGroupStatus,
     deleteGroup,
     getMyGroup,
+    getMyCampaignStats,
 };

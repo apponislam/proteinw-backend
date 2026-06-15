@@ -107,6 +107,18 @@ const getMyGroup = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const getMyCampaignStats = catchAsync(async (req: Request, res: Response) => {
+    const groupId = (req.user as any)?.groupAssigned;
+    const result = await groupServices.getMyCampaignStats(groupId);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Your campaign statistics retrieved successfully",
+        data: result,
+    });
+});
+
 export const groupControllers = {
     createGroup,
     getAllGroups,
@@ -117,4 +129,5 @@ export const groupControllers = {
     toggleGroupStatus,
     deleteGroup,
     getMyGroup,
+    getMyCampaignStats,
 };
