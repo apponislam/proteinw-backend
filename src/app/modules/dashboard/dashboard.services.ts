@@ -6,6 +6,7 @@ import { ProductModel } from "../product/product.model";
 import { CampaignProductModel } from "../campaignProduct/campaignProduct.model";
 import { TierModel } from "../tier/tier.model";
 import config from "../../config";
+import { Types } from "mongoose";
 
 const getDashboardStats = async () => {
     const ordersResult = await OrderModel.aggregate([
@@ -142,7 +143,7 @@ const getStoreInfo = async (campaignCode: string, referralCode: string) => {
     };
 };
 
-const getSellerDashboardStats = async (groupId: string | undefined) => {
+const getSellerDashboardStats = async (groupId: string | undefined, userId?: string, role?: string) => {
     if (!groupId) {
         return {
             totalSales: 0,
@@ -181,13 +182,19 @@ const getSellerDashboardStats = async (groupId: string | undefined) => {
         };
     }
 
+    const matchStage: any = {
+        campaignId: campaign._id,
+        status: { $ne: "cancelled" },
+        isDeleted: false,
+    };
+
+    if (role === "SELLER" && userId) {
+        matchStage.memberId = new Types.ObjectId(userId);
+    }
+
     const ordersStats = await OrderModel.aggregate([
         {
-            $match: {
-                campaignId: campaign._id,
-                status: { $ne: "cancelled" },
-                isDeleted: false,
-            },
+            $match: matchStage,
         },
         {
             $group: {
@@ -211,12 +218,20 @@ const getSellerDashboardStats = async (groupId: string | undefined) => {
 
     const daysRemaining = Math.max(0, Math.ceil((new Date(campaign.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
 
+    let goal = group.goal;
+    if (role === "SELLER" && userId) {
+        const user = await UserModel.findById(userId);
+        if (user && user.goal) {
+            goal = user.goal;
+        }
+    }
+
     return {
         totalSales,
         totalProfit,
         packagesSold,
         daysRemaining,
-        goal: group.goal,
+        goal,
         groupName: group.name,
         shortDescription: group.shortDescription,
     };
