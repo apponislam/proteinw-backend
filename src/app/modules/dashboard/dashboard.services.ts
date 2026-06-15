@@ -148,6 +148,9 @@ const getSellerDashboardStats = async (groupId: string | undefined) => {
             totalProfit: 0,
             packagesSold: 0,
             daysRemaining: 0,
+            goal: 0,
+            groupName: "",
+            shortDescription: "",
         };
     }
 
@@ -158,6 +161,9 @@ const getSellerDashboardStats = async (groupId: string | undefined) => {
             totalProfit: 0,
             packagesSold: 0,
             daysRemaining: 0,
+            goal: 0,
+            groupName: "",
+            shortDescription: "",
         };
     }
 
@@ -168,6 +174,9 @@ const getSellerDashboardStats = async (groupId: string | undefined) => {
             totalProfit: 0,
             packagesSold: 0,
             daysRemaining: 0,
+            goal: group.goal,
+            groupName: group.name,
+            shortDescription: group.shortDescription,
         };
     }
 
@@ -206,6 +215,9 @@ const getSellerDashboardStats = async (groupId: string | undefined) => {
         totalProfit,
         packagesSold,
         daysRemaining,
+        goal: group.goal,
+        groupName: group.name,
+        shortDescription: group.shortDescription,
     };
 };
 
