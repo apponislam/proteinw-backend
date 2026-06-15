@@ -83,6 +83,18 @@ const deleteOrder = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+// Get order stats for Admin / Super Admin
+const getOrderStats = catchAsync(async (req: Request, res: Response) => {
+    const result = await orderServices.getOrderStats();
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Order statistics retrieved successfully",
+        data: result,
+    });
+});
+
 export const orderControllers = {
     createOrder,
     getAllOrders,
@@ -90,4 +102,5 @@ export const orderControllers = {
     getOrderById,
     updateOrderStatus,
     deleteOrder,
+    getOrderStats,
 };

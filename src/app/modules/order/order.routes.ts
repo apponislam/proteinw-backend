@@ -10,6 +10,7 @@ router.post("/", orderControllers.createOrder);
 
 // Protected routes
 router.get("/member", auth, orderControllers.getOrdersByMember);
+router.get("/metrics/stats", auth, authorize(["ADMIN", "SUPER_ADMIN"]), orderControllers.getOrderStats);
 router.get("/:orderId", auth, orderControllers.getOrderById);
 
 // Admin/Super Admin routes

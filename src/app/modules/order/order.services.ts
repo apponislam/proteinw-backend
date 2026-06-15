@@ -304,6 +304,59 @@ const deleteOrder = async (orderId: string) => {
     return order;
 };
 
+// Get order stats for Admin / Super Admin
+const getOrderStats = async () => {
+    // 1. Total Revenue: sum of totalPrice of non-cancelled and non-deleted orders
+    const totalRevenueResult = await OrderModel.aggregate([
+        {
+            $match: {
+                status: { $ne: "cancelled" },
+                isDeleted: false,
+            },
+        },
+        {
+            $group: {
+                _id: null,
+                total: { $sum: "$totalPrice" },
+            },
+        },
+    ]);
+    const totalRevenue = totalRevenueResult[0]?.total || 0;
+
+    // 2. Active Orders count: pending, confirmed, shipped status, and not deleted
+    const activeOrdersCount = await OrderModel.countDocuments({
+        status: { $in: ["pending", "confirmed", "shipped"] },
+        isDeleted: false,
+    });
+
+    // 3. Month-to-Date (MTD) Sales: sum of totalPrice of non-cancelled/non-deleted orders since the start of the current month
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const mtdSalesResult = await OrderModel.aggregate([
+        {
+            $match: {
+                status: { $ne: "cancelled" },
+                isDeleted: false,
+                createdAt: { $gte: startOfMonth },
+            },
+        },
+        {
+            $group: {
+                _id: null,
+                total: { $sum: "$totalPrice" },
+            },
+        },
+    ]);
+    const mtdSales = mtdSalesResult[0]?.total || 0;
+
+    return {
+        totalRevenue,
+        activeOrders: activeOrdersCount,
+        mtdSales,
+    };
+};
+
 export const orderServices = {
     createOrder,
     getAllOrders,
@@ -311,4 +364,5 @@ export const orderServices = {
     getOrderById,
     updateOrderStatus,
     deleteOrder,
+    getOrderStats,
 };
