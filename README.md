@@ -17,7 +17,7 @@ ProteinW Backend is a robust, scaleable, and highly secure REST API powering the
 
 ---
 
-## 🛠️ Project Structure
+## 🛠️ Project Structure & Directory Layout
 
 ```text
 src/
@@ -35,22 +35,86 @@ src/
 
 ---
 
-## 🔑 Key Features
+## 📦 System Modules Explained
 
-### 1. Role-Based Access Control (RBAC)
-Supports hierarchical roles: `SUPER_ADMIN`, `ADMIN`, and `SELLER` with customized dashboard metrics:
-- **Super Admin**: Views global stats, revenues, and configuration.
-- **Admin**: Views and manages their specific campaign and assigned seller groups.
-- **Seller**: Tracks individual progress, assigned group goals, and live shop performance.
+The backend codebase is modular, separated by domains. Each module contains its own routes, controller, service, validation, and mongoose models:
 
-### 2. Campaign & Sales Engine
-- Live tracking of target goals in SEK.
-- Calculates and dynamically updates tiers/profit margins based on sales volume.
-- Real-time aggregation of orders and package statuses.
+### 1. `auth` (Authentication & Users)
+- **Purpose**: Manages secure access control, registration, and user profiles.
+- **Features**: User registration, JWT-based login (with access and refresh token rotation), password hashing via `bcrypt`, and password recovery.
+- **Roles**: Restricts access via role-based middleware (`SUPER_ADMIN`, `ADMIN`, `SELLER`).
 
-### 3. Background Workers & Queues
-- Uses **BullMQ** to process asynchronous jobs (like emails or media processing) in a dedicated background worker process without blocking the main event loop.
-- **Node-cron** schedules cron jobs for periodic database maintenance and state checks.
+### 2. `campaign` (Fundraising Campaigns)
+- **Purpose**: Oversees the lifecycle of a sales/fundraising campaign.
+- **Features**: Campaign creation, expiration configuration, target goal definitions, and tracking of progress towards campaign-specific targets. Calculates sales stats (SEK generated, package totals) for the campaign.
+
+### 3. `campaignProduct` (Campaign-Product Assignments)
+- **Purpose**: Maps products from the general catalog to specific active campaigns.
+- **Features**: Allows custom package selection for each campaign.
+
+### 4. `group` (Sellers & Teams Groups)
+- **Purpose**: Handles user group hierarchies.
+- **Features**: Groups organize sellers under campaigns. Calculates progress towards next tier profit brackets and assigns invite codes.
+
+### 5. `order` (Sales & Order Tracking)
+- **Purpose**: Manages purchases, checkout, and shipment tracking.
+- **Features**: Generates customer order states (`pending`, `confirmed`, `shipped`, `delivered`, `cancelled`). Records quantity packages sold and total prices in SEK.
+
+### 6. `product` (Base Product Catalog)
+- **Purpose**: Stores the universal product inventory.
+- **Features**: CRUD controls for product details, pricing, images, and descriptions.
+
+### 7. `tier` (Commission Rules)
+- **Purpose**: Handles volume-based profit rules.
+- **Features**: Defines thresholds (e.g., selling 1-100 packages unlocks 10% commission, 101-200 packages unlocks 15% commission, etc.).
+
+### 8. `dashboard` (Analytics & Metrics)
+- **Purpose**: The dynamic aggregation engine for charts and KPIs.
+- **Features**: Compiles custom panels based on the caller's role (Super Admin views total revenue/fees; Admin views group sales; Seller views individual performance).
+
+### 9. `activityLog` (Social Feed & Logs)
+- **Purpose**: Provides audit trails and timeline events.
+- **Features**: Automatically logs critical status shifts (e.g., "Campaign Started", "New Order Placed") to display as updates.
+
+### 10. `contact` (Support Queries)
+- **Purpose**: Processes customer feedback/support requests.
+- **Features**: Saves support forms and forwards details to administrators.
+
+### 11. `faq` (F.A.Q. Management)
+- **Purpose**: Standard informational module.
+- **Features**: CRUD controls for frequently asked questions on the storefront/dashboard.
+
+### 12. `invitation` (Group Onboarding)
+- **Purpose**: Manages invitation links for new members.
+- **Features**: Allows admins to generate single-use/group invite tokens for registering sellers.
+
+### 13. `public` (Storefront Access)
+- **Purpose**: Exposes non-authenticated routes.
+- **Features**: Enables buyers to view a group's campaign shop and purchase products securely.
+
+---
+
+## 🔑 Core Features & Workflow
+
+### 🔒 Secure Role-Based Authorization
+A layered middleware architecture verifies the caller's JWT access tokens and checks if their role matches the route parameters:
+- `SUPER_ADMIN`: Has read/write access to system parameters, global groups, products, and financials.
+- `ADMIN`: Assigned to a specific group/campaign. Can monitor group members, update campaign details, and review group order lists.
+- `SELLER`: Can access personal sales logs, generate customer shop links, and view group tier stats.
+
+### 📈 Volume-Based Tier Commission Logic
+As sellers submit orders, the system updates the group's `totalPackagesSold`. The platform fetches configured `Tiers` to dynamically compute:
+- **Current Profit Margin**: The percentage of sales group members receive.
+- **Next Tier Goal**: The package count remaining to reach the next profit percentage bracket.
+
+### ⚡ Real-Time Socket.io Updates
+WS connection gateways notify listening clients of changes without requiring manual refreshes:
+- Real-time updates for order placements.
+- Instantly notifies admins when a seller registers or joins.
+
+### 📬 Background Job Processing
+- **BullMQ Integration**: Processes intensive operations (like dispatching verification links and invoice emails) using a separate redis-backed thread pool.
+- **Node-cron Integration**: Automated checks executed nightly to terminate expired campaigns.
 
 ---
 
