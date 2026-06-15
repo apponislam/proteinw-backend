@@ -250,7 +250,7 @@ const getOrdersByMember = async (memberId: string, query: any = {}) => {
     const limit = parseInt(query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    const orders = await OrderModel.find(filter).populate("campaignId", "name code").populate("groupId", "name").sort({ createdAt: -1 }).skip(skip).limit(limit);
+    const orders = await OrderModel.find(filter).populate("memberId", "name email").populate("campaignId", "name code").populate("groupId", "name").sort({ createdAt: -1 }).skip(skip).limit(limit);
 
     const total = await OrderModel.countDocuments(filter);
 
@@ -536,6 +536,67 @@ const getCampaignContributors = async (groupId: string | Types.ObjectId | undefi
     return contributors;
 };
 
+const getMemberOrderStats = async (userId: Types.ObjectId | string) => {
+    if (!userId) {
+        throw new ApiError(httpStatus.BAD_REQUEST, "User ID is required");
+    }
+
+    const memberId = new Types.ObjectId(userId);
+
+    // 1. Total Revenue: sum of totalPrice of non-cancelled and non-deleted orders for this member
+    const totalRevenueResult = await OrderModel.aggregate([
+        {
+            $match: {
+                memberId: memberId,
+                status: { $ne: "cancelled" },
+                isDeleted: false,
+            },
+        },
+        {
+            $group: {
+                _id: null,
+                total: { $sum: "$totalPrice" },
+            },
+        },
+    ]);
+    const totalRevenue = totalRevenueResult[0]?.total || 0;
+
+    // 2. Active Orders count: pending, confirmed, shipped status, and not deleted for this member
+    const activeOrdersCount = await OrderModel.countDocuments({
+        memberId: memberId,
+        status: { $in: ["pending", "confirmed", "shipped"] },
+        isDeleted: false,
+    });
+
+    // 3. Month-to-Date (MTD) Sales: sum of totalPrice of non-cancelled/non-deleted orders since the start of the current month for this member
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const mtdSalesResult = await OrderModel.aggregate([
+        {
+            $match: {
+                memberId: memberId,
+                status: { $ne: "cancelled" },
+                isDeleted: false,
+                createdAt: { $gte: startOfMonth },
+            },
+        },
+        {
+            $group: {
+                _id: null,
+                total: { $sum: "$totalPrice" },
+            },
+        },
+    ]);
+    const mtdSales = mtdSalesResult[0]?.total || 0;
+
+    return {
+        totalRevenue,
+        activeOrders: activeOrdersCount,
+        mtdSales,
+    };
+};
+
 export const orderServices = {
     createOrder,
     getAllOrders,
@@ -547,4 +608,5 @@ export const orderServices = {
     getRunningCampaignOrders,
     getRunningCampaignStats,
     getCampaignContributors,
+    getMemberOrderStats,
 };

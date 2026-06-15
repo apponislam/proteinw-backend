@@ -134,6 +134,18 @@ const getCampaignContributors = catchAsync(async (req: Request, res: Response) =
     });
 });
 
+const getMemberOrderStats = catchAsync(async (req: Request, res: Response) => {
+    const userId = (req.user as any)?._id;
+    const result = await orderServices.getMemberOrderStats(userId);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Member order statistics retrieved successfully",
+        data: result,
+    });
+});
+
 export const orderControllers = {
     createOrder,
     getAllOrders,
@@ -145,4 +157,5 @@ export const orderControllers = {
     getRunningCampaignOrders,
     getRunningCampaignStats,
     getCampaignContributors,
+    getMemberOrderStats,
 };

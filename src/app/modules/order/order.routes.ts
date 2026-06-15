@@ -10,14 +10,15 @@ router.post("/", orderControllers.createOrder);
 
 // Protected routes
 router.get("/member", auth, orderControllers.getOrdersByMember);
+router.get("/seller-stats", auth, authorize(["SELLER"]), orderControllers.getMemberOrderStats);
 router.get("/campaign-orders", auth, authorize(["ADMIN"]), orderControllers.getRunningCampaignOrders);
 router.get("/campaign-stats", auth, authorize(["ADMIN"]), orderControllers.getRunningCampaignStats);
 router.get("/campaign-contributors", auth, authorize(["ADMIN"]), orderControllers.getCampaignContributors);
-router.get("/metrics/stats", auth, authorize(["ADMIN", "SUPER_ADMIN"]), orderControllers.getOrderStats);
+router.get("/metrics/stats", auth, authorize(["SUPER_ADMIN"]), orderControllers.getOrderStats);
 router.get("/:orderId", auth, orderControllers.getOrderById);
 
 // Admin/Super Admin routes
-router.get("/", auth, authorize(["ADMIN", "SUPER_ADMIN"]), orderControllers.getAllOrders);
+router.get("/", auth, authorize(["SUPER_ADMIN"]), orderControllers.getAllOrders);
 router.patch("/:orderId/status", auth, authorize(["ADMIN", "SUPER_ADMIN"]), orderControllers.updateOrderStatus);
 router.delete("/:orderId", auth, authorize(["ADMIN", "SUPER_ADMIN"]), orderControllers.deleteOrder);
 
