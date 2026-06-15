@@ -324,6 +324,20 @@ const getSuperAdminSellers = async (query: any) => {
                 status: seller.isActive ? "Active" : "Inactive",
                 salesLink,
                 code,
+                groupDetails: group ? {
+                    _id: group._id,
+                    name: group.name,
+                    code: group.code,
+                    goal: group.goal,
+                    endDate: group.endDate,
+                } : null,
+                campaignDetails: campaign ? {
+                    _id: campaign._id,
+                    name: campaign.name,
+                    code: campaign.code,
+                    target: campaign.target,
+                    endDate: campaign.endDate,
+                } : null,
             };
         })
     );
