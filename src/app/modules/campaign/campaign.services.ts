@@ -78,7 +78,11 @@ const getAllCampaigns = async (query: any = {}) => {
     const limit = parseInt(query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    const campaigns = await CampaignModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit);
+    const campaigns = await CampaignModel.find(filter)
+        .populate("createdBy", "name email role phone photo")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
     const total = await CampaignModel.countDocuments(filter);
 
     return {
@@ -102,7 +106,12 @@ const getAllCampaignsWithStats = async (query: any = {}) => {
     const limit = parseInt(query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    const campaigns = await CampaignModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean();
+    const campaigns = await CampaignModel.find(filter)
+        .populate("createdBy", "name email role phone photo")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
     const total = await CampaignModel.countDocuments(filter);
 
     const campaignsWithStats = await Promise.all(
@@ -235,7 +244,11 @@ const getCampaignsByGroup = async (groupId: string, query: any = {}) => {
     const limit = parseInt(query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    const campaigns = await CampaignModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit);
+    const campaigns = await CampaignModel.find(filter)
+        .populate("createdBy", "name email role phone photo")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
     const total = await CampaignModel.countDocuments(filter);
 
     return {
