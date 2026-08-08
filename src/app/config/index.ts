@@ -21,6 +21,10 @@ export default {
         smtp_user: process.env.SMTP_USER,
         smtp_pass: process.env.SMTP_PASS,
     },
-    superAdminPassword: process.env.SUPERADMINPASSWORD,
-    superAdminEmail: process.env.SUPERADMINEMAIL,
+    initialAdmin: {
+        name: process.env.INITIAL_ADMIN_NAME,
+        email: process.env.INITIAL_ADMIN_EMAIL,
+        password: process.env.INITIAL_ADMIN_PASSWORD,
+        phone: process.env.INITIAL_ADMIN_PHONE,
+    },
 };
