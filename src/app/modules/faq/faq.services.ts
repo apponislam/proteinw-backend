@@ -32,7 +32,7 @@ const getActiveFAQs = async (audience?: FAQAudienceEnum) => {
 
 const getFAQById = async (faqId: string) => {
     const faq = await FAQModel.findOne({ _id: faqId, isDeleted: false });
-    if (!faq) throw new ApiError(httpStatus.NOT_FOUND, "FAQ not found");
+    if (!faq) throw new ApiError(httpStatus.NOT_FOUND, "Requested FAQ was not found or has been deleted.");
     return faq;
 };
 
@@ -42,13 +42,13 @@ const updateFAQ = async (faqId: string, payload: any) => {
         { $set: payload },
         { returnDocument: "after", runValidators: true },
     );
-    if (!faq) throw new ApiError(httpStatus.NOT_FOUND, "FAQ not found");
+    if (!faq) throw new ApiError(httpStatus.NOT_FOUND, "Requested FAQ was not found or has been deleted.");
     return faq;
 };
 
 const toggleFAQStatus = async (faqId: string) => {
     const faq = await FAQModel.findOne({ _id: faqId, isDeleted: false });
-    if (!faq) throw new ApiError(httpStatus.NOT_FOUND, "FAQ not found");
+    if (!faq) throw new ApiError(httpStatus.NOT_FOUND, "Requested FAQ was not found or has been deleted.");
     faq.isActive = !faq.isActive;
     await faq.save();
     return faq;
@@ -60,7 +60,7 @@ const deleteFAQ = async (faqId: string) => {
         { $set: { isDeleted: true, isActive: false } },
         { returnDocument: "after" },
     );
-    if (!faq) throw new ApiError(httpStatus.NOT_FOUND, "FAQ not found");
+    if (!faq) throw new ApiError(httpStatus.NOT_FOUND, "Requested FAQ was not found or has already been deleted.");
     return faq;
 };
 

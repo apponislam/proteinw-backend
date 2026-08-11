@@ -9,18 +9,18 @@ import { sendGroupInvitationEmail } from "../../../utils/emailTemplates";
 const sendInvitation = async (inviterId: string, groupId: string, email: string) => {
     // Check if group exists
     const group = await GroupModel.findOne({ _id: groupId, isDeleted: false });
-    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Group not found");
+    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Target group was not found or has been deleted.");
 
     // Check if user already exists with this email
     const existingUser = await UserModel.findOne({ email, isDeleted: false });
-    if (existingUser) throw new ApiError(httpStatus.BAD_REQUEST, "User already exists with this email");
+    if (existingUser) throw new ApiError(httpStatus.BAD_REQUEST, "A registered user with this email address already exists.");
 
     // Check if pending invitation already exists for this email
     const existingInvitation = await InvitationModel.findOne({
         email,
         status: "pending",
     });
-    if (existingInvitation) throw new ApiError(httpStatus.BAD_REQUEST, "Invitation already sent to this email");
+    if (existingInvitation) throw new ApiError(httpStatus.BAD_REQUEST, "A pending invitation has already been sent to this email address.");
 
     // Create invitation
     const invitation = await InvitationModel.create({
@@ -66,7 +66,7 @@ const getInvitationByEmail = async (email: string) => {
         status: "pending",
     }).populate("groupId", "name");
 
-    if (!invitation) throw new ApiError(httpStatus.NOT_FOUND, "Invitation not found");
+    if (!invitation) throw new ApiError(httpStatus.NOT_FOUND, "No pending invitation was found for this email address.");
     return invitation;
 };
 
@@ -90,7 +90,7 @@ const declineInvitation = async (email: string) => {
 
 const cancelInvitation = async (invitationId: string) => {
     const invitation = await InvitationModel.findById(invitationId);
-    if (!invitation) throw new ApiError(httpStatus.NOT_FOUND, "Invitation not found");
+    if (!invitation) throw new ApiError(httpStatus.NOT_FOUND, "Requested invitation was not found or has already been canceled.");
 
     await InvitationModel.findByIdAndDelete(invitationId);
 

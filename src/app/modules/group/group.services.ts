@@ -49,25 +49,25 @@ const getActiveGroups = async () => {
 
 const getGroupById = async (groupId: string) => {
     const group = await GroupModel.findOne({ _id: groupId, isDeleted: false });
-    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Group not found");
+    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Requested group was not found or has been deleted.");
     return group;
 };
 
 const getGroupByCode = async (code: string) => {
     const group = await GroupModel.findOne({ code, isDeleted: false });
-    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Group not found");
+    if (!group) throw new ApiError(httpStatus.NOT_FOUND, `Group with code "${code}" was not found or has been deleted.`);
     return group;
 };
 
 const updateGroup = async (groupId: string, payload: any) => {
     const group = await GroupModel.findOneAndUpdate({ _id: groupId, isDeleted: false }, { $set: payload }, { returnDocument: "after", runValidators: true });
-    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Group not found");
+    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Requested group was not found or has been deleted.");
     return group;
 };
 
 const toggleGroupStatus = async (groupId: string) => {
     const group = await GroupModel.findOne({ _id: groupId, isDeleted: false });
-    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Group not found");
+    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Requested group was not found or has been deleted.");
     group.isActive = !group.isActive;
     await group.save();
     return group;
@@ -75,13 +75,13 @@ const toggleGroupStatus = async (groupId: string) => {
 
 const deleteGroup = async (groupId: string) => {
     const group = await GroupModel.findOneAndUpdate({ _id: groupId, isDeleted: false }, { $set: { isDeleted: true, isActive: false } }, { returnDocument: "after" });
-    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Group not found");
+    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Requested group was not found or has already been deleted.");
     return group;
 };
 
 const getMyGroup = async (groupId: string | Types.ObjectId | undefined) => {
     if (!groupId) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "No group is assigned to this user");
+        throw new ApiError(httpStatus.BAD_REQUEST, "No group is assigned to this user.");
     }
     const group = await GroupModel.findOne({ _id: groupId, isDeleted: false }).populate({
         path: "runningCampaignId",
@@ -89,7 +89,7 @@ const getMyGroup = async (groupId: string | Types.ObjectId | undefined) => {
             path: "tierId",
         },
     });
-    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Group not found");
+    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Assigned group was not found or has been deleted.");
 
     // Calculate total packages sold for the group's campaign
     const campaignId = group.runningCampaignId?._id;
@@ -144,7 +144,7 @@ const getMyGroup = async (groupId: string | Types.ObjectId | undefined) => {
 
 const getMyCampaignStats = async (groupId: string | Types.ObjectId | undefined) => {
     if (!groupId) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "No group is assigned to this user");
+        throw new ApiError(httpStatus.BAD_REQUEST, "No group is assigned to this user.");
     }
     const group = await GroupModel.findOne({ _id: groupId, isDeleted: false }).populate({
         path: "runningCampaignId",
@@ -152,7 +152,7 @@ const getMyCampaignStats = async (groupId: string | Types.ObjectId | undefined) 
             path: "tierId",
         },
     });
-    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Group not found");
+    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Assigned group was not found or has been deleted.");
 
     const campaignId = group.runningCampaignId?._id;
     let totalPackagesSold = 0;

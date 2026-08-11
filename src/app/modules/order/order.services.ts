@@ -26,11 +26,11 @@ const createOrder = async (payload: any) => {
         campaign = await CampaignModel.findOne({ code: targetCampaignCode, isDeleted: false });
 
         if (!campaign) {
-            throw new ApiError(httpStatus.NOT_FOUND, "Campaign not found");
+            throw new ApiError(httpStatus.NOT_FOUND, "Target campaign was not found or has been deleted.");
         }
 
         if (!campaign.isActive) {
-            throw new ApiError(httpStatus.BAD_REQUEST, "Campaign is not active");
+            throw new ApiError(httpStatus.BAD_REQUEST, "Target campaign is not currently active.");
         }
 
         resolvedCampaignId = campaign._id as Types.ObjectId;
@@ -43,7 +43,7 @@ const createOrder = async (payload: any) => {
         member = await UserModel.findOne({ referralCode: targetReferralCode, isDeleted: false });
 
         if (!member) {
-            throw new ApiError(httpStatus.NOT_FOUND, "Member not found");
+            throw new ApiError(httpStatus.NOT_FOUND, "Referral member was not found.");
         }
 
         resolvedMemberId = member._id as Types.ObjectId;
@@ -62,7 +62,7 @@ const createOrder = async (payload: any) => {
     });
 
     if (products.length !== items.length) {
-        throw new ApiError(httpStatus.NOT_FOUND, "One or more products not found or inactive");
+        throw new ApiError(httpStatus.NOT_FOUND, "One or more requested products were not found or are inactive.");
     }
 
     // If campaign is specified, ensure all products are in the campaign
@@ -74,7 +74,7 @@ const createOrder = async (payload: any) => {
         });
 
         if (campaignProducts.length !== items.length) {
-            throw new ApiError(httpStatus.BAD_REQUEST, "One or more products not available in this campaign");
+            throw new ApiError(httpStatus.BAD_REQUEST, "One or more requested products are not available in this campaign.");
         }
     }
 
@@ -84,7 +84,7 @@ const createOrder = async (payload: any) => {
     const orderItems = items.map((item: any) => {
         const product = products.find((p: any) => p._id.toString() === item.productId.toString());
         if (!product) {
-            throw new ApiError(httpStatus.NOT_FOUND, "Product not found");
+            throw new ApiError(httpStatus.NOT_FOUND, "Requested product was not found.");
         }
 
         const lineTotal = product.price * item.quantity;
@@ -271,7 +271,7 @@ const getOrdersByMember = async (memberId: string, query: any = {}) => {
 const getOrderById = async (orderId: string) => {
     const order = await OrderModel.findOne({ _id: orderId, isDeleted: false }).populate("memberId", "name email").populate("campaignId", "name code").populate("groupId", "name");
 
-    if (!order) throw new ApiError(httpStatus.NOT_FOUND, "Order not found");
+    if (!order) throw new ApiError(httpStatus.NOT_FOUND, "Requested order was not found or has been deleted.");
     return order;
 };
 
@@ -279,21 +279,21 @@ const getOrderById = async (orderId: string) => {
 const updateOrderStatus = async (orderId: string, status: string) => {
     const validStatuses = ["pending", "confirmed", "shipped", "delivered", "cancelled"];
     if (!validStatuses.includes(status)) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "Invalid status");
+        throw new ApiError(httpStatus.BAD_REQUEST, `Invalid status "${status}". Allowed statuses: ${validStatuses.join(", ")}`);
     }
 
     // First check if order exists and is not deleted
     const existingOrder = await OrderModel.findOne({ _id: orderId, isDeleted: false });
-    if (!existingOrder) throw new ApiError(httpStatus.NOT_FOUND, "Order not found");
+    if (!existingOrder) throw new ApiError(httpStatus.NOT_FOUND, "Requested order was not found or has been deleted.");
 
     // Check if current status is delivered
     if (existingOrder.status === "delivered") {
-        throw new ApiError(httpStatus.BAD_REQUEST, "Cannot change status of a delivered order");
+        throw new ApiError(httpStatus.BAD_REQUEST, "Cannot update status of an order that has already been delivered.");
     }
 
     const order = await OrderModel.findOneAndUpdate({ _id: orderId, isDeleted: false }, { $set: { status } }, { returnDocument: "after", runValidators: true });
 
-    if (!order) throw new ApiError(httpStatus.NOT_FOUND, "Order not found");
+    if (!order) throw new ApiError(httpStatus.NOT_FOUND, "Requested order was not found or has been deleted.");
     return order;
 };
 
@@ -301,7 +301,7 @@ const updateOrderStatus = async (orderId: string, status: string) => {
 const deleteOrder = async (orderId: string) => {
     const order = await OrderModel.findOneAndUpdate({ _id: orderId, isDeleted: false }, { $set: { isDeleted: true } }, { returnDocument: "after" });
 
-    if (!order) throw new ApiError(httpStatus.NOT_FOUND, "Order not found");
+    if (!order) throw new ApiError(httpStatus.NOT_FOUND, "Requested order was not found or has already been deleted.");
     return order;
 };
 

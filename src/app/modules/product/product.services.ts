@@ -101,7 +101,7 @@ const getActiveProducts = async (query: any = {}) => {
 
 const getProductById = async (productId: string) => {
     const product = await ProductModel.findOne({ _id: productId, isDeleted: false });
-    if (!product) throw new ApiError(httpStatus.NOT_FOUND, "Product not found");
+    if (!product) throw new ApiError(httpStatus.NOT_FOUND, "Requested product was not found or has been deleted.");
     return product;
 };
 
@@ -112,13 +112,13 @@ const updateProduct = async (productId: string, payload: any, productImage?: str
     }
 
     const product = await ProductModel.findOneAndUpdate({ _id: productId, isDeleted: false }, { $set: updateData }, { returnDocument: "after", runValidators: true });
-    if (!product) throw new ApiError(httpStatus.NOT_FOUND, "Product not found");
+    if (!product) throw new ApiError(httpStatus.NOT_FOUND, "Requested product was not found or has been deleted.");
     return product;
 };
 
 const toggleProductStatus = async (productId: string) => {
     const product = await ProductModel.findOne({ _id: productId, isDeleted: false });
-    if (!product) throw new ApiError(httpStatus.NOT_FOUND, "Product not found");
+    if (!product) throw new ApiError(httpStatus.NOT_FOUND, "Requested product was not found or has been deleted.");
     product.isActive = !product.isActive;
     await product.save();
     return product;
@@ -126,7 +126,7 @@ const toggleProductStatus = async (productId: string) => {
 
 const deleteProduct = async (productId: string) => {
     const product = await ProductModel.findOneAndUpdate({ _id: productId, isDeleted: false }, { $set: { isDeleted: true, isActive: false } }, { returnDocument: "after" });
-    if (!product) throw new ApiError(httpStatus.NOT_FOUND, "Product not found");
+    if (!product) throw new ApiError(httpStatus.NOT_FOUND, "Requested product was not found or has already been deleted.");
     return product;
 };
 

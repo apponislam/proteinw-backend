@@ -76,14 +76,14 @@ const registerUser = async (data: any) => {
 const loginUser = async (data: { email: string; password: string }) => {
     // Find user
     const user = await UserModel.findOne({ email: data.email });
-    if (!user) throw new ApiError(httpStatus.UNAUTHORIZED, "User Not Found");
+    if (!user) throw new ApiError(httpStatus.UNAUTHORIZED, "User with this email was not found");
 
     // Check password
     const isPasswordValid = await bcrypt.compare(data.password, user.password as string);
-    if (!isPasswordValid) throw new ApiError(httpStatus.UNAUTHORIZED, "Wrong Password Or Email");
+    if (!isPasswordValid) throw new ApiError(httpStatus.UNAUTHORIZED, "Incorrect email or password");
 
     // Check if active
-    if (!user.isActive) throw new ApiError(httpStatus.FORBIDDEN, "Account is deactivated");
+    if (!user.isActive) throw new ApiError(httpStatus.FORBIDDEN, "Your account has been deactivated. Please contact support.");
 
     // Check if email verified
     // if (!user.isEmailVerified) {
@@ -116,19 +116,19 @@ const verifyEmail = async (email: string, token?: string, otp?: string) => {
     });
 
     if (!user) {
-        throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+        throw new ApiError(httpStatus.NOT_FOUND, "User was not found or verification period has expired.");
     }
 
     if (token) {
         if (user.verificationToken !== token) {
-            throw new ApiError(httpStatus.BAD_REQUEST, "Verification token is invalid or expired");
+            throw new ApiError(httpStatus.BAD_REQUEST, "Verification token is invalid or expired.");
         }
     } else if (otp) {
         if (user.verificationCode !== otp) {
-            throw new ApiError(httpStatus.BAD_REQUEST, "Verification code (OTP) is invalid or expired");
+            throw new ApiError(httpStatus.BAD_REQUEST, "Verification code (OTP) is invalid or expired.");
         }
     } else {
-        throw new ApiError(httpStatus.BAD_REQUEST, "Token or OTP is required");
+        throw new ApiError(httpStatus.BAD_REQUEST, "Token or OTP is required for verification.");
     }
 
     // Mark email verified
@@ -143,10 +143,10 @@ const verifyEmail = async (email: string, token?: string, otp?: string) => {
 
 const resendVerificationEmail = async (email: string) => {
     const user = await UserModel.findOne({ email });
-    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User with this email was not found.");
 
     if (user.isEmailVerified) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "Email already verified");
+        throw new ApiError(httpStatus.BAD_REQUEST, "This email address is already verified.");
     }
 
     // Generate new verification token
@@ -163,23 +163,23 @@ const resendVerificationEmail = async (email: string) => {
     const verificationUrl = `${config.client_url}/verify-email?token=${verificationToken}&email=${user.email}`;
     sendVerificationEmail(user.email as string, user.name as string, verificationUrl, verificationCode);
 
-    return { message: "Verification email sent" };
+    return { message: "Verification email sent successfully." };
 };
 
 const getUserById = async (userId: string) => {
     const user = await UserModel.findById(userId).select("-password");
-    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Requested user was not found.");
     return user;
 };
 
 const refreshAccessToken = async (refreshToken: string) => {
-    if (!refreshToken) throw new ApiError(httpStatus.UNAUTHORIZED, "Refresh token required");
+    if (!refreshToken) throw new ApiError(httpStatus.UNAUTHORIZED, "Refresh token is required.");
 
     try {
         const decoded = jwtHelper.verifyToken(refreshToken, config.jwt_refresh_secret as string);
 
         const user = await UserModel.findById(decoded._id).select("-password");
-        if (!user) throw new ApiError(httpStatus.UNAUTHORIZED, "User not found");
+        if (!user) throw new ApiError(httpStatus.UNAUTHORIZED, "User associated with this token was not found.");
 
         const jwtPayload = {
             _id: user._id,
@@ -192,13 +192,13 @@ const refreshAccessToken = async (refreshToken: string) => {
 
         return { user, accessToken };
     } catch (error) {
-        throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid refresh token");
+        throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid or expired refresh token.");
     }
 };
 
 const requestPasswordReset = async (email: string) => {
     const user = await UserModel.findOne({ email });
-    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User with this email was not found.");
 
     // Generate OTP
     const otp = crypto.randomInt(100000, 999999).toString();
@@ -216,18 +216,18 @@ const requestPasswordReset = async (email: string) => {
 
 const verifyOtp = async (email: string, otp: string) => {
     const user = await UserModel.findOne({ email });
-    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User with this email was not found.");
 
     if (!user.resetPasswordOtp || !user.resetPasswordOtpExpiry) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "No OTP request found");
+        throw new ApiError(httpStatus.BAD_REQUEST, "No password reset OTP request found for this account.");
     }
 
     if (user.resetPasswordOtpExpiry < new Date()) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "OTP expired");
+        throw new ApiError(httpStatus.BAD_REQUEST, "OTP has expired. Please request a new one.");
     }
 
     if (user.resetPasswordOtp !== otp) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "Invalid OTP");
+        throw new ApiError(httpStatus.BAD_REQUEST, "Invalid OTP provided.");
     }
 
     // Generate reset token
@@ -246,7 +246,7 @@ const verifyOtp = async (email: string, otp: string) => {
 
 const resendOtp = async (email: string) => {
     const user = await UserModel.findOne({ email });
-    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User with this email was not found.");
 
     // Generate new OTP
     const otp = crypto.randomInt(100000, 999999).toString();
@@ -259,7 +259,7 @@ const resendOtp = async (email: string) => {
     // Send email
     sendOtpEmail(email, otp, user.name as string);
 
-    return { message: "OTP resent" };
+    return { message: "OTP resent successfully." };
 };
 
 const resetPassword = async (token: string, newPassword: string) => {
@@ -268,7 +268,7 @@ const resetPassword = async (token: string, newPassword: string) => {
         resetPasswordTokenExpiry: { $gt: new Date() },
     });
 
-    if (!user) throw new ApiError(httpStatus.BAD_REQUEST, "Invalid or expired token");
+    if (!user) throw new ApiError(httpStatus.BAD_REQUEST, "Invalid or expired password reset token.");
 
     // Hash new password
     const hashedPassword = await bcrypt.hash(newPassword, Number(config.bcrypt_salt_rounds));
@@ -291,16 +291,16 @@ const updateProfile = async (userId: string, data: any) => {
 
     const user = await UserModel.findByIdAndUpdate(userId, { $set: data }, { returnDocument: "after", runValidators: true }).select("-password");
 
-    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Requested user was not found.");
     return user;
 };
 
 const changePassword = async (userId: string, currentPassword: string, newPassword: string) => {
     const user = await UserModel.findById(userId);
-    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Requested user was not found.");
 
     const isPasswordValid = await bcrypt.compare(currentPassword, user.password as string);
-    if (!isPasswordValid) throw new ApiError(httpStatus.BAD_REQUEST, "Current password is incorrect");
+    if (!isPasswordValid) throw new ApiError(httpStatus.BAD_REQUEST, "Current password is incorrect.");
 
     const hashedPassword = await bcrypt.hash(newPassword, Number(config.bcrypt_salt_rounds));
     user.password = hashedPassword;
@@ -309,13 +309,13 @@ const changePassword = async (userId: string, currentPassword: string, newPasswo
 
 const updateEmail = async (userId: string, newEmail: string, password: string) => {
     const user = await UserModel.findById(userId);
-    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Requested user was not found.");
 
     const isPasswordValid = await bcrypt.compare(password, user.password as string);
-    if (!isPasswordValid) throw new ApiError(httpStatus.BAD_REQUEST, "Password is incorrect");
+    if (!isPasswordValid) throw new ApiError(httpStatus.BAD_REQUEST, "Password is incorrect.");
 
     const existingUser = await UserModel.findOne({ email: newEmail });
-    if (existingUser) throw new ApiError(httpStatus.BAD_REQUEST, "Email already in use");
+    if (existingUser) throw new ApiError(httpStatus.BAD_REQUEST, "This email address is already in use.");
 
     // Generate verification token for new email
     const verificationToken = crypto.randomBytes(32).toString("hex");
@@ -333,14 +333,14 @@ const updateEmail = async (userId: string, newEmail: string, password: string) =
 
 const resendEmailUpdate = async (userId: string, password: string) => {
     const user = await UserModel.findById(userId);
-    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Requested user was not found.");
 
     if (!user.pendingEmail) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "No pending email update");
+        throw new ApiError(httpStatus.BAD_REQUEST, "No pending email update request found.");
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password as string);
-    if (!isPasswordValid) throw new ApiError(httpStatus.BAD_REQUEST, "Password is incorrect");
+    if (!isPasswordValid) throw new ApiError(httpStatus.BAD_REQUEST, "Password is incorrect.");
 
     // Generate new verification token
     const verificationToken = crypto.randomBytes(32).toString("hex");
@@ -354,7 +354,7 @@ const resendEmailUpdate = async (userId: string, password: string) => {
     const verificationUrl = `${config.client_url}/verify-new-email?token=${verificationToken}&email=${user.pendingEmail}`;
     sendEmailUpdateVerification(user.pendingEmail as string, user.name as string, verificationUrl);
 
-    return { message: "Verification email resent" };
+    return { message: "Verification email resent successfully." };
 };
 
 const verifyNewEmail = async (token: string, email: string) => {
@@ -364,7 +364,7 @@ const verifyNewEmail = async (token: string, email: string) => {
         emailVerificationExpiry: { $gt: new Date() },
     });
 
-    if (!user) throw new ApiError(httpStatus.BAD_REQUEST, "Invalid or expired token");
+    if (!user) throw new ApiError(httpStatus.BAD_REQUEST, "Invalid or expired email update verification token.");
 
     // Update email
     user.email = email;
@@ -379,7 +379,7 @@ const verifyNewEmail = async (token: string, email: string) => {
 
 const setUserPassword = async (userId: string, newPassword: string) => {
     const user = await UserModel.findById(userId);
-    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Requested user was not found.");
 
     const hashedPassword = await bcrypt.hash(newPassword, Number(config.bcrypt_salt_rounds));
     user.password = hashedPassword;
@@ -392,7 +392,7 @@ const registerSeller = async (data: any) => {
 
     // Check existing user
     const existing = await UserModel.findOne({ email: data.email });
-    if (existing) throw new ApiError(httpStatus.BAD_REQUEST, "Email already in use");
+    if (existing) throw new ApiError(httpStatus.BAD_REQUEST, "This email address is already in use.");
 
     // Find active campaign for the group
     const activeCampaign = await CampaignModel.findOne({
@@ -474,7 +474,7 @@ const registerSeller = async (data: any) => {
 const createAdmin = async (data: any) => {
     // Check existing user
     const existing = await UserModel.findOne({ email: data.email });
-    if (existing) throw new ApiError(httpStatus.BAD_REQUEST, "Email already in use");
+    if (existing) throw new ApiError(httpStatus.BAD_REQUEST, "This email address is already in use.");
 
     // Hash password
     const hashedPassword = await bcrypt.hash(data.password, Number(config.bcrypt_salt_rounds));

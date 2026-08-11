@@ -6,7 +6,6 @@ import { GroupModel } from "../group/group.model";
 import { UserModel } from "../auth/auth.model";
 import { OrderModel } from "../order/order.model";
 import { CampaignProductModel } from "../campaignProduct/campaignProduct.model";
-import { ProductModel } from "../product/product.model";
 import { activityLogServices } from "../activityLog/activityLog.services";
 
 const getCampaignStats = async (campaignId: Types.ObjectId) => {
@@ -31,7 +30,7 @@ const getCampaignStats = async (campaignId: Types.ObjectId) => {
 const createCampaign = async (userId: string, groupId: string, payload: any) => {
     // Check if group exists
     const group = await GroupModel.findOne({ _id: groupId, isDeleted: false });
-    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Group not found");
+    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Associated group was not found or has been deleted.");
 
     // Check if there's an active campaign for this group
     const activeCampaign = await CampaignModel.findOne({
@@ -39,7 +38,7 @@ const createCampaign = async (userId: string, groupId: string, payload: any) => 
         isDeleted: false,
         $or: [{ isActive: true }, { endDate: { $gt: new Date() } }],
     });
-    if (activeCampaign) throw new ApiError(httpStatus.BAD_REQUEST, "You are already running a campaign");
+    if (activeCampaign) throw new ApiError(httpStatus.BAD_REQUEST, "An active campaign is already running for this group.");
 
     // Create the campaign
     const campaign = await CampaignModel.create({
@@ -78,11 +77,7 @@ const getAllCampaigns = async (query: any = {}) => {
     const limit = parseInt(query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    const campaigns = await CampaignModel.find(filter)
-        .populate("createdBy", "name email role phone photo")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit);
+    const campaigns = await CampaignModel.find(filter).populate("createdBy", "name email role phone photo").sort({ createdAt: -1 }).skip(skip).limit(limit);
     const total = await CampaignModel.countDocuments(filter);
 
     return {
@@ -106,12 +101,7 @@ const getAllCampaignsWithStats = async (query: any = {}) => {
     const limit = parseInt(query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    const campaigns = await CampaignModel.find(filter)
-        .populate("createdBy", "name email role phone photo")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean();
+    const campaigns = await CampaignModel.find(filter).populate("createdBy", "name email role phone photo").sort({ createdAt: -1 }).skip(skip).limit(limit).lean();
     const total = await CampaignModel.countDocuments(filter);
 
     const campaignsWithStats = await Promise.all(
@@ -145,7 +135,7 @@ const getActiveCampaigns = async () => {
 
 const getCampaignById = async (campaignId: string) => {
     const campaign = await CampaignModel.findOne({ _id: campaignId, isDeleted: false }).lean();
-    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Campaign not found");
+    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Requested campaign was not found or has been deleted.");
 
     const stats = await getCampaignStats(campaign._id as Types.ObjectId);
 
@@ -226,7 +216,7 @@ const getCampaignById = async (campaignId: string) => {
 
 const getCampaignByCode = async (code: string) => {
     const campaign = await CampaignModel.findOne({ code, isDeleted: false }).lean();
-    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Campaign not found");
+    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, `Campaign with code "${code}" was not found or has been deleted.`);
 
     const stats = await getCampaignStats(campaign._id as Types.ObjectId);
     return {
@@ -244,11 +234,7 @@ const getCampaignsByGroup = async (groupId: string, query: any = {}) => {
     const limit = parseInt(query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    const campaigns = await CampaignModel.find(filter)
-        .populate("createdBy", "name email role phone photo")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit);
+    const campaigns = await CampaignModel.find(filter).populate("createdBy", "name email role phone photo").sort({ createdAt: -1 }).skip(skip).limit(limit);
     const total = await CampaignModel.countDocuments(filter);
 
     return {
@@ -266,13 +252,13 @@ const getCampaignsByGroup = async (groupId: string, query: any = {}) => {
 
 const updateCampaign = async (campaignId: string, payload: any) => {
     const campaign = await CampaignModel.findOneAndUpdate({ _id: campaignId, isDeleted: false }, { $set: payload }, { returnDocument: "after", runValidators: true });
-    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Campaign not found");
+    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Requested campaign was not found or has been deleted.");
     return campaign;
 };
 
 const toggleCampaignStatus = async (campaignId: string) => {
     const campaign = await CampaignModel.findOne({ _id: campaignId, isDeleted: false });
-    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Campaign not found");
+    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Requested campaign was not found or has been deleted.");
     campaign.isActive = !campaign.isActive;
     await campaign.save();
     return campaign;
@@ -280,7 +266,7 @@ const toggleCampaignStatus = async (campaignId: string) => {
 
 const deleteCampaign = async (campaignId: string) => {
     const campaign = await CampaignModel.findOneAndUpdate({ _id: campaignId, isDeleted: false }, { $set: { isDeleted: true, isActive: false } }, { returnDocument: "after" });
-    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Campaign not found");
+    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Requested campaign was not found or has already been deleted.");
 
     // Remove campaign from all users
     await UserModel.updateMany({ campaignAssigned: new Types.ObjectId(campaignId) }, { $unset: { campaignAssigned: "" } });
@@ -295,7 +281,7 @@ const deleteCampaign = async (campaignId: string) => {
 
 const getRunningCampaignByGroup = async (groupId: string) => {
     const group = await GroupModel.findOne({ _id: groupId, isDeleted: false });
-    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Group not found");
+    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Associated group was not found or has been deleted.");
 
     if (!group.runningCampaignId) {
         return null;

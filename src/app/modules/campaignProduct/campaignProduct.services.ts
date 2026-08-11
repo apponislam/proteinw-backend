@@ -9,11 +9,11 @@ import { ProductModel } from "../product/product.model";
 const addProductToCampaign = async (campaignId: string, productId: string) => {
     // Check if campaign exists
     const campaign = await CampaignModel.findOne({ _id: campaignId, isDeleted: false });
-    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Campaign not found");
+    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Target campaign was not found or has been deleted.");
 
     // Check if product exists
     const product = await ProductModel.findOne({ _id: productId, isDeleted: false });
-    if (!product) throw new ApiError(httpStatus.NOT_FOUND, "Product not found");
+    if (!product) throw new ApiError(httpStatus.NOT_FOUND, "Target product was not found or has been deleted.");
 
     // Check if product is already in campaign
     const existing = await CampaignProductModel.findOne({
@@ -21,7 +21,7 @@ const addProductToCampaign = async (campaignId: string, productId: string) => {
         productId: new Types.ObjectId(productId),
         isDeleted: false,
     });
-    if (existing) throw new ApiError(httpStatus.BAD_REQUEST, "Product already added to campaign");
+    if (existing) throw new ApiError(httpStatus.BAD_REQUEST, "This product has already been added to the campaign.");
 
     // Create the association
     const campaignProduct = await CampaignProductModel.create({
@@ -36,12 +36,12 @@ const addProductToCampaign = async (campaignId: string, productId: string) => {
 const addMultipleProductsToCampaign = async (campaignId: string, productIds: string[]) => {
     // Check if campaign exists
     const campaign = await CampaignModel.findOne({ _id: campaignId, isDeleted: false });
-    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Campaign not found");
+    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Target campaign was not found or has been deleted.");
 
     // Check if products exist
     const products = await ProductModel.find({ _id: { $in: productIds.map((id) => new Types.ObjectId(id)) }, isDeleted: false });
     if (products.length !== productIds.length) {
-        throw new ApiError(httpStatus.NOT_FOUND, "One or more products not found");
+        throw new ApiError(httpStatus.NOT_FOUND, "One or more requested products were not found or have been deleted.");
     }
 
     // Prepare operations for bulk write
@@ -79,7 +79,7 @@ const removeProductFromCampaign = async (campaignId: string, productId: string) 
         { returnDocument: "after" },
     );
 
-    if (!campaignProduct) throw new ApiError(httpStatus.NOT_FOUND, "Product not found in campaign");
+    if (!campaignProduct) throw new ApiError(httpStatus.NOT_FOUND, "Product association with this campaign was not found or has already been removed.");
     return campaignProduct;
 };
 
@@ -145,7 +145,7 @@ const getMyCampaignProducts = async (user: any, query: any = {}) => {
     }
 
     if (!campaignId) {
-        throw new ApiError(httpStatus.NOT_FOUND, "No active campaign assigned to your account");
+        throw new ApiError(httpStatus.NOT_FOUND, "No active campaign assigned to your account.");
     }
 
     return getProductsByCampaign(campaignId.toString(), query);
@@ -154,7 +154,7 @@ const getMyCampaignProducts = async (user: any, query: any = {}) => {
 // Get all products in a campaign by campaign code
 const getProductsByCampaignCode = async (code: string, query: any = {}) => {
     const campaign = await CampaignModel.findOne({ code, isDeleted: false });
-    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Campaign not found");
+    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, `Campaign with code "${code}" was not found or has been deleted.`);
 
     return getProductsByCampaign(campaign._id.toString(), query);
 };
