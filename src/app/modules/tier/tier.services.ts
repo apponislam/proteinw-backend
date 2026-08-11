@@ -41,6 +41,10 @@ const checkRangeOverlap = async (min: number, max: number | undefined | null, ex
 const createTier = async (userId: string, payload: any) => {
     await checkRangeOverlap(payload.minSalesVolume, payload.maxSalesVolume);
 
+    if (payload.isPopular) {
+        await TierModel.updateMany({ isDeleted: false }, { $set: { isPopular: false } });
+    }
+
     const tier = await TierModel.create({
         ...payload,
         createdBy: new Types.ObjectId(userId),
@@ -81,6 +85,10 @@ const updateTier = async (tierId: string, payload: any) => {
         const newMax = payload.maxSalesVolume !== undefined ? payload.maxSalesVolume : currentTier.maxSalesVolume;
 
         await checkRangeOverlap(newMin, newMax, tierId);
+    }
+
+    if (payload.isPopular) {
+        await TierModel.updateMany({ _id: { $ne: tierId }, isDeleted: false }, { $set: { isPopular: false } });
     }
 
     const tier = await TierModel.findOneAndUpdate({ _id: tierId, isDeleted: false }, { $set: payload }, { returnDocument: "after", runValidators: true });
