@@ -128,6 +128,18 @@ const getRunningCampaignByGroup = catchAsync(async (req: Request, res: Response)
     });
 });
 
+const assignTierToCampaign = catchAsync(async (req: Request, res: Response) => {
+    const { campaignId, tierId } = req.body;
+    const result = await campaignServices.assignTierToCampaign(campaignId || (req.params.campaignId as string), tierId);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Tier assigned to campaign successfully",
+        data: result,
+    });
+});
+
 export const campaignControllers = {
     createCampaign,
     getAllCampaigns,
@@ -137,6 +149,7 @@ export const campaignControllers = {
     getCampaignByCode,
     getCampaignsByGroup,
     getRunningCampaignByGroup,
+    assignTierToCampaign,
     updateCampaign,
     toggleCampaignStatus,
     deleteCampaign,

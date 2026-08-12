@@ -6,6 +6,7 @@ import { GroupModel } from "../group/group.model";
 import { UserModel } from "../auth/auth.model";
 import { OrderModel } from "../order/order.model";
 import { CampaignProductModel } from "../campaignProduct/campaignProduct.model";
+import { TierModel } from "../tier/tier.model";
 import { activityLogServices } from "../activityLog/activityLog.services";
 
 const getCampaignStats = async (campaignId: Types.ObjectId) => {
@@ -279,6 +280,19 @@ const deleteCampaign = async (campaignId: string) => {
     return campaign;
 };
 
+const assignTierToCampaign = async (campaignId: string, tierId: string) => {
+    const campaign = await CampaignModel.findOne({ _id: campaignId, isDeleted: false });
+    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Requested campaign was not found or has been deleted.");
+
+    const tier = await TierModel.findOne({ _id: tierId, isDeleted: false });
+    if (!tier) throw new ApiError(httpStatus.NOT_FOUND, "Requested tier was not found or has been deleted.");
+
+    campaign.tierId = new Types.ObjectId(tierId);
+    await campaign.save();
+
+    return campaign;
+};
+
 const getRunningCampaignByGroup = async (groupId: string) => {
     const group = await GroupModel.findOne({ _id: groupId, isDeleted: false });
     if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Associated group was not found or has been deleted.");
@@ -308,6 +322,7 @@ export const campaignServices = {
     getCampaignByCode,
     getCampaignsByGroup,
     getRunningCampaignByGroup,
+    assignTierToCampaign,
     updateCampaign,
     toggleCampaignStatus,
     deleteCampaign,
