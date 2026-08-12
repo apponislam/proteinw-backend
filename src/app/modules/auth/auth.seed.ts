@@ -40,6 +40,7 @@ export const seedSuperAdmin = async () => {
                 phone: phone,
                 isActive: true,
                 isEmailVerified: true,
+                isApproved: true,
             };
 
             await UserModel.create(superAdmin);

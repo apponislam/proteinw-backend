@@ -530,6 +530,7 @@ const getAdminsWithStats = async (query: any) => {
                 name: admin.name,
                 email: admin.email,
                 isActive: admin.isActive,
+                isApproved: admin.isApproved ?? false,
                 groupName,
                 sellerCount,
                 orderCount,
