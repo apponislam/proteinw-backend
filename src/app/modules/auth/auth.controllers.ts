@@ -403,6 +403,18 @@ const getMyReferralAndCampaign = catchAsync(async (req: Request, res: Response) 
     });
 });
 
+const approveAdmin = catchAsync(async (req: Request, res: Response) => {
+    const adminId = (req.params.adminId || req.body.adminId) as string;
+    const result = await authServices.approveAdmin(adminId, req.user._id);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Admin approved successfully",
+        data: result,
+    });
+});
+
 export const authControllers = {
     register,
     login,
@@ -423,6 +435,7 @@ export const authControllers = {
     setUserPassword,
     registerSeller,
     createAdmin,
+    approveAdmin,
     getAdminsWithStats,
     getGroupSellers,
     getMyReferralAndCampaign,

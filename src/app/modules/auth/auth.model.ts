@@ -70,6 +70,16 @@ const UserSchema = new Schema<User>(
             default: false,
         },
 
+        isApproved: {
+            type: Boolean,
+            default: false,
+        },
+
+        approvedBy: {
+            type: Schema.Types.ObjectId,
+            ref: "User",
+        },
+
         isDeleted: {
             type: Boolean,
             default: false,

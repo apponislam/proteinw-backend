@@ -25,6 +25,8 @@ export interface User {
     salesEndDate?: Date;
     isActive: boolean;
     isEmailVerified: boolean;
+    isApproved?: boolean;
+    approvedBy?: Types.ObjectId;
     isDeleted: boolean;
     lastLogin?: Date;
 

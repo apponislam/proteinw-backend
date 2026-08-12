@@ -619,6 +619,23 @@ const getMyReferralAndCampaign = async (userId: string) => {
     };
 };
 
+const approveAdmin = async (adminId: string, superAdminId: string) => {
+    const user = await UserModel.findOne({ _id: adminId, isDeleted: false });
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Requested user was not found or has been deleted.");
+
+    if (user.role !== "ADMIN") {
+        throw new ApiError(httpStatus.BAD_REQUEST, "Only users with role ADMIN can be approved.");
+    }
+
+    user.isApproved = true;
+    user.approvedBy = new Types.ObjectId(superAdminId);
+    await user.save();
+
+    const userObj = user.toObject();
+    const { password, ...userWithoutPassword } = userObj;
+    return userWithoutPassword;
+};
+
 export const authServices = {
     registerUser,
     loginUser,
@@ -638,6 +655,7 @@ export const authServices = {
     setUserPassword,
     registerSeller,
     createAdmin,
+    approveAdmin,
     getAdminsWithStats,
     getGroupSellers,
     getMyReferralAndCampaign,
