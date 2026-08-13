@@ -358,7 +358,7 @@ const createAdmin = catchAsync(async (req: Request, res: Response) => {
         throw new ApiError(httpStatus.BAD_REQUEST, "Name, email, and password are required");
     }
 
-    const result = await authServices.createAdmin(req.body);
+    const result = await authServices.createAdmin(req.body, req.user._id);
 
     sendResponse(res, {
         statusCode: httpStatus.CREATED,

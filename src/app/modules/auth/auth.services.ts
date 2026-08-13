@@ -471,7 +471,7 @@ const registerSeller = async (data: any) => {
     return { user: userWithoutSensitive, accessToken, refreshToken };
 };
 
-const createAdmin = async (data: any) => {
+const createAdmin = async (data: any, creatorId?: string) => {
     // Check existing user
     const existing = await UserModel.findOne({ email: data.email });
     if (existing) throw new ApiError(httpStatus.BAD_REQUEST, "This email address is already in use.");
@@ -488,6 +488,8 @@ const createAdmin = async (data: any) => {
         role: "ADMIN" as const,
         isActive: true,
         isEmailVerified: true, // Auto-verify admin
+        isApproved: true,
+        ...(creatorId && { approvedBy: new Types.ObjectId(creatorId) }),
     };
 
     const [createdUser] = await UserModel.create([userData]);
