@@ -2,6 +2,7 @@ import httpStatus from "http-status";
 import { Types } from "mongoose";
 import ApiError from "../../../errors/ApiError";
 import { ProductModel } from "./product.model";
+import { CampaignProductModel } from "../campaignProduct/campaignProduct.model";
 
 const createProduct = async (userId: string, payload: any, productImage?: string) => {
     const product = await ProductModel.create({
@@ -133,7 +134,19 @@ const deleteProduct = async (productId: string) => {
 const getProductStats = async () => {
     const total = await ProductModel.countDocuments({ isDeleted: false });
     const active = await ProductModel.countDocuments({ isDeleted: false, isActive: true });
-    return { total, active };
+
+    // Distinct products that are assigned to active campaign products
+    const assignedProductIds = await CampaignProductModel.distinct("productId", { isDeleted: false });
+    
+    // Count total products that are in assignedProductIds and not deleted
+    const assigned = await ProductModel.countDocuments({
+        _id: { $in: assignedProductIds },
+        isDeleted: false,
+    });
+
+    const unassigned = total - assigned;
+
+    return { total, active, assigned, unassigned };
 };
 
 export const productServices = {
