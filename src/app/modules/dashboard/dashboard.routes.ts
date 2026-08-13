@@ -12,6 +12,7 @@ router.get("/superadmin-sellers-stats", auth, authorize(["SUPER_ADMIN"]), dashbo
 router.get("/superadmin-sellers", auth, authorize(["SUPER_ADMIN"]), dashboardControllers.getSuperAdminSellers);
 router.get("/superadmin-groups-stats", auth, authorize(["SUPER_ADMIN"]), dashboardControllers.getSuperAdminGroupsStats);
 router.get("/superadmin-groups-cards", auth, authorize(["SUPER_ADMIN"]), dashboardControllers.getSuperAdminGroupsDashboardCards);
+router.get("/superadmin-admins-stats", auth, authorize(["SUPER_ADMIN"]), dashboardControllers.getSuperAdminAdminsStats);
 router.get("/store-info", dashboardControllers.getStoreInfo);
 
 export const dashboardRoutes = router;

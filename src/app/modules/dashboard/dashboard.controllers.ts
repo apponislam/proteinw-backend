@@ -113,6 +113,17 @@ const getSuperAdminGroupsDashboardCards = catchAsync(async (req: Request, res: R
     });
 });
 
+const getSuperAdminAdminsStats = catchAsync(async (req: Request, res: Response) => {
+    const result = await dashboardServices.getSuperAdminAdminsStats();
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Super admin admins statistics retrieved successfully",
+        data: result,
+    });
+});
+
 export const dashboardControllers = {
     getDashboardStats,
     getDashboardStatus,
@@ -122,4 +133,5 @@ export const dashboardControllers = {
     getSuperAdminSellers,
     getSuperAdminGroupsStats,
     getSuperAdminGroupsDashboardCards,
+    getSuperAdminAdminsStats,
 };

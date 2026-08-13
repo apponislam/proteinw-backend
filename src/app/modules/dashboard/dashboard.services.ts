@@ -573,6 +573,36 @@ const getSuperAdminGroupsDashboardCards = async () => {
     };
 };
 
+const getSuperAdminAdminsStats = async () => {
+    // 1. Total Admins
+    const totalAdmins = await UserModel.countDocuments({ role: "ADMIN", isDeleted: false });
+
+    // 2. Approved Admins
+    const approvedAdmins = await UserModel.countDocuments({ role: "ADMIN", isApproved: true, isDeleted: false });
+
+    // 3. Not Approved Admins
+    const unapprovedAdmins = await UserModel.countDocuments({ role: "ADMIN", isApproved: { $ne: true }, isDeleted: false });
+
+    // 4. Admins with no group assigned / created
+    // Find IDs of admins who have created a group
+    const adminsWithGroup = await GroupModel.distinct("createdBy", { isDeleted: false });
+    
+    // Count admins whose _id is not in adminsWithGroup AND groupAssigned is null/undefined
+    const unassignedGroupAdmins = await UserModel.countDocuments({
+        role: "ADMIN",
+        isDeleted: false,
+        _id: { $nin: adminsWithGroup },
+        $or: [{ groupAssigned: { $exists: false } }, { groupAssigned: null }],
+    });
+
+    return {
+        totalAdmins,
+        approvedAdmins,
+        unapprovedAdmins,
+        unassignedGroupAdmins,
+    };
+};
+
 export const dashboardServices = {
     getDashboardStats,
     getDashboardStatus,
@@ -582,4 +612,5 @@ export const dashboardServices = {
     getSuperAdminSellers,
     getSuperAdminGroupsStats,
     getSuperAdminGroupsDashboardCards,
+    getSuperAdminAdminsStats,
 };
