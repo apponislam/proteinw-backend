@@ -5,7 +5,7 @@ import config from "../../config";
 import { UserModel } from "./auth.model";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
-import { sendOtpEmail, sendVerificationEmail, sendWelcomeEmail, sendEmailUpdateVerification, sendAdminCreatedEmail } from "../../../utils/emailTemplates";
+import { sendOtpEmail, sendVerificationEmail, sendWelcomeEmail, sendEmailUpdateVerification, sendAdminCreatedEmail, sendPasswordChangedEmail } from "../../../utils/emailTemplates";
 import { invitationServices } from "../invitation/invitation.services";
 import { CampaignModel } from "../campaign/campaign.model";
 import { GroupModel } from "../group/group.model";
@@ -637,6 +637,25 @@ const approveAdmin = async (adminId: string, superAdminId: string) => {
     return userWithoutPassword;
 };
 
+const updateUserBySuperAdmin = async (userId: string, data: any) => {
+    let plainPassword = "";
+    // If password is being updated, hash it
+    if (data.password) {
+        plainPassword = data.password;
+        data.password = await bcrypt.hash(data.password, Number(config.bcrypt_salt_rounds));
+    }
+
+    const user = await UserModel.findByIdAndUpdate(userId, { $set: data }, { returnDocument: "after", runValidators: true }).select("-password");
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Requested user was not found.");
+
+    // If password was updated, send notification email
+    if (plainPassword && user.email) {
+        sendPasswordChangedEmail(user.email, user.name, plainPassword);
+    }
+
+    return user;
+};
+
 export const authServices = {
     registerUser,
     loginUser,
@@ -660,4 +679,5 @@ export const authServices = {
     getAdminsWithStats,
     getGroupSellers,
     getMyReferralAndCampaign,
+    updateUserBySuperAdmin,
 };

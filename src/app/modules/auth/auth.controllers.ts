@@ -415,12 +415,49 @@ const approveAdmin = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const updateUserBySuperAdmin = catchAsync(async (req: Request, res: Response) => {
+    const { userId } = req.params;
+
+    let updateData: any = {};
+    if (req.body.body && typeof req.body.body === "string") {
+        updateData = JSON.parse(req.body.body);
+    } else {
+        updateData = { ...req.body };
+    }
+
+    if (req.file) {
+        updateData.profileImage = `/uploads/profile-images/${req.file.filename}`;
+    }
+
+    const result = await authServices.updateUserBySuperAdmin(userId as string, updateData);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "User updated successfully",
+        data: result,
+    });
+});
+
+const getUserById = catchAsync(async (req: Request, res: Response) => {
+    const { userId } = req.params;
+    const user = await authServices.getUserById(userId as string);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "User retrieved successfully",
+        data: user,
+    });
+});
+
 export const authControllers = {
     register,
     login,
     verifyEmail,
     resendVerificationEmail,
     getMe,
+    getUserById,
     logout,
     refreshAccessToken,
     requestPasswordReset,
@@ -439,4 +476,5 @@ export const authControllers = {
     getAdminsWithStats,
     getGroupSellers,
     getMyReferralAndCampaign,
+    updateUserBySuperAdmin,
 };

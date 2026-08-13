@@ -7,6 +7,15 @@ import { OrderModel } from "../order/order.model";
 import { TierModel } from "../tier/tier.model";
 
 const createGroup = async (userId: string, payload: any) => {
+    const user = await UserModel.findById(userId);
+    if (!user) {
+        throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+    }
+
+    if (user.role === "ADMIN" && !user.isApproved) {
+        throw new ApiError(httpStatus.FORBIDDEN, "Your admin account has not been approved yet. You cannot create a group.");
+    }
+
     const group = await GroupModel.create({
         ...payload,
         createdBy: new Types.ObjectId(userId),

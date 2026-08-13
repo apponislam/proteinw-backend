@@ -27,9 +27,11 @@ router.get("/verify-new-email", authControllers.verifyNewEmail);
 router.post("/resend-email-update", auth, authControllers.resendEmailUpdate);
 
 // Admin only routes
+router.get("/users/:userId", auth, authorize(["SUPER_ADMIN", "ADMIN"]), authControllers.getUserById);
 router.post("/set-password/:userId", auth, authControllers.setUserPassword);
 router.post("/create-admin", auth, authorize(["SUPER_ADMIN"]), authControllers.createAdmin);
 router.patch("/approve-admin/:adminId", auth, authorize(["SUPER_ADMIN"]), authControllers.approveAdmin);
+router.patch("/users/:userId", auth, authorize(["SUPER_ADMIN"]), uploadProfileImage, authControllers.updateUserBySuperAdmin);
 router.get("/admins-with-stats", auth, authorize(["SUPER_ADMIN"]), authControllers.getAdminsWithStats);
 router.get("/group-members/:groupId", auth, authorize(["ADMIN", "SUPER_ADMIN"]), authControllers.getGroupSellers);
 

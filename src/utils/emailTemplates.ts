@@ -190,3 +190,26 @@ export const sendOrderConfirmationEmail = (email: string, customerName: string, 
 
     sendMail(email, "Your Order Confirmation - ProteinW", html);
 };
+
+export const sendPasswordChangedEmail = (email: string, name?: string, newPassword?: string) => {
+    const loginUrl = `${config.client_url}/auth/login`;
+    const html = `
+        <div style="${containerStyle}">
+            <h2 style="color: #1a1a1a; margin-top: 0;">${name ? `Hello ${name},` : "Hello,"}</h2>
+            <p style="color: #4a4a4a; line-height: 1.6;">Your password for ProteinW has been updated by an administrator.</p>
+            ${
+                newPassword
+                    ? `<div style="background: #fffaf0; border: 1px solid #ffe8b8; padding: 16px; margin: 20px 0; border-radius: 8px;">
+                        <p style="margin: 0; color: #4a4a4a;"><strong>New Password:</strong> ${newPassword}</p>
+                       </div>`
+                    : ""
+            }
+            <p style="color: #4a4a4a; line-height: 1.6;">You can now log in using your updated password.</p>
+            <div style="text-align: center; margin: 32px 0;">
+                <a href="${loginUrl}" style="${buttonStyle}">Login to Dashboard</a>
+            </div>
+            <p style="color: #8a8a8a; font-size: 12px; margin-top: 24px;">If you did not request or expect this change, please contact support immediately.</p>
+        </div>
+    `;
+    sendMail(email, "Your Password Has Been Updated - ProteinW", html);
+};
