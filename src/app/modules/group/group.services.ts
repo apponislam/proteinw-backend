@@ -94,25 +94,10 @@ const getMyGroup = async (userId: string | Types.ObjectId, query: any = {}) => {
 
     const filter: any = { isDeleted: false };
 
-    // 1. Try finding groups created by this admin
-    const adminGroupCount = await GroupModel.countDocuments({ createdBy: new Types.ObjectId(userId), isDeleted: false });
+    filter.createdBy = new Types.ObjectId(userId);
 
-    let groupDocs: any[] = [];
-    let total = 0;
-
-    if (adminGroupCount > 0) {
-        filter.createdBy = new Types.ObjectId(userId);
-        groupDocs = await GroupModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit);
-        total = adminGroupCount;
-    } else {
-        // 2. If no created groups, check groups joined by this seller via SellerGroupModel
-        const sellerJoins = await SellerGroupModel.find({ sellerId: new Types.ObjectId(userId), isDeleted: false }).select("groupId").lean();
-        const joinedGroupIds = sellerJoins.map((j) => j.groupId);
-
-        filter._id = { $in: joinedGroupIds };
-        groupDocs = await GroupModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit);
-        total = await GroupModel.countDocuments(filter);
-    }
+    const total = await GroupModel.countDocuments(filter);
+    const groupDocs = await GroupModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit);
 
     // Fetch all active tiers once for efficiency
     const tiers = await TierModel.find({ isActive: true, isDeleted: false }).sort({ minSalesVolume: 1 });
@@ -122,30 +107,34 @@ const getMyGroup = async (userId: string | Types.ObjectId, query: any = {}) => {
             const groupObj = groupDoc.toObject();
 
             // Find active campaign for this group
-            const activeCampaign = await CampaignModel.findOne({ groupId: groupDoc._id, isDeleted: false, status: "ACTIVE" }).populate("tierId");
+            const campaign = await CampaignModel.findOne({ groupId: groupDoc._id, isDeleted: false, status: "ACTIVE" }).populate("tierId");
 
             let totalPackagesSold = 0;
             let totalRevenue = 0;
-            if (activeCampaign) {
-                const ordersStats = await OrderModel.aggregate([
-                    {
-                        $match: {
-                            campaignId: activeCampaign._id,
-                            status: { $ne: "cancelled" },
-                            isDeleted: false,
-                        },
-                    },
-                    {
-                        $group: {
-                            _id: null,
-                            totalPackagesSold: { $sum: "$totalPackage" },
-                            totalRevenue: { $sum: "$totalPrice" },
-                        },
-                    },
-                ]);
-                totalPackagesSold = ordersStats[0]?.totalPackagesSold || 0;
-                totalRevenue = ordersStats[0]?.totalRevenue || 0;
+
+            const orderMatch: any = {
+                status: { $ne: "cancelled" },
+                isDeleted: false,
+            };
+
+            if (campaign) {
+                orderMatch.$or = [{ groupId: groupDoc._id }, { campaignId: campaign._id }];
+            } else {
+                orderMatch.groupId = groupDoc._id;
             }
+
+            const ordersStats = await OrderModel.aggregate([
+                { $match: orderMatch },
+                {
+                    $group: {
+                        _id: null,
+                        totalPackagesSold: { $sum: "$totalPackage" },
+                        totalRevenue: { $sum: "$totalPrice" },
+                    },
+                },
+            ]);
+            totalPackagesSold = ordersStats[0]?.totalPackagesSold || 0;
+            totalRevenue = ordersStats[0]?.totalRevenue || 0;
 
             const currentTier = tiers.find((t) => totalPackagesSold >= t.minSalesVolume && (t.maxSalesVolume === undefined || t.maxSalesVolume === null || totalPackagesSold <= t.maxSalesVolume));
             const nextTier = tiers.find((t) => t.minSalesVolume > totalPackagesSold);
@@ -153,7 +142,7 @@ const getMyGroup = async (userId: string | Types.ObjectId, query: any = {}) => {
 
             return {
                 ...groupObj,
-                runningCampaign: activeCampaign || null,
+                runningCampaign: campaign || null,
                 tierInfo: {
                     totalPackagesSold,
                     totalRevenue,

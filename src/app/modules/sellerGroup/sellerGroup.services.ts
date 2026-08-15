@@ -118,7 +118,69 @@ const getMyJoinedGroups = async (sellerId: string, query: any = {}) => {
         .populate("groupId")
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limit);
+        .limit(limit)
+        .lean();
+
+    const { CampaignModel } = await import("../campaign/campaign.model");
+    const { OrderModel } = await import("../order/order.model");
+    const { TierModel } = await import("../tier/tier.model");
+
+    const tiers = await TierModel.find({ isActive: true, isDeleted: false }).sort({ minSalesVolume: 1 });
+
+    const groupsWithDetails = await Promise.all(
+        joins.map(async (join: any) => {
+            const groupDoc = join.groupId;
+            if (!groupDoc || groupDoc.isDeleted) return null;
+
+            // Find active campaign for this group
+            const campaign = await CampaignModel.findOne({ groupId: groupDoc._id, isDeleted: false, status: "ACTIVE" }).populate("tierId");
+
+            let totalPackagesSold = 0;
+            let totalRevenue = 0;
+
+            const orderMatch: any = {
+                status: { $ne: "cancelled" },
+                isDeleted: false,
+            };
+
+            if (campaign) {
+                orderMatch.$or = [{ groupId: groupDoc._id }, { campaignId: campaign._id }];
+            } else {
+                orderMatch.groupId = groupDoc._id;
+            }
+
+            const ordersStats = await OrderModel.aggregate([
+                { $match: orderMatch },
+                {
+                    $group: {
+                        _id: null,
+                        totalPackagesSold: { $sum: "$totalPackage" },
+                        totalRevenue: { $sum: "$totalPrice" },
+                    },
+                },
+            ]);
+            totalPackagesSold = ordersStats[0]?.totalPackagesSold || 0;
+            totalRevenue = ordersStats[0]?.totalRevenue || 0;
+
+            const currentTier = tiers.find((t) => totalPackagesSold >= t.minSalesVolume && (t.maxSalesVolume === undefined || t.maxSalesVolume === null || totalPackagesSold <= t.maxSalesVolume));
+            const nextTier = tiers.find((t) => t.minSalesVolume > totalPackagesSold);
+            const packagesNeededForNextTier = nextTier ? nextTier.minSalesVolume - totalPackagesSold : 0;
+
+            return {
+                ...groupDoc,
+                runningCampaign: campaign || null,
+                tierInfo: {
+                    totalPackagesSold,
+                    totalRevenue,
+                    currentTier: currentTier || null,
+                    nextTier: nextTier || null,
+                    packagesNeededForNextTier,
+                },
+            };
+        }),
+    );
+
+    const validGroups = groupsWithDetails.filter(Boolean);
 
     const total = await SellerGroupModel.countDocuments({
         sellerId: new Types.ObjectId(sellerId),
@@ -126,7 +188,7 @@ const getMyJoinedGroups = async (sellerId: string, query: any = {}) => {
     });
 
     return {
-        data: joins,
+        data: validGroups,
         pagination: {
             page,
             limit,

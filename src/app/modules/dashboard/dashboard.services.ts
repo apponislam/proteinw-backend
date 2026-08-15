@@ -284,17 +284,11 @@ const getSuperAdminSellers = async (query: any) => {
     const total = await UserModel.countDocuments({ role: "SELLER", isDeleted: false });
 
     const sellers = await UserModel.find({ role: "SELLER", isDeleted: false })
-        .populate({
-            path: "groupAssigned",
-            model: "Group",
-            populate: {
-                path: "runningCampaignId",
-                model: "Campaign",
-            },
-        })
+        .select("-password")
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limit);
+        .limit(limit)
+        .lean();
 
     const sellersWithStats = await Promise.all(
         sellers.map(async (seller) => {
@@ -321,7 +315,12 @@ const getSuperAdminSellers = async (query: any) => {
 
             const sellerGroupJoin = await SellerGroupModel.findOne({ sellerId: seller._id, isDeleted: false }).populate("groupId");
             const group = sellerGroupJoin?.groupId as any;
-            const campaign = group?.runningCampaignId as any;
+
+            let campaign = null;
+            if (group) {
+                campaign = await CampaignModel.findOne({ groupId: group._id, isDeleted: false, status: "ACTIVE" });
+            }
+
             const baseUrl = config.client_url || "http://localhost:3000";
             const salesLink = campaign?.code
                 ? `${baseUrl}/store?campaign=${campaign.code}&referral=${seller.referralCode}`
@@ -396,9 +395,8 @@ const getSuperAdminGroupsStats = async (query: any) => {
             const campaign = await CampaignModel.findOne({ groupId: group._id, isDeleted: false, status: "ACTIVE" }).lean();
             const campaignAdmin = group.createdBy as any;
 
-            const sellersCount = await UserModel.countDocuments({
-                groupAssigned: group._id,
-                role: "SELLER",
+            const sellersCount = await SellerGroupModel.countDocuments({
+                groupId: group._id,
                 isDeleted: false,
             });
 
@@ -600,12 +598,11 @@ const getSuperAdminAdminsStats = async () => {
     // Find IDs of admins who have created a group
     const adminsWithGroup = await GroupModel.distinct("createdBy", { isDeleted: false });
     
-    // Count admins whose _id is not in adminsWithGroup AND groupAssigned is null/undefined
+    // Count admins whose _id is not in adminsWithGroup
     const unassignedGroupAdmins = await UserModel.countDocuments({
         role: "ADMIN",
         isDeleted: false,
         _id: { $nin: adminsWithGroup },
-        $or: [{ groupAssigned: { $exists: false } }, { groupAssigned: null }],
     });
 
     return {

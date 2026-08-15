@@ -9,7 +9,7 @@ const router = Router();
 router.get("/", groupControllers.getActiveGroups);
 router.get("/code/:code", groupControllers.getGroupByCode);
 router.get("/my-campaign-stats", auth, groupControllers.getMyCampaignStats);
-router.get("/my-groups", auth, groupControllers.getMyGroup);
+router.get("/my-groups", auth, authorize(["SUPER_ADMIN", "ADMIN"]), groupControllers.getMyGroup);
 router.get("/:groupId", groupControllers.getGroupById);
 
 // Admin & Super Admin routes
