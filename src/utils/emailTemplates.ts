@@ -100,8 +100,8 @@ export const sendEmailUpdateVerification = (email: string, name: string, verific
 };
 
 export const sendGroupInvitationEmail = (email: string, groupName: string, code: string) => {
-    const registerUrl = `${config.client_url}/auth/member?code=${encodeURIComponent(code)}&email=${encodeURIComponent(email)}`;
-    const loginUrl = `${config.client_url}/login?code=${encodeURIComponent(code)}&email=${encodeURIComponent(email)}`;
+    const registerUrl = `${config.client_url}/auth/member/register?code=${encodeURIComponent(code)}&email=${encodeURIComponent(email)}`;
+    const loginUrl = `${config.client_url}/auth/member/login?code=${encodeURIComponent(code)}&email=${encodeURIComponent(email)}`;
     const html = `
         <div style="${containerStyle}">
             <h2 style="color: #1a1a1a; margin-top: 0;">Hello,</h2>

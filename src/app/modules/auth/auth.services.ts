@@ -106,14 +106,14 @@ const loginUser = async (data: { email: string; password: string }) => {
     return { user: userWithoutPassword, accessToken, refreshToken };
 };
 
-const loginWithInvitationCode = async (data: { email: string; password: string; invitationCode?: string; code?: string }) => {
-    const invCode = data.invitationCode || data.code;
-    if (!invCode) {
+const loginWithInvitationCode = async (data: { email: string; password: string; code: string }) => {
+    const code = data.code;
+    if (!code) {
         throw new ApiError(httpStatus.BAD_REQUEST, "Invitation code is required.");
     }
 
     // 1. Verify invitation by code
-    const invitation = await invitationServices.getInvitationByCode(invCode);
+    const invitation = await invitationServices.getInvitationByCode(code);
 
     // 2. Perform normal login
     const loginResult = await loginUser({ email: data.email, password: data.password });
@@ -437,15 +437,15 @@ const setUserPassword = async (userId: string, newPassword: string) => {
 };
 
 const registerSeller = async (data: any) => {
-    const { invitationCode, code, ...userDataPayload } = data;
-    const invCode = invitationCode || code;
+    console.log(data);
+    const { code, ...userDataPayload } = data;
 
-    if (!invCode) {
+    if (!code) {
         throw new ApiError(httpStatus.BAD_REQUEST, "An invitation code is required to register as a seller.");
     }
 
     // Check invitation exists strictly by invitation code
-    const invitation = await invitationServices.getInvitationByCode(invCode);
+    const invitation = await invitationServices.getInvitationByCode(code);
 
     // Check existing user
     const existing = await UserModel.findOne({ email: invitation.email });
@@ -624,22 +624,28 @@ const getAdminsWithStats = async (query: any) => {
 };
 
 const getGroupSellers = async (groupId: string, query: any = {}) => {
-    const filter: any = {
-        groupAssigned: new Types.ObjectId(groupId),
-        role: "SELLER",
-        isDeleted: false,
-    };
-
     const page = parseInt(query.page as string) || 1;
     const limit = parseInt(query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    const sellers = await UserModel.find(filter)
+    const joins = await SellerGroupModel.find({
+        groupId: new Types.ObjectId(groupId),
+        isDeleted: false,
+    })
+        .populate({
+            path: "sellerId",
+            select: "-password -verificationToken -verificationCode -verificationExpiry",
+        })
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limit)
-        .select("-password -verificationToken -verificationCode -verificationExpiry");
-    const total = await UserModel.countDocuments(filter);
+        .limit(limit);
+
+    const sellers = joins.map((j) => j.sellerId).filter(Boolean);
+
+    const total = await SellerGroupModel.countDocuments({
+        groupId: new Types.ObjectId(groupId),
+        isDeleted: false,
+    });
 
     return {
         data: sellers,

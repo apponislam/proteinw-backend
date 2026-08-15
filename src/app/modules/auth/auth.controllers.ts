@@ -335,12 +335,16 @@ const registerSeller = catchAsync(async (req: Request, res: Response) => {
         data = JSON.parse(req.body.body);
     }
 
+    // Extract code
+    const code = data.code || req.body.code || (req.query.code as string);
+
     // Parse JSON fields
     const userData: any = {
-        name: data.name,
-        email: data.email,
-        password: data.password,
-        phone: data.phone,
+        code,
+        name: data.name || req.body.name,
+        email: data.email || req.body.email,
+        password: data.password || req.body.password,
+        phone: data.phone || req.body.phone,
         ...(profileImageUrl && { profileImage: profileImageUrl }),
         ...(data.profession && { profession: data.profession }),
         ...(data.address && { address: data.address }),
