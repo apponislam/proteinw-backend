@@ -358,18 +358,33 @@ const getOrderStats = async () => {
     };
 };
 
-const getRunningCampaignOrders = async (campaignId: Types.ObjectId | string, query: any = {}) => {
-    if (!campaignId) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "No running campaign assigned to this admin");
+const getRunningCampaignOrders = async (user: any, query: any = {}) => {
+    const filter: any = { isDeleted: false };
+
+    if (user.role === "SELLER") {
+        // Seller sees only their own orders
+        filter.memberId = new Types.ObjectId(user._id);
+    } else if (user.role === "ADMIN") {
+        const { GroupModel } = await import("../group/group.model");
+        const { CampaignModel } = await import("../campaign/campaign.model");
+
+        // 1. Find groups created by admin
+        const adminGroups = await GroupModel.find({ createdBy: user._id, isDeleted: false }).select("_id").lean();
+        const groupIds = adminGroups.map((g) => g._id);
+
+        // 2. Find campaigns created by admin or belonging to admin groups
+        const adminCampaigns = await CampaignModel.find({
+            $or: [{ createdBy: user._id }, { groupId: { $in: groupIds } }],
+            isDeleted: false,
+        }).select("_id").lean();
+        const campaignIds = adminCampaigns.map((c) => c._id);
+
+        filter.$or = [{ groupId: { $in: groupIds } }, { campaignId: { $in: campaignIds } }];
     }
 
-    const filter: any = { 
-        campaignId: new Types.ObjectId(campaignId), 
-        isDeleted: false 
-    };
-
     if (query.status) filter.status = query.status;
-    if (query.memberId) filter.memberId = new Types.ObjectId(query.memberId);
+    if (query.memberId && user.role !== "SELLER") filter.memberId = new Types.ObjectId(query.memberId);
+    if (query.campaignId) filter.campaignId = new Types.ObjectId(query.campaignId);
 
     const page = parseInt(query.page as string) || 1;
     const limit = parseInt(query.limit as string) || 10;
@@ -398,20 +413,35 @@ const getRunningCampaignOrders = async (campaignId: Types.ObjectId | string, que
     };
 };
 
-const getRunningCampaignStats = async (campaignId: Types.ObjectId | string) => {
-    if (!campaignId) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "No running campaign assigned to this admin");
+const getRunningCampaignStats = async (user: any) => {
+    const matchStage: any = {
+        isDeleted: false,
+    };
+
+    if (user.role === "SELLER") {
+        matchStage.memberId = new Types.ObjectId(user._id);
+    } else if (user.role === "ADMIN") {
+        const { GroupModel } = await import("../group/group.model");
+        const { CampaignModel } = await import("../campaign/campaign.model");
+
+        const adminGroups = await GroupModel.find({ createdBy: user._id, isDeleted: false }).select("_id").lean();
+        const groupIds = adminGroups.map((g) => g._id);
+
+        const adminCampaigns = await CampaignModel.find({
+            $or: [{ createdBy: user._id }, { groupId: { $in: groupIds } }],
+            isDeleted: false,
+        }).select("_id").lean();
+        const campaignIds = adminCampaigns.map((c) => c._id);
+
+        matchStage.$or = [{ groupId: { $in: groupIds } }, { campaignId: { $in: campaignIds } }];
     }
 
-    const campId = new Types.ObjectId(campaignId);
-
-    // 1. Total Revenue: sum of totalPrice of non-cancelled and non-deleted orders for this campaign
+    // 1. Total Revenue: sum of totalPrice of non-cancelled and non-deleted orders
     const totalRevenueResult = await OrderModel.aggregate([
         {
             $match: {
-                campaignId: campId,
+                ...matchStage,
                 status: { $ne: "cancelled" },
-                isDeleted: false,
             },
         },
         {
@@ -423,23 +453,21 @@ const getRunningCampaignStats = async (campaignId: Types.ObjectId | string) => {
     ]);
     const totalRevenue = totalRevenueResult[0]?.total || 0;
 
-    // 2. Active Orders count: pending, confirmed, shipped status, and not deleted for this campaign
+    // 2. Active Orders count: pending, confirmed, shipped status
     const activeOrdersCount = await OrderModel.countDocuments({
-        campaignId: campId,
+        ...matchStage,
         status: { $in: ["pending", "confirmed", "shipped"] },
-        isDeleted: false,
     });
 
-    // 3. Month-to-Date (MTD) Sales: sum of totalPrice of non-cancelled/non-deleted orders since the start of the current month for this campaign
+    // 3. Month-to-Date (MTD) Sales
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
     const mtdSalesResult = await OrderModel.aggregate([
         {
             $match: {
-                campaignId: campId,
+                ...matchStage,
                 status: { $ne: "cancelled" },
-                isDeleted: false,
                 createdAt: { $gte: startOfMonth },
             },
         },

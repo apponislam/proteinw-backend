@@ -97,13 +97,14 @@ const deleteGroup = catchAsync(async (req: Request, res: Response) => {
 
 const getMyGroup = catchAsync(async (req: Request, res: Response) => {
     const userId = (req.user as any)?._id;
-    const result = await groupServices.getMyGroup(userId);
+    const result = await groupServices.getMyGroup(userId, req.query);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Your group retrieved successfully",
-        data: result,
+        message: "Your groups retrieved successfully",
+        data: result.data,
+        meta: result.pagination,
     });
 });
 

@@ -95,10 +95,10 @@ const getOrderStats = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
-// Get orders of the running campaign assigned to the logged-in admin
+// Get orders of the running campaign assigned to the logged-in user
 const getRunningCampaignOrders = catchAsync(async (req: Request, res: Response) => {
-    const campaignId = (req.user as any)?.campaignAssigned;
-    const result = await orderServices.getRunningCampaignOrders(campaignId, req.query);
+    const user = req.user as any;
+    const result = await orderServices.getRunningCampaignOrders(user, req.query);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
@@ -109,10 +109,10 @@ const getRunningCampaignOrders = catchAsync(async (req: Request, res: Response) 
     });
 });
 
-// Get stats of the running campaign assigned to the logged-in admin
+// Get stats of the running campaign assigned to the logged-in user
 const getRunningCampaignStats = catchAsync(async (req: Request, res: Response) => {
-    const campaignId = (req.user as any)?.campaignAssigned;
-    const result = await orderServices.getRunningCampaignStats(campaignId);
+    const user = req.user as any;
+    const result = await orderServices.getRunningCampaignStats(user);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,

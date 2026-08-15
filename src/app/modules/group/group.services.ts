@@ -87,71 +87,93 @@ const deleteGroup = async (groupId: string) => {
     return group;
 };
 
-const getMyGroup = async (userId: string | Types.ObjectId) => {
-    // 1. Try finding group created by this admin
-    let group = await GroupModel.findOne({ createdBy: new Types.ObjectId(userId), isDeleted: false });
+const getMyGroup = async (userId: string | Types.ObjectId, query: any = {}) => {
+    const page = parseInt(query.page as string) || 1;
+    const limit = parseInt(query.limit as string) || 10;
+    const skip = (page - 1) * limit;
 
-    // 2. If not created by admin, try finding group joined by this seller
-    if (!group) {
-        const sellerGroupJoin = await SellerGroupModel.findOne({ sellerId: new Types.ObjectId(userId), isDeleted: false });
-        if (sellerGroupJoin) {
-            group = await GroupModel.findOne({ _id: sellerGroupJoin.groupId, isDeleted: false });
-        }
+    const filter: any = { isDeleted: false };
+
+    // 1. Try finding groups created by this admin
+    const adminGroupCount = await GroupModel.countDocuments({ createdBy: new Types.ObjectId(userId), isDeleted: false });
+
+    let groupDocs: any[] = [];
+    let total = 0;
+
+    if (adminGroupCount > 0) {
+        filter.createdBy = new Types.ObjectId(userId);
+        groupDocs = await GroupModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit);
+        total = adminGroupCount;
+    } else {
+        // 2. If no created groups, check groups joined by this seller via SellerGroupModel
+        const sellerJoins = await SellerGroupModel.find({ sellerId: new Types.ObjectId(userId), isDeleted: false }).select("groupId").lean();
+        const joinedGroupIds = sellerJoins.map((j) => j.groupId);
+
+        filter._id = { $in: joinedGroupIds };
+        groupDocs = await GroupModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit);
+        total = await GroupModel.countDocuments(filter);
     }
 
-    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "No group was found for this user.");
-
-    // Find active campaign for this group
-    const activeCampaign = await CampaignModel.findOne({ groupId: group._id, isDeleted: false, status: "ACTIVE" }).populate("tierId");
-
-    // Calculate total packages sold for the group's campaign
-    const campaignId = activeCampaign?._id;
-    let totalPackagesSold = 0;
-    let totalRevenue = 0;
-    if (campaignId) {
-        const ordersStats = await OrderModel.aggregate([
-            {
-                $match: {
-                    campaignId: campaignId,
-                    status: { $ne: "cancelled" },
-                    isDeleted: false,
-                },
-            },
-            {
-                $group: {
-                    _id: null,
-                    totalPackagesSold: { $sum: "$totalPackage" },
-                    totalRevenue: { $sum: "$totalPrice" },
-                },
-            },
-        ]);
-        totalPackagesSold = ordersStats[0]?.totalPackagesSold || 0;
-        totalRevenue = ordersStats[0]?.totalRevenue || 0;
-    }
-
-    // Fetch all active tiers
+    // Fetch all active tiers once for efficiency
     const tiers = await TierModel.find({ isActive: true, isDeleted: false }).sort({ minSalesVolume: 1 });
 
-    // Determine current tier
-    const currentTier = tiers.find((t) => totalPackagesSold >= t.minSalesVolume && (t.maxSalesVolume === undefined || t.maxSalesVolume === null || totalPackagesSold <= t.maxSalesVolume));
+    const groupsWithDetails = await Promise.all(
+        groupDocs.map(async (groupDoc) => {
+            const groupObj = groupDoc.toObject();
 
-    // Determine next tier
-    const nextTier = tiers.find((t) => t.minSalesVolume > totalPackagesSold);
+            // Find active campaign for this group
+            const activeCampaign = await CampaignModel.findOne({ groupId: groupDoc._id, isDeleted: false, status: "ACTIVE" }).populate("tierId");
 
-    const packagesNeededForNextTier = nextTier ? nextTier.minSalesVolume - totalPackagesSold : 0;
+            let totalPackagesSold = 0;
+            let totalRevenue = 0;
+            if (activeCampaign) {
+                const ordersStats = await OrderModel.aggregate([
+                    {
+                        $match: {
+                            campaignId: activeCampaign._id,
+                            status: { $ne: "cancelled" },
+                            isDeleted: false,
+                        },
+                    },
+                    {
+                        $group: {
+                            _id: null,
+                            totalPackagesSold: { $sum: "$totalPackage" },
+                            totalRevenue: { $sum: "$totalPrice" },
+                        },
+                    },
+                ]);
+                totalPackagesSold = ordersStats[0]?.totalPackagesSold || 0;
+                totalRevenue = ordersStats[0]?.totalRevenue || 0;
+            }
 
-    // Convert group document to plain object so we can add custom fields
-    const groupObj = group.toObject();
+            const currentTier = tiers.find((t) => totalPackagesSold >= t.minSalesVolume && (t.maxSalesVolume === undefined || t.maxSalesVolume === null || totalPackagesSold <= t.maxSalesVolume));
+            const nextTier = tiers.find((t) => t.minSalesVolume > totalPackagesSold);
+            const packagesNeededForNextTier = nextTier ? nextTier.minSalesVolume - totalPackagesSold : 0;
+
+            return {
+                ...groupObj,
+                runningCampaign: activeCampaign || null,
+                tierInfo: {
+                    totalPackagesSold,
+                    totalRevenue,
+                    currentTier: currentTier || null,
+                    nextTier: nextTier || null,
+                    packagesNeededForNextTier,
+                },
+            };
+        }),
+    );
 
     return {
-        ...groupObj,
-        runningCampaign: activeCampaign || null,
-        tierInfo: {
-            totalPackagesSold,
-            totalRevenue,
-            currentTier: currentTier || null,
-            nextTier: nextTier || null,
-            packagesNeededForNextTier,
+        data: groupsWithDetails,
+        pagination: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+            hasNext: page < Math.ceil(total / limit),
+            hasPrev: page > 1,
         },
     };
 };

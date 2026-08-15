@@ -29,6 +29,8 @@ const joinGroupByInvitationCode = catchAsync(async (req: Request, res: Response)
     const { invitationCode, code } = req.body;
     const targetCode = invitationCode || code || req.params.code;
 
+    console.log(sellerId, code, invitationCode);
+
     const result = await sellerGroupServices.joinGroupByInvitationCode(sellerId as string, targetCode as string);
 
     sendResponse(res, {

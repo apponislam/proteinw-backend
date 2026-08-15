@@ -104,19 +104,19 @@ const getDashboardStatus = async (userId: string) => {
 };
 
 const getStoreInfo = async (campaignCode: string, referralCode: string) => {
-    // 1. Find the campaign
-    const campaign = await CampaignModel.findOne({ code: campaignCode, isActive: true, isDeleted: false });
+    // 1. Find the campaign by code and status ACTIVE
+    const campaign = await CampaignModel.findOne({ code: campaignCode, status: "ACTIVE", isDeleted: false });
     if (!campaign) {
         return { validation: false };
     }
 
-    // 2. Find the member
+    // 2. Find the member by referralCode
     const member = await UserModel.findOne({ referralCode, isActive: true, isDeleted: false });
     if (!member) {
         return { validation: false };
     }
 
-    // 3. Validate member association with campaign
+    // 3. Validate member association with campaign or group
     const isCampaignSeller = await CampaignSellerModel.exists({ sellerId: member._id, campaignId: campaign._id, isDeleted: false });
     const isSellerGroup = campaign.groupId
         ? await SellerGroupModel.exists({ sellerId: member._id, groupId: campaign.groupId, isDeleted: false })
@@ -126,17 +126,21 @@ const getStoreInfo = async (campaignCode: string, referralCode: string) => {
         return { validation: false };
     }
 
-    // 4. Get the group
-    const group = await GroupModel.findOne({ _id: campaign.groupId, isDeleted: false });
-    if (!group) {
-        return { validation: false };
+    // 4. Get the group (if linked to campaign)
+    let group = null;
+    let adminName = "";
+    if (campaign.groupId) {
+        group = await GroupModel.findOne({ _id: campaign.groupId, isDeleted: false });
+        if (group) {
+            const admin = await UserModel.findOne({ _id: group.createdBy, isDeleted: false });
+            adminName = admin ? admin.name : "";
+        }
+    } else if (campaign.createdBy) {
+        const admin = await UserModel.findOne({ _id: campaign.createdBy, isDeleted: false });
+        adminName = admin ? admin.name : "";
     }
 
-    // 5. Get the admin (creator of the group)
-    const admin = await UserModel.findOne({ _id: group.createdBy, isDeleted: false });
-    const adminName = admin ? admin.name : "";
-
-    // 6. Get total count of products in this campaign
+    // 5. Get total count of products in this campaign
     const totalProducts = await CampaignProductModel.countDocuments({
         campaignId: campaign._id,
         isDeleted: false,
@@ -145,7 +149,7 @@ const getStoreInfo = async (campaignCode: string, referralCode: string) => {
     return {
         validation: true,
         adminName,
-        groupName: group.name,
+        groupName: group ? group.name : campaign.name,
         campaignName: campaign.name,
         campaignProductCount: totalProducts,
     };
