@@ -67,7 +67,10 @@ const getDashboardStats = async () => {
     const totalAdmins = await UserModel.countDocuments({ role: "ADMIN", isDeleted: false });
     const totalSellers = await UserModel.countDocuments({ role: "SELLER", isDeleted: false });
     const totalGroups = await GroupModel.countDocuments({ isDeleted: false });
-    const activeCampaigns = await CampaignModel.countDocuments({ status: "ACTIVE", isDeleted: false });
+    const activeCampaigns = await CampaignModel.countDocuments({
+        isDeleted: false,
+        $or: [{ status: "ACTIVE" }, { endDate: { $gt: new Date() } }],
+    });
     const totalOrders = await OrderModel.countDocuments({ isDeleted: false });
 
     return {
@@ -181,7 +184,7 @@ const getSellerDashboardStats = async (groupId: string | undefined, userId?: str
             totalProfit: 0,
             packagesSold: 0,
             daysRemaining: 0,
-            goal: group.goal,
+            goal: 0,
             groupName: group.name,
             shortDescription: group.shortDescription,
         };
@@ -219,7 +222,7 @@ const getSellerDashboardStats = async (groupId: string | undefined, userId?: str
 
     const daysRemaining = Math.max(0, Math.ceil((new Date(campaign.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
 
-    const goal = group.goal;
+    const goal = campaign.target || 0;
 
     return {
         totalSales,
@@ -386,7 +389,7 @@ const getSuperAdminGroupsStats = async (query: any) => {
 
     const groupsStats = await Promise.all(
         groups.map(async (group) => {
-            const campaign = group.runningCampaignId as any;
+            const campaign = await CampaignModel.findOne({ groupId: group._id, isDeleted: false, status: "ACTIVE" }).lean();
             const campaignAdmin = group.createdBy as any;
 
             const sellersCount = await UserModel.countDocuments({
@@ -441,7 +444,7 @@ const getSuperAdminGroupsStats = async (query: any) => {
                 : "Goal Reached";
 
             // Deadline status logic
-            const campaignEndDate = campaign?.endDate || group.endDate;
+            const campaignEndDate = campaign?.endDate;
             let deadlineStatusText = "Campaign ended";
             if (campaignEndDate) {
                 const daysRemaining = Math.ceil((new Date(campaignEndDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));

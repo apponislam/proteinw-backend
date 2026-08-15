@@ -7,10 +7,7 @@ const GroupSchema = new Schema<GroupDocument>(
     {
         name: { type: String, required: true, trim: true },
         shortDescription: { type: String, required: true, trim: true },
-        goal: { type: Number, required: true },
-        endDate: { type: Date, required: true },
         code: { type: String, unique: true, trim: true },
-        runningCampaignId: { type: Schema.Types.ObjectId, ref: "Campaign" },
         createdBy: { type: Schema.Types.ObjectId, ref: "User" },
         isActive: { type: Boolean, default: true },
         isDeleted: { type: Boolean, default: false },

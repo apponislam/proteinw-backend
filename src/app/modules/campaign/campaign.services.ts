@@ -45,7 +45,6 @@ const createCampaign = async (userId: string, groupId: string, payload: any) => 
     const campaign = await CampaignModel.create({
         ...payload,
         status: payload.status || "ACTIVE",
-        target: group.goal,
         groupId: new Types.ObjectId(groupId),
         createdBy: new Types.ObjectId(userId),
     });
@@ -61,12 +60,6 @@ const createCampaign = async (userId: string, groupId: string, payload: any) => 
     } catch (activityError) {
         console.error("Failed to create activity log for campaign start:", activityError);
     }
-
-    // Update group to set runningCampaignId
-    await GroupModel.findOneAndUpdate({ _id: groupId }, { $set: { runningCampaignId: campaign._id } });
-
-    // Assign this campaign to all users in the group
-    await UserModel.updateMany({ groupAssigned: new Types.ObjectId(groupId), isDeleted: false }, { $set: { campaignAssigned: campaign._id } });
 
     return campaign;
 };
@@ -285,14 +278,6 @@ const deleteCampaign = async (campaignId: string) => {
     const campaign = await CampaignModel.findOneAndUpdate({ _id: campaignId, isDeleted: false }, { $set: { isDeleted: true } }, { returnDocument: "after" });
     if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Requested campaign was not found or has already been deleted.");
 
-    // Remove campaign from all users
-    await UserModel.updateMany({ campaignAssigned: new Types.ObjectId(campaignId) }, { $unset: { campaignAssigned: "" } });
-
-    // Remove runningCampaignId from group
-    if (campaign.groupId) {
-        await GroupModel.findOneAndUpdate({ _id: campaign.groupId }, { $unset: { runningCampaignId: "" } });
-    }
-
     return campaign;
 };
 
@@ -313,11 +298,7 @@ const getRunningCampaignByGroup = async (groupId: string) => {
     const group = await GroupModel.findOne({ _id: groupId, isDeleted: false });
     if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Associated group was not found or has been deleted.");
 
-    if (!group.runningCampaignId) {
-        return null;
-    }
-
-    const campaign = await CampaignModel.findOne({ _id: group.runningCampaignId, isDeleted: false }).lean();
+    const campaign = await CampaignModel.findOne({ groupId: group._id, isDeleted: false, status: "ACTIVE" }).lean();
     if (!campaign) return null;
 
     const stats = await getCampaignStats(campaign._id as Types.ObjectId);

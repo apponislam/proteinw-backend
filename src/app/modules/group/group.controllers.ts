@@ -96,8 +96,8 @@ const deleteGroup = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getMyGroup = catchAsync(async (req: Request, res: Response) => {
-    const groupId = (req.user as any)?.groupAssigned;
-    const result = await groupServices.getMyGroup(groupId);
+    const userId = (req.user as any)?._id;
+    const result = await groupServices.getMyGroup(userId);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
@@ -108,8 +108,8 @@ const getMyGroup = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getMyCampaignStats = catchAsync(async (req: Request, res: Response) => {
-    const groupId = (req.user as any)?.groupAssigned;
-    const result = await groupServices.getMyCampaignStats(groupId);
+    const userId = (req.user as any)?._id;
+    const result = await groupServices.getMyCampaignStats(userId);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,

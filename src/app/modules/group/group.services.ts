@@ -5,6 +5,8 @@ import { GroupModel } from "./group.model";
 import { UserModel } from "../auth/auth.model";
 import { OrderModel } from "../order/order.model";
 import { TierModel } from "../tier/tier.model";
+import { SellerGroupModel } from "../sellerGroup/sellerGroup.model";
+import { CampaignModel } from "../campaign/campaign.model";
 
 const createGroup = async (userId: string, payload: any) => {
     const user = await UserModel.findById(userId);
@@ -20,9 +22,6 @@ const createGroup = async (userId: string, payload: any) => {
         ...payload,
         createdBy: new Types.ObjectId(userId),
     });
-
-    // Assign this group to the user who created it
-    await UserModel.findByIdAndUpdate(userId, { $set: { groupAssigned: group._id } }, { new: true });
 
     return group;
 };
@@ -88,20 +87,25 @@ const deleteGroup = async (groupId: string) => {
     return group;
 };
 
-const getMyGroup = async (groupId: string | Types.ObjectId | undefined) => {
-    if (!groupId) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "No group is assigned to this user.");
+const getMyGroup = async (userId: string | Types.ObjectId) => {
+    // 1. Try finding group created by this admin
+    let group = await GroupModel.findOne({ createdBy: new Types.ObjectId(userId), isDeleted: false });
+
+    // 2. If not created by admin, try finding group joined by this seller
+    if (!group) {
+        const sellerGroupJoin = await SellerGroupModel.findOne({ sellerId: new Types.ObjectId(userId), isDeleted: false });
+        if (sellerGroupJoin) {
+            group = await GroupModel.findOne({ _id: sellerGroupJoin.groupId, isDeleted: false });
+        }
     }
-    const group = await GroupModel.findOne({ _id: groupId, isDeleted: false }).populate({
-        path: "runningCampaignId",
-        populate: {
-            path: "tierId",
-        },
-    });
-    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Assigned group was not found or has been deleted.");
+
+    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "No group was found for this user.");
+
+    // Find active campaign for this group
+    const activeCampaign = await CampaignModel.findOne({ groupId: group._id, isDeleted: false, status: "ACTIVE" }).populate("tierId");
 
     // Calculate total packages sold for the group's campaign
-    const campaignId = group.runningCampaignId?._id;
+    const campaignId = activeCampaign?._id;
     let totalPackagesSold = 0;
     let totalRevenue = 0;
     if (campaignId) {
@@ -141,6 +145,7 @@ const getMyGroup = async (groupId: string | Types.ObjectId | undefined) => {
 
     return {
         ...groupObj,
+        runningCampaign: activeCampaign || null,
         tierInfo: {
             totalPackagesSold,
             totalRevenue,
@@ -151,19 +156,22 @@ const getMyGroup = async (groupId: string | Types.ObjectId | undefined) => {
     };
 };
 
-const getMyCampaignStats = async (groupId: string | Types.ObjectId | undefined) => {
-    if (!groupId) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "No group is assigned to this user.");
-    }
-    const group = await GroupModel.findOne({ _id: groupId, isDeleted: false }).populate({
-        path: "runningCampaignId",
-        populate: {
-            path: "tierId",
-        },
-    });
-    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Assigned group was not found or has been deleted.");
+const getMyCampaignStats = async (userId: string | Types.ObjectId) => {
+    // 1. Try finding group created by this admin
+    let group = await GroupModel.findOne({ createdBy: new Types.ObjectId(userId), isDeleted: false });
 
-    const campaignId = group.runningCampaignId?._id;
+    // 2. If not created by admin, try finding group joined by this seller
+    if (!group) {
+        const sellerGroupJoin = await SellerGroupModel.findOne({ sellerId: new Types.ObjectId(userId), isDeleted: false });
+        if (sellerGroupJoin) {
+            group = await GroupModel.findOne({ _id: sellerGroupJoin.groupId, isDeleted: false });
+        }
+    }
+
+    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "No group was found for this user.");
+
+    const activeCampaign = await CampaignModel.findOne({ groupId: group._id, isDeleted: false, status: "ACTIVE" });
+    const campaignId = activeCampaign?._id;
     let totalPackagesSold = 0;
     let totalRevenue = 0;
     if (campaignId) {

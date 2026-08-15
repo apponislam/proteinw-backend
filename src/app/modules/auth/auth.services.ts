@@ -535,8 +535,9 @@ const getAdminsWithStats = async (query: any) => {
                 groupName = group.name;
                 sellerCount = await UserModel.countDocuments({ groupAssigned: group._id, role: "SELLER", isDeleted: false });
 
-                if (group.runningCampaignId) {
-                    orderCount = await OrderModel.countDocuments({ campaignId: group.runningCampaignId, isDeleted: false });
+                const activeCampaign = await CampaignModel.findOne({ groupId: group._id, isDeleted: false, status: "ACTIVE" });
+                if (activeCampaign) {
+                    orderCount = await OrderModel.countDocuments({ campaignId: activeCampaign._id, isDeleted: false });
                 }
             }
 
