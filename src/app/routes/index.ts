@@ -12,7 +12,7 @@ import { campaignProductRoutes } from "../modules/campaignProduct/campaignProduc
 import { orderRoutes } from "../modules/order/order.routes";
 import { dashboardRoutes } from "../modules/dashboard/dashboard.routes";
 import { activityLogRoutes } from "../modules/activityLog/activityLog.routes";
-import { sellerGroupJoinRoutes } from "../modules/sellerGroupJoin/sellerGroupJoin.routes";
+import { sellerGroupRoutes } from "../modules/sellerGroup/sellerGroup.routes";
 import { campaignSellerRoutes } from "../modules/campaignSeller/campaignSeller.routes";
 
 const router = express.Router();
@@ -71,8 +71,8 @@ const moduleRoutes = [
         route: activityLogRoutes,
     },
     {
-        path: "/seller-group-joins",
-        route: sellerGroupJoinRoutes,
+        path: "/seller-groups",
+        route: sellerGroupRoutes,
     },
     {
         path: "/campaign-sellers",

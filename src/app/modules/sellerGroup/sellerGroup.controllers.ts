@@ -2,13 +2,13 @@ import { Request, Response } from "express";
 import httpStatus from "http-status";
 import catchAsync from "../../../utils/catchAsync";
 import sendResponse from "../../../utils/sendResponse";
-import { sellerGroupJoinServices } from "./sellerGroupJoin.services";
+import { sellerGroupServices } from "./sellerGroup.services";
 
 const joinGroup = catchAsync(async (req: Request, res: Response) => {
     const sellerId = req.user._id;
     const { groupId } = req.body;
 
-    const result = await sellerGroupJoinServices.joinGroup(sellerId as string, groupId as string);
+    const result = await sellerGroupServices.joinGroup(sellerId as string, groupId as string);
 
     sendResponse(res, {
         statusCode: httpStatus.CREATED,
@@ -20,7 +20,7 @@ const joinGroup = catchAsync(async (req: Request, res: Response) => {
 
 const getMyJoinedGroups = catchAsync(async (req: Request, res: Response) => {
     const sellerId = req.user._id;
-    const result = await sellerGroupJoinServices.getMyJoinedGroups(sellerId as string, req.query);
+    const result = await sellerGroupServices.getMyJoinedGroups(sellerId as string, req.query);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
@@ -33,7 +33,7 @@ const getMyJoinedGroups = catchAsync(async (req: Request, res: Response) => {
 
 const getGroupSellers = catchAsync(async (req: Request, res: Response) => {
     const { groupId } = req.params;
-    const result = await sellerGroupJoinServices.getGroupSellers(groupId as string, req.query);
+    const result = await sellerGroupServices.getGroupSellers(groupId as string, req.query);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
@@ -44,7 +44,7 @@ const getGroupSellers = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
-export const sellerGroupJoinControllers = {
+export const sellerGroupControllers = {
     joinGroup,
     getMyJoinedGroups,
     getGroupSellers,

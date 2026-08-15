@@ -1,9 +1,9 @@
 import mongoose, { Schema, Document } from "mongoose";
-import { ISellerGroupJoin } from "./sellerGroupJoin.interface";
+import { ISellerGroup } from "./sellerGroup.interface";
 
-export interface SellerGroupJoinDocument extends ISellerGroupJoin, Document {}
+export interface SellerGroupDocument extends ISellerGroup, Document {}
 
-const SellerGroupJoinSchema = new Schema<SellerGroupJoinDocument>(
+const SellerGroupSchema = new Schema<SellerGroupDocument>(
     {
         sellerId: {
             type: Schema.Types.ObjectId,
@@ -31,8 +31,8 @@ const SellerGroupJoinSchema = new Schema<SellerGroupJoinDocument>(
 );
 
 // Prevent duplicate join for the same seller and group
-SellerGroupJoinSchema.index({ sellerId: 1, groupId: 1 }, { unique: true });
-SellerGroupJoinSchema.index({ sellerId: 1, isDeleted: 1 });
-SellerGroupJoinSchema.index({ groupId: 1, isDeleted: 1 });
+SellerGroupSchema.index({ sellerId: 1, groupId: 1 }, { unique: true });
+SellerGroupSchema.index({ sellerId: 1, isDeleted: 1 });
+SellerGroupSchema.index({ groupId: 1, isDeleted: 1 });
 
-export const SellerGroupJoinModel = mongoose.model<SellerGroupJoinDocument>("SellerGroupJoin", SellerGroupJoinSchema);
+export const SellerGroupModel = mongoose.model<SellerGroupDocument>("SellerGroup", SellerGroupSchema);

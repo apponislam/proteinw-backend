@@ -1,7 +1,7 @@
 import httpStatus from "http-status";
 import { Types } from "mongoose";
 import ApiError from "../../../errors/ApiError";
-import { SellerGroupJoinModel } from "./sellerGroupJoin.model";
+import { SellerGroupModel } from "./sellerGroup.model";
 import { GroupModel } from "../group/group.model";
 import { UserModel } from "../auth/auth.model";
 import { activityLogServices } from "../activityLog/activityLog.services";
@@ -26,7 +26,7 @@ const joinGroup = async (sellerId: string, groupId: string) => {
     }
 
     // 3. Check if seller is already joined to this group
-    const existingJoin = await SellerGroupJoinModel.findOne({
+    const existingJoin = await SellerGroupModel.findOne({
         sellerId: new Types.ObjectId(sellerId),
         groupId: new Types.ObjectId(groupId),
         isDeleted: false,
@@ -36,7 +36,7 @@ const joinGroup = async (sellerId: string, groupId: string) => {
     }
 
     // 4. Create join record
-    const joinRecord = await SellerGroupJoinModel.create({
+    const joinRecord = await SellerGroupModel.create({
         sellerId: new Types.ObjectId(sellerId),
         groupId: new Types.ObjectId(groupId),
     });
@@ -66,7 +66,7 @@ const getMyJoinedGroups = async (sellerId: string, query: any = {}) => {
     const limit = parseInt(query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    const joins = await SellerGroupJoinModel.find({
+    const joins = await SellerGroupModel.find({
         sellerId: new Types.ObjectId(sellerId),
         isDeleted: false,
     })
@@ -75,7 +75,7 @@ const getMyJoinedGroups = async (sellerId: string, query: any = {}) => {
         .skip(skip)
         .limit(limit);
 
-    const total = await SellerGroupJoinModel.countDocuments({
+    const total = await SellerGroupModel.countDocuments({
         sellerId: new Types.ObjectId(sellerId),
         isDeleted: false,
     });
@@ -98,7 +98,7 @@ const getGroupSellers = async (groupId: string, query: any = {}) => {
     const limit = parseInt(query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    const joins = await SellerGroupJoinModel.find({
+    const joins = await SellerGroupModel.find({
         groupId: new Types.ObjectId(groupId),
         isDeleted: false,
     })
@@ -107,7 +107,7 @@ const getGroupSellers = async (groupId: string, query: any = {}) => {
         .skip(skip)
         .limit(limit);
 
-    const total = await SellerGroupJoinModel.countDocuments({
+    const total = await SellerGroupModel.countDocuments({
         groupId: new Types.ObjectId(groupId),
         isDeleted: false,
     });
@@ -125,7 +125,7 @@ const getGroupSellers = async (groupId: string, query: any = {}) => {
     };
 };
 
-export const sellerGroupJoinServices = {
+export const sellerGroupServices = {
     joinGroup,
     getMyJoinedGroups,
     getGroupSellers,
