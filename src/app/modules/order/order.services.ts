@@ -29,8 +29,8 @@ const createOrder = async (payload: any) => {
             throw new ApiError(httpStatus.NOT_FOUND, "Target campaign was not found or has been deleted.");
         }
 
-        if (!campaign.isActive) {
-            throw new ApiError(httpStatus.BAD_REQUEST, "Target campaign is not currently active.");
+        if (campaign.status !== "ACTIVE") {
+            throw new ApiError(httpStatus.BAD_REQUEST, "Target campaign is not currently active for receiving orders.");
         }
 
         resolvedCampaignId = campaign._id as Types.ObjectId;

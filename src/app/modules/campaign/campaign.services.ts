@@ -37,13 +37,14 @@ const createCampaign = async (userId: string, groupId: string, payload: any) => 
     const activeCampaign = await CampaignModel.findOne({
         groupId: new Types.ObjectId(groupId),
         isDeleted: false,
-        $or: [{ isActive: true }, { endDate: { $gt: new Date() } }],
+        $or: [{ status: "ACTIVE" }, { endDate: { $gt: new Date() } }],
     });
     if (activeCampaign) throw new ApiError(httpStatus.BAD_REQUEST, "An active campaign is already running for this group.");
 
     // Create the campaign
     const campaign = await CampaignModel.create({
         ...payload,
+        status: payload.status || "ACTIVE",
         target: group.goal,
         groupId: new Types.ObjectId(groupId),
         createdBy: new Types.ObjectId(userId),
@@ -72,7 +73,7 @@ const createCampaign = async (userId: string, groupId: string, payload: any) => 
 
 const getAllCampaigns = async (query: any = {}) => {
     const filter: any = { isDeleted: false };
-    if (query.isActive !== undefined) filter.isActive = query.isActive === "true";
+    if (query.status) filter.status = query.status;
 
     const page = parseInt(query.page as string) || 1;
     const limit = parseInt(query.limit as string) || 10;
@@ -96,7 +97,7 @@ const getAllCampaigns = async (query: any = {}) => {
 
 const getAllCampaignsWithStats = async (query: any = {}) => {
     const filter: any = { isDeleted: false };
-    if (query.isActive !== undefined) filter.isActive = query.isActive === "true";
+    if (query.status) filter.status = query.status;
 
     const page = parseInt(query.page as string) || 1;
     const limit = parseInt(query.limit as string) || 10;
@@ -130,7 +131,7 @@ const getAllCampaignsWithStats = async (query: any = {}) => {
 };
 
 const getActiveCampaigns = async () => {
-    const campaigns = await CampaignModel.find({ isActive: true, isDeleted: false }).sort({ endDate: 1, createdAt: -1 });
+    const campaigns = await CampaignModel.find({ status: "ACTIVE", isDeleted: false }).sort({ endDate: 1, createdAt: -1 });
     return campaigns;
 };
 
@@ -229,7 +230,7 @@ const getCampaignByCode = async (code: string) => {
 
 const getCampaignsByGroup = async (groupId: string, query: any = {}) => {
     const filter: any = { groupId, isDeleted: false };
-    if (query.isActive !== undefined) filter.isActive = query.isActive === "true";
+    if (query.status) filter.status = query.status;
 
     const page = parseInt(query.page as string) || 1;
     const limit = parseInt(query.limit as string) || 10;
@@ -257,16 +258,31 @@ const updateCampaign = async (campaignId: string, payload: any) => {
     return campaign;
 };
 
+const updateCampaignStatus = async (campaignId: string, status: "DRAFT" | "ACTIVE" | "FULFILMENT" | "COMPLETED") => {
+    const validStatuses = ["DRAFT", "ACTIVE", "FULFILMENT", "COMPLETED"];
+    if (!validStatuses.includes(status)) {
+        throw new ApiError(httpStatus.BAD_REQUEST, `Invalid campaign status "${status}". Allowed values: ${validStatuses.join(", ")}`);
+    }
+
+    const campaign = await CampaignModel.findOne({ _id: campaignId, isDeleted: false });
+    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Requested campaign was not found or has been deleted.");
+
+    campaign.status = status;
+    await campaign.save();
+    return campaign;
+};
+
 const toggleCampaignStatus = async (campaignId: string) => {
     const campaign = await CampaignModel.findOne({ _id: campaignId, isDeleted: false });
     if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Requested campaign was not found or has been deleted.");
-    campaign.isActive = !campaign.isActive;
+
+    campaign.status = campaign.status === "ACTIVE" ? "FULFILMENT" : "ACTIVE";
     await campaign.save();
     return campaign;
 };
 
 const deleteCampaign = async (campaignId: string) => {
-    const campaign = await CampaignModel.findOneAndUpdate({ _id: campaignId, isDeleted: false }, { $set: { isDeleted: true, isActive: false } }, { returnDocument: "after" });
+    const campaign = await CampaignModel.findOneAndUpdate({ _id: campaignId, isDeleted: false }, { $set: { isDeleted: true } }, { returnDocument: "after" });
     if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Requested campaign was not found or has already been deleted.");
 
     // Remove campaign from all users
@@ -324,6 +340,7 @@ export const campaignServices = {
     getRunningCampaignByGroup,
     assignTierToCampaign,
     updateCampaign,
+    updateCampaignStatus,
     toggleCampaignStatus,
     deleteCampaign,
 };

@@ -13,7 +13,11 @@ const CampaignSchema = new Schema<CampaignDocument>(
         groupId: { type: Schema.Types.ObjectId, ref: "Group" },
         createdBy: { type: Schema.Types.ObjectId, ref: "User" },
         tierId: { type: Schema.Types.ObjectId, ref: "Tier" },
-        isActive: { type: Boolean, default: true },
+        status: {
+            type: String,
+            enum: ["DRAFT", "ACTIVE", "FULFILMENT", "COMPLETED"],
+            default: "ACTIVE",
+        },
         isDeleted: { type: Boolean, default: false },
     },
     {
@@ -34,10 +38,10 @@ CampaignSchema.pre("save", function () {
     }
 });
 
-CampaignSchema.index({ isActive: 1, isDeleted: 1, endDate: -1 });
+CampaignSchema.index({ status: 1, isDeleted: 1, endDate: -1 });
 CampaignSchema.index({ isDeleted: 1, createdAt: -1 });
 CampaignSchema.index({ createdBy: 1, isDeleted: 1, createdAt: -1 });
-CampaignSchema.index({ groupId: 1, isDeleted: 1, isActive: 1 });
+CampaignSchema.index({ groupId: 1, isDeleted: 1, status: 1 });
 CampaignSchema.index({ code: 1, isDeleted: 1 });
 
 export const CampaignModel = mongoose.model<CampaignDocument>("Campaign", CampaignSchema);

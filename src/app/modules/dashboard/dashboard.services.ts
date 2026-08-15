@@ -65,7 +65,7 @@ const getDashboardStats = async () => {
     const totalAdmins = await UserModel.countDocuments({ role: "ADMIN", isDeleted: false });
     const totalSellers = await UserModel.countDocuments({ role: "SELLER", isDeleted: false });
     const totalGroups = await GroupModel.countDocuments({ isDeleted: false });
-    const activeCampaigns = await CampaignModel.countDocuments({ isActive: true, isDeleted: false });
+    const activeCampaigns = await CampaignModel.countDocuments({ status: "ACTIVE", isDeleted: false });
     const totalOrders = await OrderModel.countDocuments({ isDeleted: false });
 
     return {

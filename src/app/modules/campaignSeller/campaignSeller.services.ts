@@ -21,8 +21,8 @@ const joinCampaign = async (sellerId: string, campaignId: string) => {
     if (!campaign) {
         throw new ApiError(httpStatus.NOT_FOUND, "Target campaign was not found or has been deleted.");
     }
-    if (!campaign.isActive) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "Cannot join an inactive campaign.");
+    if (campaign.status !== "ACTIVE") {
+        throw new ApiError(httpStatus.BAD_REQUEST, "Cannot join a campaign that is not in ACTIVE status.");
     }
 
     // 3. Check if seller is already joined to this campaign

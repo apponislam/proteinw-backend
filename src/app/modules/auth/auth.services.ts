@@ -398,7 +398,7 @@ const registerSeller = async (data: any) => {
     const activeCampaign = await CampaignModel.findOne({
         groupId: invitation.groupId,
         isDeleted: false,
-        isActive: true,
+        status: "ACTIVE",
         endDate: { $gt: new Date() },
     });
 

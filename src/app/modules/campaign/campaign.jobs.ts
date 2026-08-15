@@ -11,12 +11,12 @@ const runExpiryCheck = async () => {
 
         const result = await CampaignModel.updateMany(
             {
-                isActive: true,
+                status: "ACTIVE",
                 isDeleted: false,
                 endDate: { $lt: now },
             },
             {
-                $set: { isActive: false },
+                $set: { status: "FULFILMENT" },
             },
         );
 

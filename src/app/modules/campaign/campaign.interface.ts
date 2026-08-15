@@ -1,5 +1,7 @@
 import { Types } from "mongoose";
 
+export type CampaignStatus = "DRAFT" | "ACTIVE" | "FULFILMENT" | "COMPLETED";
+
 export interface ICampaign {
     _id?: string;
 
@@ -12,7 +14,7 @@ export interface ICampaign {
     groupId?: Types.ObjectId;
     createdBy?: Types.ObjectId;
     tierId?: Types.ObjectId;
-    isActive: boolean;
+    status: CampaignStatus;
     isDeleted: boolean;
     createdAt?: Date;
     updatedAt?: Date;
