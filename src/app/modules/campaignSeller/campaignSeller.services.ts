@@ -41,10 +41,7 @@ const joinCampaign = async (sellerId: string, campaignId: string) => {
         campaignId: new Types.ObjectId(campaignId),
     });
 
-    // Optionally set as primary campaignAssigned if user doesn't have one set
-    if (!seller.campaignAssigned) {
-        await UserModel.findByIdAndUpdate(sellerId, { $set: { campaignAssigned: campaign._id } });
-    }
+
 
     // 5. Log activity safely
     try {

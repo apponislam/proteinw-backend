@@ -3,6 +3,7 @@ import http from "http";
 import { contactServices } from "../modules/contact/contact.services";
 import { UserModel } from "../modules/auth/auth.model";
 import { GroupModel } from "../modules/group/group.model";
+import { SellerGroupModel } from "../modules/sellerGroup/sellerGroup.model";
 
 let io: Server;
 
@@ -42,9 +43,12 @@ export const initSocket = (server: http.Server) => {
                         // Send initial unread count only to SUPER_ADMINs
                         const unreadCount = await contactServices.getUnreadCount();
                         socket.emit("contact:unreadCount", unreadCount);
-                    } else if (user.role === "SELLER" && user.groupAssigned) {
-                        socket.join(`group_${user.groupAssigned.toString()}`);
-                        console.log(`User ${userId} joined group room: group_${user.groupAssigned}`);
+                    } else if (user.role === "SELLER") {
+                        const sellerGroupJoin = await SellerGroupModel.findOne({ sellerId: user._id, isDeleted: false });
+                        if (sellerGroupJoin) {
+                            socket.join(`group_${sellerGroupJoin.groupId.toString()}`);
+                            console.log(`User ${userId} joined group room: group_${sellerGroupJoin.groupId}`);
+                        }
                     } else if (user.role === "ADMIN") {
                         const group = await GroupModel.findOne({ createdBy: user._id, isDeleted: false });
                         if (group) {

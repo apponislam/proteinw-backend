@@ -3,7 +3,7 @@ import catchAsync from "../../../utils/catchAsync";
 import sendResponse from "../../../utils/sendResponse";
 import { Request, Response } from "express";
 import { activityLogServices } from "./activityLog.services";
-import { UserModel } from "../auth/auth.model";
+import { SellerGroupModel } from "../sellerGroup/sellerGroup.model";
 import ApiError from "../../../errors/ApiError";
 
 const getAllActivities = catchAsync(async (req: Request, res: Response) => {
@@ -12,8 +12,8 @@ const getAllActivities = catchAsync(async (req: Request, res: Response) => {
         throw new ApiError(httpStatus.UNAUTHORIZED, "Unauthorized access");
     }
 
-    const dbUser = await UserModel.findById(user._id);
-    const groupId = dbUser?.groupAssigned;
+    const sellerGroupJoin = await SellerGroupModel.findOne({ sellerId: user._id, isDeleted: false });
+    const groupId = sellerGroupJoin?.groupId;
 
     if (!groupId) {
         return sendResponse(res, {

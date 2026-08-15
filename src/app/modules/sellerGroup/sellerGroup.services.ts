@@ -41,10 +41,7 @@ const joinGroup = async (sellerId: string, groupId: string) => {
         groupId: new Types.ObjectId(groupId),
     });
 
-    // Optionally set as primary groupAssigned if user doesn't have one set
-    if (!seller.groupAssigned) {
-        await UserModel.findByIdAndUpdate(sellerId, { $set: { groupAssigned: group._id } });
-    }
+
 
     // 5. Log activity safely without breaking
     try {

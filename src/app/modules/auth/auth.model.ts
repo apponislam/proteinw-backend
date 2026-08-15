@@ -89,13 +89,6 @@ const UserSchema = new Schema<User>(
             type: Date,
         },
 
-        groupAssigned: {
-            type: Schema.Types.ObjectId,
-        },
-        campaignAssigned: {
-            type: Schema.Types.ObjectId,
-        },
-
         // Referral fields
         referralCode: {
             type: String,

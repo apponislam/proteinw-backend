@@ -30,9 +30,6 @@ export interface User {
     isDeleted: boolean;
     lastLogin?: Date;
 
-    groupAssigned?: Types.ObjectId;
-    campaignAssigned?: Types.ObjectId;
-
     // Referral fields
     referralCode: string;
     referredBy?: Types.ObjectId;

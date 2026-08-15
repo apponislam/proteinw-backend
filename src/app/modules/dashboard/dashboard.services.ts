@@ -5,6 +5,8 @@ import { OrderModel } from "../order/order.model";
 import { ProductModel } from "../product/product.model";
 import { CampaignProductModel } from "../campaignProduct/campaignProduct.model";
 import { TierModel } from "../tier/tier.model";
+import { SellerGroupModel } from "../sellerGroup/sellerGroup.model";
+import { CampaignSellerModel } from "../campaignSeller/campaignSeller.model";
 import config from "../../config";
 import { Types } from "mongoose";
 
@@ -112,9 +114,12 @@ const getStoreInfo = async (campaignCode: string, referralCode: string) => {
     }
 
     // 3. Validate member association with campaign
-    const isAssociated = member.campaignAssigned?.toString() === campaign._id.toString() ||
-                         member.groupAssigned?.toString() === campaign.groupId?.toString();
-    if (!isAssociated) {
+    const isCampaignSeller = await CampaignSellerModel.exists({ sellerId: member._id, campaignId: campaign._id, isDeleted: false });
+    const isSellerGroup = campaign.groupId
+        ? await SellerGroupModel.exists({ sellerId: member._id, groupId: campaign.groupId, isDeleted: false })
+        : false;
+
+    if (!isCampaignSeller && !isSellerGroup) {
         return { validation: false };
     }
 
@@ -307,7 +312,8 @@ const getSuperAdminSellers = async (query: any) => {
             ]);
             const packagesCount = packagesAgg[0]?.totalPackages || 0;
 
-            const group = seller.groupAssigned as any;
+            const sellerGroupJoin = await SellerGroupModel.findOne({ sellerId: seller._id, isDeleted: false }).populate("groupId");
+            const group = sellerGroupJoin?.groupId as any;
             const campaign = group?.runningCampaignId as any;
             const baseUrl = config.client_url || "http://localhost:3000";
             const salesLink = campaign?.code

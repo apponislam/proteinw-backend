@@ -10,6 +10,8 @@ import { invitationServices } from "../invitation/invitation.services";
 import { CampaignModel } from "../campaign/campaign.model";
 import { GroupModel } from "../group/group.model";
 import { OrderModel } from "../order/order.model";
+import { SellerGroupModel } from "../sellerGroup/sellerGroup.model";
+import { CampaignSellerModel } from "../campaignSeller/campaignSeller.model";
 import { activityLogServices } from "../activityLog/activityLog.services";
 import { Types } from "mongoose";
 
@@ -410,24 +412,35 @@ const registerSeller = async (data: any) => {
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
     const verificationExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    // Create user with role SELLER and assigned group & campaign if available
+    // Create user with role SELLER
     const userData: any = {
         ...data,
         password: hashedPassword,
         isActive: true,
         isEmailVerified: false,
         role: "SELLER",
-        groupAssigned: invitation.groupId,
         verificationToken,
         verificationCode,
         verificationExpiry,
     };
 
-    if (activeCampaign) {
-        userData.campaignAssigned = activeCampaign._id;
+    const createdUser = await UserModel.create(userData);
+
+    // Create sellerGroup entry
+    if (invitation.groupId) {
+        await SellerGroupModel.create({
+            sellerId: createdUser._id,
+            groupId: invitation.groupId,
+        });
     }
 
-    const createdUser = await UserModel.create(userData);
+    // Create campaignSeller entry if active campaign exists
+    if (activeCampaign) {
+        await CampaignSellerModel.create({
+            sellerId: createdUser._id,
+            campaignId: activeCampaign._id,
+        });
+    }
 
     // Mark invitation as accepted
     await invitationServices.acceptInvitation(data.email);
@@ -593,21 +606,27 @@ const getMyReferralAndCampaign = async (userId: string) => {
 
     // 2. Resolve campaign code
     let campaignCode: string | false = false;
-    let campaignId = user.campaignAssigned;
 
-    if (!campaignId && user.groupAssigned) {
-        const campaign = await CampaignModel.findOne({
-            groupId: user.groupAssigned,
-            isActive: true,
-            isDeleted: false,
-        });
-        if (campaign) {
-            campaignCode = campaign.code;
+    // Check campaignSeller join
+    const campaignJoin = await CampaignSellerModel.findOne({ sellerId: user._id, isDeleted: false });
+    let campaignId = campaignJoin?.campaignId;
+
+    if (!campaignId) {
+        const groupJoin = await SellerGroupModel.findOne({ sellerId: user._id, isDeleted: false });
+        if (groupJoin) {
+            const campaign = await CampaignModel.findOne({
+                groupId: groupJoin.groupId,
+                status: "ACTIVE",
+                isDeleted: false,
+            });
+            if (campaign) {
+                campaignCode = campaign.code;
+            }
         }
-    } else if (campaignId) {
+    } else {
         const campaign = await CampaignModel.findOne({
             _id: campaignId,
-            isActive: true,
+            status: "ACTIVE",
             isDeleted: false,
         });
         if (campaign) {
