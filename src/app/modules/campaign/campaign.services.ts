@@ -29,17 +29,29 @@ const getCampaignStats = async (campaignId: Types.ObjectId) => {
 };
 
 const createCampaign = async (userId: string, groupId: string, payload: any) => {
+    // Validate startDate and endDate
+    if (payload.startDate && payload.endDate) {
+        const start = new Date(payload.startDate);
+        const end = new Date(payload.endDate);
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+            throw new ApiError(httpStatus.BAD_REQUEST, "Invalid start date or end date format.");
+        }
+        if (end <= start) {
+            throw new ApiError(httpStatus.BAD_REQUEST, "Campaign end date must be after start date.");
+        }
+        if (end <= new Date()) {
+            throw new ApiError(httpStatus.BAD_REQUEST, "Campaign end date must be in the future.");
+        }
+    } else if (payload.endDate) {
+        const end = new Date(payload.endDate);
+        if (isNaN(end.getTime()) || end <= new Date()) {
+            throw new ApiError(httpStatus.BAD_REQUEST, "Campaign end date must be a valid future date.");
+        }
+    }
+
     // Check if group exists
     const group = await GroupModel.findOne({ _id: groupId, isDeleted: false });
     if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Associated group was not found or has been deleted.");
-
-    // Check if there's an active campaign for this group
-    const activeCampaign = await CampaignModel.findOne({
-        groupId: new Types.ObjectId(groupId),
-        isDeleted: false,
-        $or: [{ status: "ACTIVE" }, { endDate: { $gt: new Date() } }],
-    });
-    if (activeCampaign) throw new ApiError(httpStatus.BAD_REQUEST, "An active campaign is already running for this group.");
 
     // Create the campaign
     const campaign = await CampaignModel.create({
@@ -246,7 +258,35 @@ const getCampaignsByGroup = async (groupId: string, query: any = {}) => {
 };
 
 const updateCampaign = async (campaignId: string, payload: any) => {
-    const campaign = await CampaignModel.findOneAndUpdate({ _id: campaignId, isDeleted: false }, { $set: payload }, { returnDocument: "after", runValidators: true });
+    if (payload.startDate && payload.endDate) {
+        const start = new Date(payload.startDate);
+        const end = new Date(payload.endDate);
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+            throw new ApiError(httpStatus.BAD_REQUEST, "Invalid start date or end date format.");
+        }
+        if (end <= start) {
+            throw new ApiError(httpStatus.BAD_REQUEST, "Campaign end date must be after start date.");
+        }
+        if (end <= new Date()) {
+            throw new ApiError(httpStatus.BAD_REQUEST, "Campaign end date must be in the future.");
+        }
+    } else if (payload.endDate) {
+        const end = new Date(payload.endDate);
+        if (isNaN(end.getTime()) || end <= new Date()) {
+            throw new ApiError(httpStatus.BAD_REQUEST, "Campaign end date must be a valid future date.");
+        }
+    }
+
+    // If endDate is updated into the future, auto-set status to ACTIVE if it was FULFILMENT
+    const updateData = { ...payload };
+    if (payload.endDate) {
+        const end = new Date(payload.endDate);
+        if (end > new Date() && (!payload.status || payload.status === "FULFILMENT")) {
+            updateData.status = "ACTIVE";
+        }
+    }
+
+    const campaign = await CampaignModel.findOneAndUpdate({ _id: campaignId, isDeleted: false }, { $set: updateData }, { returnDocument: "after", runValidators: true });
     if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Requested campaign was not found or has been deleted.");
     return campaign;
 };
