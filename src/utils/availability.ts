@@ -1,23 +1,3 @@
-// export const hasOverlap = (slots: { startTime: string; endTime: string }[]) => {
-//     const times = slots.map((s) => {
-//         const [startH, startM] = s.startTime.split(":").map(Number);
-//         const [endH, endM] = s.endTime.split(":").map(Number);
-//         return { start: startH * 60 + startM, end: endH * 60 + endM };
-//     });
-
-//     // Sort by start time
-//     times.sort((a, b) => a.start - b.start);
-
-//     for (let i = 1; i < times.length; i++) {
-//         if (times[i].start < times[i - 1].end) {
-//             // overlap detected
-//             return true;
-//         }
-//     }
-
-//     return false;
-// };
-
 export const hasOverlap = (slots: { startTime: string; endTime: string }[]): { overlap: boolean; details?: string[] } => {
     // Convert times to minutes
     const times = slots.map((s) => {
