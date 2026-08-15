@@ -7,6 +7,7 @@ const router = Router();
 
 // Seller routes
 router.post("/join", auth, authorize(["SELLER"]), sellerGroupControllers.joinGroup);
+router.post("/join-code", auth, authorize(["SELLER"]), sellerGroupControllers.joinGroupByInvitationCode);
 router.get("/my-groups", auth, authorize(["SELLER"]), sellerGroupControllers.getMyJoinedGroups);
 
 // Admin & Super Admin route to see joined sellers of a group

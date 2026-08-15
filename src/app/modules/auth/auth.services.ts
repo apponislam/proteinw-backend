@@ -87,11 +87,6 @@ const loginUser = async (data: { email: string; password: string }) => {
     // Check if active
     if (!user.isActive) throw new ApiError(httpStatus.FORBIDDEN, "Your account has been deactivated. Please contact support.");
 
-    // Check if email verified
-    // if (!user.isEmailVerified) {
-    //     throw new ApiError(httpStatus.FORBIDDEN, "Please verify your email first");
-    // }
-
     // Update last login
     await UserModel.updateOne({ _id: user._id }, { $set: { lastLogin: new Date() } });
 
@@ -109,6 +104,59 @@ const loginUser = async (data: { email: string; password: string }) => {
     const { password, ...userWithoutPassword } = user.toObject();
 
     return { user: userWithoutPassword, accessToken, refreshToken };
+};
+
+const loginWithInvitationCode = async (data: { email: string; password: string; invitationCode?: string; code?: string }) => {
+    const invCode = data.invitationCode || data.code;
+    if (!invCode) {
+        throw new ApiError(httpStatus.BAD_REQUEST, "Invitation code is required.");
+    }
+
+    // 1. Verify invitation by code
+    const invitation = await invitationServices.getInvitationByCode(invCode);
+
+    // 2. Perform normal login
+    const loginResult = await loginUser({ email: data.email, password: data.password });
+    const user = loginResult.user;
+
+    // 3. Join seller to group
+    const existingGroupJoin = await SellerGroupModel.findOne({
+        sellerId: user._id,
+        groupId: invitation.groupId,
+        isDeleted: false,
+    });
+    if (!existingGroupJoin) {
+        await SellerGroupModel.create({
+            sellerId: user._id,
+            groupId: invitation.groupId,
+        });
+    }
+
+    // 4. Join active campaign if available
+    const activeCampaign = await CampaignModel.findOne({
+        groupId: invitation.groupId,
+        isDeleted: false,
+        status: "ACTIVE",
+        endDate: { $gt: new Date() },
+    });
+    if (activeCampaign) {
+        const existingCampaignSeller = await CampaignSellerModel.findOne({
+            sellerId: user._id,
+            campaignId: activeCampaign._id,
+            isDeleted: false,
+        });
+        if (!existingCampaignSeller) {
+            await CampaignSellerModel.create({
+                sellerId: user._id,
+                campaignId: activeCampaign._id,
+            });
+        }
+    }
+
+    // 5. Mark invitation as accepted
+    await invitationServices.acceptInvitation(invitation.email);
+
+    return loginResult;
 };
 
 const verifyEmail = async (email: string, token?: string, otp?: string) => {
@@ -389,11 +437,18 @@ const setUserPassword = async (userId: string, newPassword: string) => {
 };
 
 const registerSeller = async (data: any) => {
-    // Check invitation exists
-    const invitation = await invitationServices.getInvitationByEmail(data.email);
+    const { invitationCode, code, ...userDataPayload } = data;
+    const invCode = invitationCode || code;
+
+    if (!invCode) {
+        throw new ApiError(httpStatus.BAD_REQUEST, "An invitation code is required to register as a seller.");
+    }
+
+    // Check invitation exists strictly by invitation code
+    const invitation = await invitationServices.getInvitationByCode(invCode);
 
     // Check existing user
-    const existing = await UserModel.findOne({ email: data.email });
+    const existing = await UserModel.findOne({ email: invitation.email });
     if (existing) throw new ApiError(httpStatus.BAD_REQUEST, "This email address is already in use.");
 
     // Find active campaign for the group
@@ -405,7 +460,7 @@ const registerSeller = async (data: any) => {
     });
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(data.password, Number(config.bcrypt_salt_rounds));
+    const hashedPassword = await bcrypt.hash(userDataPayload.password, Number(config.bcrypt_salt_rounds));
 
     // Generate verification token
     const verificationToken = crypto.randomBytes(32).toString("hex");
@@ -414,7 +469,8 @@ const registerSeller = async (data: any) => {
 
     // Create user with role SELLER
     const userData: any = {
-        ...data,
+        ...userDataPayload,
+        email: invitation.email,
         password: hashedPassword,
         isActive: true,
         isEmailVerified: false,
@@ -443,7 +499,7 @@ const registerSeller = async (data: any) => {
     }
 
     // Mark invitation as accepted
-    await invitationServices.acceptInvitation(data.email);
+    await invitationServices.acceptInvitation(invitation.email);
 
     // Log Activity (New Member Joined)
     try {
@@ -681,6 +737,7 @@ const updateUserBySuperAdmin = async (userId: string, data: any) => {
 export const authServices = {
     registerUser,
     loginUser,
+    loginWithInvitationCode,
     verifyEmail,
     resendVerificationEmail,
     getUserById,

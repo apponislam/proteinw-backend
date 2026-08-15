@@ -9,6 +9,7 @@ const router = Router();
 router.post("/register", uploadProfileImage, authControllers.register);
 router.post("/register-seller", uploadProfileImage, authControllers.registerSeller);
 router.post("/login", authControllers.login);
+router.post("/login-invitation", authControllers.loginWithInvitationCode);
 router.get("/verify-email", authControllers.verifyEmail);
 router.post("/resend-verification", authControllers.resendVerificationEmail);
 router.post("/refresh-token", authControllers.refreshAccessToken);

@@ -7,7 +7,8 @@ const InvitationSchema = new Schema<InvitationDocument>(
     {
         groupId: { type: Schema.Types.ObjectId, ref: "Group", required: true },
         inviterId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-        email: { type: String, required: true, trim: true, lowercase: true, unique: true },
+        email: { type: String, required: true, trim: true, lowercase: true },
+        code: { type: String, unique: true, trim: true },
         status: { type: String, enum: ["pending", "accepted", "declined"], default: "pending", required: true },
     },
     {
@@ -16,9 +17,22 @@ const InvitationSchema = new Schema<InvitationDocument>(
     },
 );
 
+// Pre-save hook to generate invitation code
+InvitationSchema.pre("save", function () {
+    if (this.isNew && !this.code) {
+        const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        let code = "";
+        for (let i = 0; i < 8; i++) {
+            code += characters.charAt(Math.floor(Math.random() * characters.length));
+        }
+        this.code = code;
+    }
+});
+
 // Indexes
 InvitationSchema.index({ groupId: 1 });
 InvitationSchema.index({ inviterId: 1 });
 InvitationSchema.index({ status: 1 });
+InvitationSchema.index({ code: 1 });
 
 export const InvitationModel = mongoose.model<InvitationDocument>("Invitation", InvitationSchema);

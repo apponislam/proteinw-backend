@@ -58,6 +58,45 @@ const joinGroup = async (sellerId: string, groupId: string) => {
     return joinRecord;
 };
 
+const joinGroupByInvitationCode = async (sellerId: string, invitationCode: string) => {
+    const { invitationServices } = await import("../invitation/invitation.services");
+    const { CampaignModel } = await import("../campaign/campaign.model");
+    const { CampaignSellerModel } = await import("../campaignSeller/campaignSeller.model");
+
+    // 1. Verify invitation by code
+    const invitation = await invitationServices.getInvitationByCode(invitationCode);
+
+    // 2. Join group
+    const joinRecord = await joinGroup(sellerId, invitation.groupId.toString());
+
+    // 3. If there is an active campaign for this group, also join seller to campaign
+    const activeCampaign = await CampaignModel.findOne({
+        groupId: invitation.groupId,
+        isDeleted: false,
+        status: "ACTIVE",
+        endDate: { $gt: new Date() },
+    });
+
+    if (activeCampaign) {
+        const existingCampaignSeller = await CampaignSellerModel.findOne({
+            sellerId: new Types.ObjectId(sellerId),
+            campaignId: activeCampaign._id,
+            isDeleted: false,
+        });
+        if (!existingCampaignSeller) {
+            await CampaignSellerModel.create({
+                sellerId: new Types.ObjectId(sellerId),
+                campaignId: activeCampaign._id,
+            });
+        }
+    }
+
+    // 4. Accept invitation
+    await invitationServices.acceptInvitation(invitation.email);
+
+    return joinRecord;
+};
+
 const getMyJoinedGroups = async (sellerId: string, query: any = {}) => {
     const page = parseInt(query.page as string) || 1;
     const limit = parseInt(query.limit as string) || 10;
@@ -124,6 +163,7 @@ const getGroupSellers = async (groupId: string, query: any = {}) => {
 
 export const sellerGroupServices = {
     joinGroup,
+    joinGroupByInvitationCode,
     getMyJoinedGroups,
     getGroupSellers,
 };

@@ -38,6 +38,17 @@ const getInvitationByEmail = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const getInvitationByCode = catchAsync(async (req: Request, res: Response) => {
+    const result = await invitationServices.getInvitationByCode(req.params.code as string);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Invitation retrieved successfully",
+        data: result,
+    });
+});
+
 const cancelInvitation = catchAsync(async (req: Request, res: Response) => {
     const result = await invitationServices.cancelInvitation(req.params.invitationId as string);
 
@@ -53,5 +64,6 @@ export const invitationControllers = {
     sendInvitation,
     getInvitationsByGroup,
     getInvitationByEmail,
+    getInvitationByCode,
     cancelInvitation,
 };

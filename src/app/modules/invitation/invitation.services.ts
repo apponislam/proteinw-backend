@@ -11,9 +11,11 @@ const sendInvitation = async (inviterId: string, groupId: string, email: string)
     const group = await GroupModel.findOne({ _id: groupId, isDeleted: false });
     if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Target group was not found or has been deleted.");
 
-    // Check if user already exists with this email
+    // Check if user exists with this email and is an Admin or Super Admin
     const existingUser = await UserModel.findOne({ email, isDeleted: false });
-    if (existingUser) throw new ApiError(httpStatus.BAD_REQUEST, "A registered user with this email address already exists.");
+    if (existingUser && ["ADMIN", "SUPER_ADMIN"].includes(existingUser.role)) {
+        throw new ApiError(httpStatus.BAD_REQUEST, "This email address belongs to an administrative account and cannot be invited as a seller.");
+    }
 
     // Check if pending invitation already exists for this email
     const existingInvitation = await InvitationModel.findOne({
@@ -29,8 +31,8 @@ const sendInvitation = async (inviterId: string, groupId: string, email: string)
         email,
     });
 
-    // Send invitation email
-    sendGroupInvitationEmail(email, group.name);
+    // Send invitation email with code
+    sendGroupInvitationEmail(email, group.name, invitation.code as string);
 
     return invitation;
 };
@@ -97,10 +99,21 @@ const cancelInvitation = async (invitationId: string) => {
     return { message: "Invitation canceled successfully" };
 };
 
+const getInvitationByCode = async (code: string) => {
+    const invitation = await InvitationModel.findOne({
+        code,
+        status: "pending",
+    }).populate("groupId", "name");
+
+    if (!invitation) throw new ApiError(httpStatus.NOT_FOUND, `No pending invitation was found with code "${code}".`);
+    return invitation;
+};
+
 export const invitationServices = {
     sendInvitation,
     getInvitationsByGroup,
     getInvitationByEmail,
+    getInvitationByCode,
     acceptInvitation,
     declineInvitation,
     cancelInvitation,

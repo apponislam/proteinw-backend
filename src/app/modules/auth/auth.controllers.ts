@@ -86,6 +86,27 @@ const login = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const loginWithInvitationCode = catchAsync(async (req: Request, res: Response) => {
+    const result = await authServices.loginWithInvitationCode(req.body);
+
+    res.cookie("refreshToken", result.refreshToken, {
+        httpOnly: true,
+        secure: config.node_env === "production",
+        sameSite: "strict",
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Logged in and joined group successfully",
+        data: {
+            user: result.user,
+            accessToken: result.accessToken,
+        },
+    });
+});
+
 const verifyEmail = catchAsync(async (req: Request, res: Response) => {
     const token = req.query.token as string | undefined;
     const otp = req.query.otp as string | undefined;
@@ -454,6 +475,7 @@ const getUserById = catchAsync(async (req: Request, res: Response) => {
 export const authControllers = {
     register,
     login,
+    loginWithInvitationCode,
     verifyEmail,
     resendVerificationEmail,
     getMe,

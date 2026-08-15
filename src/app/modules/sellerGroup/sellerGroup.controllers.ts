@@ -6,14 +6,35 @@ import { sellerGroupServices } from "./sellerGroup.services";
 
 const joinGroup = catchAsync(async (req: Request, res: Response) => {
     const sellerId = req.user._id;
-    const { groupId } = req.body;
+    const { groupId, invitationCode, code } = req.body;
+    const targetCode = invitationCode || code;
 
-    const result = await sellerGroupServices.joinGroup(sellerId as string, groupId as string);
+    let result;
+    if (targetCode) {
+        result = await sellerGroupServices.joinGroupByInvitationCode(sellerId as string, targetCode as string);
+    } else {
+        result = await sellerGroupServices.joinGroup(sellerId as string, groupId as string);
+    }
 
     sendResponse(res, {
         statusCode: httpStatus.CREATED,
         success: true,
         message: "Joined group successfully",
+        data: result,
+    });
+});
+
+const joinGroupByInvitationCode = catchAsync(async (req: Request, res: Response) => {
+    const sellerId = req.user._id;
+    const { invitationCode, code } = req.body;
+    const targetCode = invitationCode || code || req.params.code;
+
+    const result = await sellerGroupServices.joinGroupByInvitationCode(sellerId as string, targetCode as string);
+
+    sendResponse(res, {
+        statusCode: httpStatus.CREATED,
+        success: true,
+        message: "Joined group via invitation code successfully",
         data: result,
     });
 });
@@ -46,6 +67,7 @@ const getGroupSellers = catchAsync(async (req: Request, res: Response) => {
 
 export const sellerGroupControllers = {
     joinGroup,
+    joinGroupByInvitationCode,
     getMyJoinedGroups,
     getGroupSellers,
 };

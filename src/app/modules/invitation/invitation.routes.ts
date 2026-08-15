@@ -7,6 +7,7 @@ const router = Router();
 
 // Public routes
 router.get("/email/:email", invitationControllers.getInvitationByEmail);
+router.get("/code/:code", invitationControllers.getInvitationByCode);
 
 // Admin-only routes (ADMIN and SUPER_ADMIN)
 router.post("/", auth, authorize(["ADMIN", "SUPER_ADMIN"]), invitationControllers.sendInvitation);

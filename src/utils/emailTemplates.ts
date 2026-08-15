@@ -99,17 +99,26 @@ export const sendEmailUpdateVerification = (email: string, name: string, verific
     sendMail(email, "Verify Your New Email", html);
 };
 
-export const sendGroupInvitationEmail = (email: string, groupName: string) => {
-    const registerUrl = `${config.client_url}/auth/member?email=${encodeURIComponent(email)}`;
+export const sendGroupInvitationEmail = (email: string, groupName: string, code: string) => {
+    const registerUrl = `${config.client_url}/auth/member?code=${encodeURIComponent(code)}&email=${encodeURIComponent(email)}`;
+    const loginUrl = `${config.client_url}/login?code=${encodeURIComponent(code)}&email=${encodeURIComponent(email)}`;
     const html = `
         <div style="${containerStyle}">
             <h2 style="color: #1a1a1a; margin-top: 0;">Hello,</h2>
             <p style="color: #4a4a4a; line-height: 1.6;">You have been invited to join the group: <strong style="color: #7C5800;">${groupName}</strong>.</p>
-            <p style="color: #4a4a4a; line-height: 1.6;">Please register using the button below to accept the invitation:</p>
-            <div style="text-align: center; margin: 32px 0;">
-                <a href="${registerUrl}" style="${buttonStyle}">Join Group</a>
+            <p style="color: #4a4a4a; line-height: 1.6;">Your invitation code is: <strong style="color: #7C5800; font-size: 18px; letter-spacing: 1px;">${code}</strong></p>
+            
+            <p style="color: #4a4a4a; line-height: 1.6;">If you do not have an account, click below to register and join:</p>
+            <div style="text-align: center; margin: 24px 0;">
+                <a href="${registerUrl}" style="${buttonStyle}">Join Group & Register</a>
             </div>
-            <p style="color: #8a8a8a; font-size: 12px; line-height: 1.6;">Or copy this link: <span style="word-break: break-all;">${registerUrl}</span></p>
+            
+            <p style="color: #4a4a4a; line-height: 1.6;">If you already have an account, sign in to join:</p>
+            <div style="text-align: center; margin: 24px 0;">
+                <a href="${loginUrl}" style="${buttonStyle}; background: #1a1a1a;">Sign In & Join</a>
+            </div>
+
+            <p style="color: #8a8a8a; font-size: 12px; line-height: 1.6;">Registration link: <span style="word-break: break-all;">${registerUrl}</span></p>
         </div>
     `;
     sendMail(email, `You've Been Invited to Join ${groupName}`, html);
