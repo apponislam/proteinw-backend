@@ -4,6 +4,8 @@ import ApiError from "../../../errors/ApiError";
 import { CampaignProductModel } from "./campaignProduct.model";
 import { CampaignModel } from "../campaign/campaign.model";
 import { ProductModel } from "../product/product.model";
+import { CampaignSellerModel } from "../campaignSeller/campaignSeller.model";
+import { SellerGroupModel } from "../sellerGroup/sellerGroup.model";
 
 // Add a product to a campaign
 const addProductToCampaign = async (campaignId: string, productId: string) => {
@@ -109,7 +111,7 @@ const getProductsByCampaign = async (campaignId: string, query: any = {}) => {
     const total = await CampaignProductModel.countDocuments(filter);
 
     return {
-        data: campaignProducts.map((cp) => cp.productId), // Return just the product data
+        data: campaignProducts.map((cp) => cp.productId).filter((product: any) => product && !product.isDeleted), // Return just valid non-deleted products
         pagination: {
             page,
             limit,
@@ -133,15 +135,66 @@ const getCampaignsByProduct = async (productId: string) => {
 
 // Get products of the logged in user's campaign
 const getMyCampaignProducts = async (user: any, query: any = {}) => {
-    let campaignId = user?.campaignAssigned;
+    let campaignId = null;
 
-    if (!campaignId && user?.groupAssigned) {
-        const campaign = await CampaignModel.findOne({
-            groupId: user.groupAssigned,
-            isActive: true,
+    // 1. If user is ADMIN, check campaigns created by them
+    if (user.role === "ADMIN") {
+        const adminCampaign = await CampaignModel.findOne({
+            createdBy: user._id,
             isDeleted: false,
-        });
-        campaignId = campaign?._id;
+        }).sort({ createdAt: -1 });
+
+        if (adminCampaign) {
+            campaignId = adminCampaign._id;
+        } else {
+            const { GroupModel } = await import("../group/group.model");
+            const adminGroup = await GroupModel.findOne({
+                createdBy: user._id,
+                isDeleted: false,
+            }).sort({ createdAt: -1 });
+
+            if (adminGroup) {
+                const groupCampaign = await CampaignModel.findOne({
+                    groupId: adminGroup._id,
+                    isDeleted: false,
+                }).sort({ createdAt: -1 });
+
+                if (groupCampaign) {
+                    campaignId = groupCampaign._id;
+                }
+            }
+        }
+    }
+
+    // 2. If campaign not found yet (or user is SELLER), check CampaignSellerModel
+    if (!campaignId) {
+        const campaignSeller = await CampaignSellerModel.findOne({
+            sellerId: user._id,
+            isDeleted: false,
+        }).sort({ createdAt: -1 });
+
+        if (campaignSeller) {
+            campaignId = campaignSeller.campaignId;
+        }
+    }
+
+    // 3. Fallback to campaign of seller's joined group (SellerGroupModel)
+    if (!campaignId) {
+        const sellerGroup = await SellerGroupModel.findOne({
+            sellerId: user._id,
+            isDeleted: false,
+        }).sort({ createdAt: -1 });
+
+        if (sellerGroup) {
+            const campaign = await CampaignModel.findOne({
+                groupId: sellerGroup.groupId,
+                isDeleted: false,
+            }).sort({ createdAt: -1 });
+
+            if (campaign) {
+                campaignId = campaign._id;
+            }
+        }
     }
 
     if (!campaignId) {
@@ -159,19 +212,6 @@ const getProductsByCampaignCode = async (code: string, query: any = {}) => {
     return getProductsByCampaign(campaign._id.toString(), query);
 };
 
-// // Get product count in a campaign by campaign code
-// const getProductCountByCampaignCode = async (code: string) => {
-//     const campaign = await CampaignModel.findOne({ code, isDeleted: false });
-//     if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Campaign not found");
-
-//     const count = await CampaignProductModel.countDocuments({
-//         campaignId: campaign._id,
-//         isDeleted: false,
-//     });
-
-//     return { count };
-// };
-
 export const campaignProductServices = {
     addProductToCampaign,
     addMultipleProductsToCampaign,
@@ -181,5 +221,4 @@ export const campaignProductServices = {
     getCampaignsByProduct,
     getMyCampaignProducts,
     getProductsByCampaignCode,
-    // getProductCountByCampaignCode,
 };
