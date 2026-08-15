@@ -44,8 +44,38 @@ const getCampaignSellers = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const addSellersToCampaign = catchAsync(async (req: Request, res: Response) => {
+    const { campaignId } = req.params;
+    const sellerIdsInput = req.params.sellerId || req.body.sellerId || req.body.sellerIds;
+
+    const result = await campaignSellerServices.addSellersToCampaign(campaignId as string, sellerIdsInput);
+
+    sendResponse(res, {
+        statusCode: httpStatus.CREATED,
+        success: true,
+        message: result.message,
+        data: result,
+    });
+});
+
+const removeSellersFromCampaign = catchAsync(async (req: Request, res: Response) => {
+    const { campaignId } = req.params;
+    const sellerIdsInput = req.params.sellerId || req.body.sellerId || req.body.sellerIds;
+
+    const result = await campaignSellerServices.removeSellersFromCampaign(campaignId as string, sellerIdsInput);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: result.message,
+        data: result,
+    });
+});
+
 export const campaignSellerControllers = {
     joinCampaign,
+    addSellersToCampaign,
+    removeSellersFromCampaign,
     getMyJoinedCampaigns,
     getCampaignSellers,
 };

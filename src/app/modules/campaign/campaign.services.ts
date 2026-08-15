@@ -6,6 +6,8 @@ import { GroupModel } from "../group/group.model";
 import { UserModel } from "../auth/auth.model";
 import { OrderModel } from "../order/order.model";
 import { CampaignProductModel } from "../campaignProduct/campaignProduct.model";
+import { CampaignSellerModel } from "../campaignSeller/campaignSeller.model";
+import { SellerGroupModel } from "../sellerGroup/sellerGroup.model";
 import { TierModel } from "../tier/tier.model";
 import { activityLogServices } from "../activityLog/activityLog.services";
 
@@ -152,10 +154,21 @@ const getCampaignById = async (campaignId: string) => {
         campaignAdmin = await UserModel.findOne({ _id: campaign.createdBy, isDeleted: false }, { password: 0 }).lean();
     }
 
-    // 2. Fetch Campaign Sellers
+    // 2. Fetch Campaign Sellers using CampaignSellerModel & SellerGroupModel
+    const campaignSellerJoins = await CampaignSellerModel.find({ campaignId: campaign._id, isDeleted: false }).select("sellerId").lean();
+    const campaignSellerIds = campaignSellerJoins.map((cs: any) => cs.sellerId);
+
+    let sellerIds = [...campaignSellerIds];
+    if (campaign.groupId) {
+        const groupSellerJoins = await SellerGroupModel.find({ groupId: campaign.groupId, isDeleted: false }).select("sellerId").lean();
+        const groupSellerIds = groupSellerJoins.map((gs: any) => gs.sellerId);
+        const allIdsSet = new Set([...campaignSellerIds.map((id: any) => id.toString()), ...groupSellerIds.map((id: any) => id.toString())]);
+        sellerIds = Array.from(allIdsSet).map((id: string) => new Types.ObjectId(id));
+    }
+
     const sellers = await UserModel.find(
         {
-            $or: [{ campaignAssigned: campaign._id }, { groupAssigned: campaign.groupId }],
+            _id: { $in: sellerIds },
             role: "SELLER",
             isDeleted: false,
         },

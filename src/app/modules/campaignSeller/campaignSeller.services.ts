@@ -101,10 +101,49 @@ const getCampaignSellers = async (campaignId: string, query: any = {}) => {
         campaignId: new Types.ObjectId(campaignId),
         isDeleted: false,
     })
-        .populate("sellerId", "-password")
+        .populate({
+            path: "sellerId",
+            select: "-password -verificationToken -verificationCode -verificationExpiry",
+        })
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limit);
+        .limit(limit)
+        .lean();
+
+    const { OrderModel } = await import("../order/order.model");
+
+    const sellersWithStats = await Promise.all(
+        joins.map(async (join: any) => {
+            const seller = join.sellerId;
+            if (!seller) return null;
+
+            const sellerStats = await OrderModel.aggregate([
+                {
+                    $match: {
+                        campaignId: new Types.ObjectId(campaignId),
+                        memberId: new Types.ObjectId(seller._id),
+                        isDeleted: false,
+                        status: { $ne: "cancelled" },
+                    },
+                },
+                {
+                    $group: {
+                        _id: null,
+                        totalPackagesSold: { $sum: "$totalPackage" },
+                        totalRevenueSold: { $sum: "$totalPrice" },
+                    },
+                },
+            ]);
+
+            return {
+                ...seller,
+                totalPackagesSold: sellerStats[0]?.totalPackagesSold || 0,
+                totalRevenueSold: sellerStats[0]?.totalRevenueSold || 0,
+            };
+        }),
+    );
+
+    const sellers = sellersWithStats.filter(Boolean);
 
     const total = await CampaignSellerModel.countDocuments({
         campaignId: new Types.ObjectId(campaignId),
@@ -112,7 +151,7 @@ const getCampaignSellers = async (campaignId: string, query: any = {}) => {
     });
 
     return {
-        data: joins,
+        data: sellers,
         pagination: {
             page,
             limit,
@@ -124,8 +163,49 @@ const getCampaignSellers = async (campaignId: string, query: any = {}) => {
     };
 };
 
+const addSellersToCampaign = async (campaignId: string, sellerIdsInput: string | string[]) => {
+    const sellerIds = Array.isArray(sellerIdsInput) ? sellerIdsInput : [sellerIdsInput];
+    if (!sellerIds || sellerIds.length === 0) {
+        throw new ApiError(httpStatus.BAD_REQUEST, "sellerId or sellerIds array is required.");
+    }
+
+    const results = [];
+    for (const sellerId of sellerIds) {
+        try {
+            const result = await joinCampaign(sellerId, campaignId);
+            results.push(result);
+        } catch (err: any) {
+            // Ignore already joined or skip errors
+        }
+    }
+
+    return { message: "Seller(s) added to campaign successfully", count: results.length };
+};
+
+const removeSellersFromCampaign = async (campaignId: string, sellerIdsInput: string | string[]) => {
+    const sellerIds = Array.isArray(sellerIdsInput) ? sellerIdsInput : [sellerIdsInput];
+    if (!sellerIds || sellerIds.length === 0) {
+        throw new ApiError(httpStatus.BAD_REQUEST, "sellerId or sellerIds array is required.");
+    }
+
+    const objectIds = sellerIds.map((id) => new Types.ObjectId(id));
+
+    const result = await CampaignSellerModel.updateMany(
+        {
+            campaignId: new Types.ObjectId(campaignId),
+            sellerId: { $in: objectIds },
+            isDeleted: false,
+        },
+        { $set: { isDeleted: true } },
+    );
+
+    return { message: "Seller(s) removed from campaign successfully", count: result.modifiedCount };
+};
+
 export const campaignSellerServices = {
     joinCampaign,
+    addSellersToCampaign,
+    removeSellersFromCampaign,
     getMyJoinedCampaigns,
     getCampaignSellers,
 };

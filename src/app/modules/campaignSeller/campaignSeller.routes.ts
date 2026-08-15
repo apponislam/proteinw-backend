@@ -9,7 +9,9 @@ const router = Router();
 router.post("/join", auth, authorize(["SELLER"]), campaignSellerControllers.joinCampaign);
 router.get("/my-campaigns", auth, authorize(["SELLER"]), campaignSellerControllers.getMyJoinedCampaigns);
 
-// Admin & Super Admin route to see joined sellers of a campaign
+// Admin & Super Admin routes to add / remove sellers from a campaign (supports single sellerId string or array of sellerIds in body/params)
+router.post("/campaign/:campaignId/sellers", auth, authorize(["ADMIN", "SUPER_ADMIN"]), campaignSellerControllers.addSellersToCampaign);
+router.delete("/campaign/:campaignId/sellers", auth, authorize(["ADMIN", "SUPER_ADMIN"]), campaignSellerControllers.removeSellersFromCampaign);
 router.get("/campaign/:campaignId", auth, authorize(["ADMIN", "SUPER_ADMIN"]), campaignSellerControllers.getCampaignSellers);
 
 export const campaignSellerRoutes = router;
