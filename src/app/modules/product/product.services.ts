@@ -46,7 +46,7 @@ const getAllProducts = async (query: any = {}) => {
                         },
                     },
                     { $unwind: "$campaign" },
-                    { $match: { "campaign.isDeleted": false, "campaign.isActive": true } },
+                    { $match: { "campaign.isDeleted": false, "campaign.status": "ACTIVE" } },
                     { $project: { _id: 0, name: "$campaign.name" } },
                 ],
                 as: "campaigns",
@@ -137,7 +137,7 @@ const getProductStats = async () => {
 
     // Distinct products that are assigned to active campaign products
     const assignedProductIds = await CampaignProductModel.distinct("productId", { isDeleted: false });
-    
+
     // Count total products that are in assignedProductIds and not deleted
     const assigned = await ProductModel.countDocuments({
         _id: { $in: assignedProductIds },

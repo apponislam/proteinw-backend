@@ -6,10 +6,10 @@ import authorize from "../../middlewares/authorized";
 const router = Router();
 
 // Super Admin only routes
-router.post("/campaign/:campaignId/product/:productId", auth, authorize(["SUPER_ADMIN"]), campaignProductControllers.addProductToCampaign);
-router.post("/campaign/:campaignId/products", auth, authorize(["SUPER_ADMIN"]), campaignProductControllers.addMultipleProductsToCampaign);
-router.delete("/campaign/:campaignId/product/:productId", auth, authorize(["SUPER_ADMIN"]), campaignProductControllers.removeProductFromCampaign);
-router.delete("/campaign/:campaignId/products", auth, authorize(["SUPER_ADMIN"]), campaignProductControllers.removeMultipleProductsFromCampaign);
+router.post("/campaign/:campaignId/product/:productId", auth, authorize(["SUPER_ADMIN", "ADMIN"]), campaignProductControllers.addProductToCampaign);
+router.post("/campaign/:campaignId/products", auth, authorize(["SUPER_ADMIN", "ADMIN"]), campaignProductControllers.addMultipleProductsToCampaign);
+router.delete("/campaign/:campaignId/product/:productId", auth, authorize(["SUPER_ADMIN", "ADMIN"]), campaignProductControllers.removeProductFromCampaign);
+router.delete("/campaign/:campaignId/products", auth, authorize(["SUPER_ADMIN", "ADMIN"]), campaignProductControllers.removeMultipleProductsFromCampaign);
 
 // Public/Protected routes (can be accessed by others if needed)
 router.get("/my-campaign/products", auth, campaignProductControllers.getMyCampaignProducts);
