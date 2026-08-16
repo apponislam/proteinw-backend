@@ -13,6 +13,7 @@ const CampaignSchema = new Schema<CampaignDocument>(
         groupId: { type: Schema.Types.ObjectId, ref: "Group" },
         createdBy: { type: Schema.Types.ObjectId, ref: "User" },
         tierId: { type: Schema.Types.ObjectId, ref: "Tier" },
+        tierAssignDate: { type: Date },
         status: {
             type: String,
             enum: ["DRAFT", "ACTIVE", "FULFILMENT", "COMPLETED"],
@@ -43,5 +44,7 @@ CampaignSchema.index({ isDeleted: 1, createdAt: -1 });
 CampaignSchema.index({ createdBy: 1, isDeleted: 1, createdAt: -1 });
 CampaignSchema.index({ groupId: 1, isDeleted: 1, status: 1 });
 CampaignSchema.index({ code: 1, isDeleted: 1 });
+CampaignSchema.index({ tierId: 1, isDeleted: 1 });
+CampaignSchema.index({ tierAssignDate: -1 });
 
 export const CampaignModel = mongoose.model<CampaignDocument>("Campaign", CampaignSchema);

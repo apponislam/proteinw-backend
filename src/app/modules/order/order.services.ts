@@ -126,10 +126,14 @@ const createOrder = async (payload: any) => {
             }).sort({ minSalesVolume: -1 });
 
             if (eligibleTier) {
-                await CampaignModel.updateOne(
-                    { _id: resolvedCampaignId },
-                    { $set: { tierId: eligibleTier._id } }
-                );
+                // Only update tierAssignDate if the tier actually changed
+                const currentTierId = campaign?.tierId ? campaign.tierId.toString() : null;
+                if (currentTierId !== eligibleTier._id.toString()) {
+                    await CampaignModel.updateOne(
+                        { _id: resolvedCampaignId },
+                        { $set: { tierId: eligibleTier._id, tierAssignDate: new Date() } }
+                    );
+                }
             }
         } catch (tierError) {
             console.error("Failed to update campaign tier:", tierError);

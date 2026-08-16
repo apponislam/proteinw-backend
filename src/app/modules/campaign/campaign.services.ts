@@ -56,12 +56,16 @@ const createCampaign = async (userId: string, groupId: string, payload: any) => 
     if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Associated group was not found or has been deleted.");
 
     // Create the campaign
-    const campaign = await CampaignModel.create({
+    const campaignData: any = {
         ...payload,
         status: payload.status || "ACTIVE",
         groupId: new Types.ObjectId(groupId),
         createdBy: new Types.ObjectId(userId),
-    });
+    };
+    if (payload.tierId) {
+        campaignData.tierAssignDate = new Date();
+    }
+    const campaign = await CampaignModel.create(campaignData);
 
     // Log Activity (Campaign Started)
     try {
@@ -126,6 +130,67 @@ const getAllCampaignsWithStats = async (query: any = {}) => {
 
     return {
         data: campaignsWithStats,
+        pagination: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+            hasNext: page < Math.ceil(total / limit),
+            hasPrev: page > 1,
+        },
+    };
+};
+
+const getAllCampaignsSummary = async (query: any = {}) => {
+    const filter: any = { isDeleted: false };
+    if (query.status) filter.status = query.status;
+
+    const searchTerm = query.search || query.searchTerm;
+    if (searchTerm) {
+        filter.$or = [
+            { name: { $regex: searchTerm, $options: "i" } },
+            { code: { $regex: searchTerm, $options: "i" } },
+        ];
+    }
+
+    const page = parseInt(query.page as string) || 1;
+    const limit = parseInt(query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
+    const campaigns = await CampaignModel.find(filter)
+        .populate("tierId")
+        .populate("createdBy", "name email role phone photo")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
+
+    const total = await CampaignModel.countDocuments(filter);
+
+    const summaryData = await Promise.all(
+        campaigns.map(async (campaign: any) => {
+            const membersCount = await CampaignSellerModel.countDocuments({
+                campaignId: campaign._id,
+                isDeleted: false,
+            });
+
+            return {
+                _id: campaign._id,
+                name: campaign.name,
+                status: campaign.status,
+                membersCount,
+                tier: campaign.tierId || null,
+                tierAssignDate: campaign.tierAssignDate || null,
+                code: campaign.code,
+                target: campaign.target,
+                endDate: campaign.endDate,
+                createdAt: campaign.createdAt,
+            };
+        })
+    );
+
+    return {
+        data: summaryData,
         pagination: {
             page,
             limit,
@@ -298,6 +363,9 @@ const updateCampaign = async (campaignId: string, payload: any) => {
             updateData.status = "ACTIVE";
         }
     }
+    if (payload.tierId) {
+        updateData.tierAssignDate = new Date();
+    }
 
     const campaign = await CampaignModel.findOneAndUpdate({ _id: campaignId, isDeleted: false }, { $set: updateData }, { returnDocument: "after", runValidators: true });
     if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Requested campaign was not found or has been deleted.");
@@ -333,6 +401,7 @@ const assignTierToCampaign = async (campaignId: string, tierId: string) => {
     if (!tier) throw new ApiError(httpStatus.NOT_FOUND, "Requested tier was not found or has been deleted.");
 
     campaign.tierId = new Types.ObjectId(tierId);
+    campaign.tierAssignDate = new Date();
     await campaign.save();
 
     return campaign;
@@ -431,6 +500,7 @@ export const campaignServices = {
     createCampaign,
     getAllCampaigns,
     getAllCampaignsWithStats,
+    getAllCampaignsSummary,
     getActiveCampaigns,
     getCampaignById,
     getCampaignByCode,

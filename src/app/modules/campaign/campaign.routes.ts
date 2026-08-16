@@ -18,7 +18,8 @@ router.get("/running-campaign/:groupId", auth, campaignControllers.getRunningCam
 
 // Admin-only routes
 router.post("/", auth, authorize(["ADMIN", "SUPER_ADMIN"]), campaignControllers.createCampaign);
-router.patch("/:campaignId/assign-tier", auth, authorize(["ADMIN", "SUPER_ADMIN"]), campaignControllers.assignTierToCampaign);
+router.get("/admin/summary", auth, authorize(["ADMIN", "SUPER_ADMIN"]), campaignControllers.getAllCampaignsSummary);
+router.patch("/:campaignId/assign-tier", auth, authorize(["SUPER_ADMIN"]), campaignControllers.assignTierToCampaign);
 router.get("/", auth, authorize(["ADMIN", "SUPER_ADMIN"]), campaignControllers.getAllCampaigns);
 router.patch("/:campaignId/status", auth, authorize(["ADMIN", "SUPER_ADMIN"]), campaignControllers.updateCampaignStatus);
 router.patch("/:campaignId", auth, authorize(["ADMIN", "SUPER_ADMIN"]), campaignControllers.updateCampaign);
