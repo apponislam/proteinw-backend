@@ -95,17 +95,6 @@ const updateCampaign = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
-const toggleCampaignStatus = catchAsync(async (req: Request, res: Response) => {
-    const result = await campaignServices.toggleCampaignStatus(req.params.campaignId as string);
-
-    sendResponse(res, {
-        statusCode: httpStatus.OK,
-        success: true,
-        message: "Campaign status updated successfully",
-        data: result,
-    });
-});
-
 const updateCampaignStatus = catchAsync(async (req: Request, res: Response) => {
     const { status } = req.body;
     const result = await campaignServices.updateCampaignStatus(req.params.campaignId as string, status);
@@ -177,6 +166,5 @@ export const campaignControllers = {
     assignTierToCampaign,
     updateCampaign,
     updateCampaignStatus,
-    toggleCampaignStatus,
     deleteCampaign,
 };

@@ -318,15 +318,6 @@ const updateCampaignStatus = async (campaignId: string, status: "DRAFT" | "ACTIV
     return campaign;
 };
 
-const toggleCampaignStatus = async (campaignId: string) => {
-    const campaign = await CampaignModel.findOne({ _id: campaignId, isDeleted: false });
-    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Requested campaign was not found or has been deleted.");
-
-    campaign.status = campaign.status === "ACTIVE" ? "FULFILMENT" : "ACTIVE";
-    await campaign.save();
-    return campaign;
-};
-
 const deleteCampaign = async (campaignId: string) => {
     const campaign = await CampaignModel.findOneAndUpdate({ _id: campaignId, isDeleted: false }, { $set: { isDeleted: true } }, { returnDocument: "after" });
     if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Requested campaign was not found or has already been deleted.");
@@ -449,6 +440,5 @@ export const campaignServices = {
     assignTierToCampaign,
     updateCampaign,
     updateCampaignStatus,
-    toggleCampaignStatus,
     deleteCampaign,
 };

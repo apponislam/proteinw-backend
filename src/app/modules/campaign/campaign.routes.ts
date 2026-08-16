@@ -21,7 +21,6 @@ router.post("/", auth, authorize(["ADMIN", "SUPER_ADMIN"]), campaignControllers.
 router.patch("/:campaignId/assign-tier", auth, authorize(["ADMIN", "SUPER_ADMIN"]), campaignControllers.assignTierToCampaign);
 router.get("/", auth, authorize(["ADMIN", "SUPER_ADMIN"]), campaignControllers.getAllCampaigns);
 router.patch("/:campaignId/status", auth, authorize(["ADMIN", "SUPER_ADMIN"]), campaignControllers.updateCampaignStatus);
-router.patch("/:campaignId/toggle-status", auth, authorize(["ADMIN", "SUPER_ADMIN"]), campaignControllers.toggleCampaignStatus);
 router.patch("/:campaignId", auth, authorize(["ADMIN", "SUPER_ADMIN"]), campaignControllers.updateCampaign);
 router.delete("/:campaignId", auth, authorize(["ADMIN", "SUPER_ADMIN"]), campaignControllers.deleteCampaign);
 
