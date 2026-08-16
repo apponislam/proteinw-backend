@@ -147,23 +147,14 @@ const getAllCampaignsSummary = async (query: any = {}) => {
 
     const searchTerm = query.search || query.searchTerm;
     if (searchTerm) {
-        filter.$or = [
-            { name: { $regex: searchTerm, $options: "i" } },
-            { code: { $regex: searchTerm, $options: "i" } },
-        ];
+        filter.$or = [{ name: { $regex: searchTerm, $options: "i" } }, { code: { $regex: searchTerm, $options: "i" } }];
     }
 
     const page = parseInt(query.page as string) || 1;
     const limit = parseInt(query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    const campaigns = await CampaignModel.find(filter)
-        .populate("tierId")
-        .populate("createdBy", "name email role phone photo")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean();
+    const campaigns = await CampaignModel.find(filter).populate("tierId").populate("createdBy", "name email role phone photo").sort({ createdAt: -1 }).skip(skip).limit(limit).lean();
 
     const total = await CampaignModel.countDocuments(filter);
 
@@ -186,7 +177,7 @@ const getAllCampaignsSummary = async (query: any = {}) => {
                 endDate: campaign.endDate,
                 createdAt: campaign.createdAt,
             };
-        })
+        }),
     );
 
     return {
@@ -428,7 +419,9 @@ const getRunningCampaignForSeller = async (sellerId: string, groupId: string, qu
     const sellerCampaignJoins = await CampaignSellerModel.find({
         sellerId: new Types.ObjectId(sellerId),
         isDeleted: false,
-    }).select("campaignId").lean();
+    })
+        .select("campaignId")
+        .lean();
 
     const joinedCampaignIds = sellerCampaignJoins.map((cj) => cj.campaignId);
 
@@ -463,12 +456,7 @@ const getRunningCampaignForSeller = async (sellerId: string, groupId: string, qu
     const limit = parseInt(query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    const campaigns = await CampaignModel.find(filter)
-        .populate("createdBy", "name email role phone photo")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean();
+    const campaigns = await CampaignModel.find(filter).populate("createdBy", "name email role phone photo").sort({ createdAt: -1 }).skip(skip).limit(limit).lean();
 
     const total = await CampaignModel.countDocuments(filter);
 
@@ -480,7 +468,7 @@ const getRunningCampaignForSeller = async (sellerId: string, groupId: string, qu
                 totalPackagesSold: stats.totalPackagesSold,
                 totalRevenueSold: stats.totalRevenueSold,
             };
-        })
+        }),
     );
 
     return {

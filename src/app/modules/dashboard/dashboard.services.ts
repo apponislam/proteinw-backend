@@ -613,6 +613,54 @@ const getSuperAdminAdminsStats = async () => {
     };
 };
 
+const getTotalDistributedProfit = async () => {
+    const allNonDeletedCampaigns = await CampaignModel.find({ isDeleted: false }).populate("tierId").lean();
+    const allTiers = await TierModel.find({ isActive: true, isDeleted: false }).sort({ minSalesVolume: 1 });
+
+    let totalDistributedProfit = 0;
+
+    for (const campaign of allNonDeletedCampaigns) {
+        const stats = await OrderModel.aggregate([
+            {
+                $match: {
+                    campaignId: new Types.ObjectId(campaign._id),
+                    status: { $ne: "cancelled" },
+                    isDeleted: false,
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalRevenue: { $sum: "$totalPrice" },
+                    totalPackages: { $sum: "$totalPackage" },
+                },
+            },
+        ]);
+
+        const revenue = stats[0]?.totalRevenue || 0;
+        const packages = stats[0]?.totalPackages || 0;
+
+        let profitPercentage = 40;
+        if (campaign.tierId && typeof campaign.tierId === "object" && (campaign.tierId as any).percentage) {
+            profitPercentage = (campaign.tierId as any).percentage;
+        } else {
+            const matchedTier = allTiers.find(t =>
+                packages >= t.minSalesVolume &&
+                (t.maxSalesVolume === undefined || t.maxSalesVolume === null || packages <= t.maxSalesVolume)
+            );
+            if (matchedTier) {
+                profitPercentage = matchedTier.percentage;
+            }
+        }
+
+        totalDistributedProfit += revenue * (profitPercentage / 100);
+    }
+
+    return {
+        totalDistributedProfit,
+    };
+};
+
 export const dashboardServices = {
     getDashboardStats,
     getDashboardStatus,
@@ -623,4 +671,5 @@ export const dashboardServices = {
     getSuperAdminGroupsStats,
     getSuperAdminGroupsDashboardCards,
     getSuperAdminAdminsStats,
+    getTotalDistributedProfit,
 };

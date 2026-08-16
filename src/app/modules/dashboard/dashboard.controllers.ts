@@ -125,6 +125,17 @@ const getSuperAdminAdminsStats = catchAsync(async (req: Request, res: Response) 
     });
 });
 
+const getTotalDistributedProfit = catchAsync(async (req: Request, res: Response) => {
+    const result = await dashboardServices.getTotalDistributedProfit();
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Total distributed profit retrieved successfully",
+        data: result,
+    });
+});
+
 export const dashboardControllers = {
     getDashboardStats,
     getDashboardStatus,
@@ -135,4 +146,5 @@ export const dashboardControllers = {
     getSuperAdminGroupsStats,
     getSuperAdminGroupsDashboardCards,
     getSuperAdminAdminsStats,
+    getTotalDistributedProfit,
 };
