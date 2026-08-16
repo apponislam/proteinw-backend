@@ -12,6 +12,7 @@ router.get("/admin/all", auth, authorize(["ADMIN", "SUPER_ADMIN"]), campaignCont
 router.get("/:campaignId", campaignControllers.getCampaignById);
 
 // Protected routes
+router.get("/seller/running-campaign/:groupId", auth, campaignControllers.getRunningCampaignForSeller);
 router.get("/group/:groupId", auth, campaignControllers.getCampaignsByGroup);
 router.get("/running-campaign/:groupId", auth, campaignControllers.getRunningCampaignByGroup);
 

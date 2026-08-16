@@ -140,6 +140,18 @@ const getRunningCampaignByGroup = catchAsync(async (req: Request, res: Response)
     });
 });
 
+const getRunningCampaignForSeller = catchAsync(async (req: Request, res: Response) => {
+    const result = await campaignServices.getRunningCampaignForSeller(req.user._id as string, req.params.groupId as string, req.query);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Running campaigns for joined seller group retrieved successfully",
+        data: result.data,
+        meta: result.pagination,
+    });
+});
+
 const assignTierToCampaign = catchAsync(async (req: Request, res: Response) => {
     const { campaignId, tierId } = req.body;
     const result = await campaignServices.assignTierToCampaign(campaignId || (req.params.campaignId as string), tierId);
@@ -161,6 +173,7 @@ export const campaignControllers = {
     getCampaignByCode,
     getCampaignsByGroup,
     getRunningCampaignByGroup,
+    getRunningCampaignForSeller,
     assignTierToCampaign,
     updateCampaign,
     updateCampaignStatus,

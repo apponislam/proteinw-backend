@@ -363,6 +363,79 @@ const getRunningCampaignByGroup = async (groupId: string) => {
     };
 };
 
+const getRunningCampaignForSeller = async (sellerId: string, groupId: string, query: any = {}) => {
+    // 1. Get campaign IDs that this seller has explicitly joined from CampaignSellerModel
+    const sellerCampaignJoins = await CampaignSellerModel.find({
+        sellerId: new Types.ObjectId(sellerId),
+        isDeleted: false,
+    }).select("campaignId").lean();
+
+    const joinedCampaignIds = sellerCampaignJoins.map((cj) => cj.campaignId);
+
+    if (joinedCampaignIds.length === 0) {
+        return {
+            data: [],
+            pagination: {
+                page: 1,
+                limit: parseInt(query.limit as string) || 10,
+                total: 0,
+                totalPages: 0,
+                hasNext: false,
+                hasPrev: false,
+            },
+        };
+    }
+
+    // 2. Build filter matching group ID, joined campaign IDs, and status
+    const filter: any = {
+        _id: { $in: joinedCampaignIds },
+        groupId: new Types.ObjectId(groupId),
+        isDeleted: false,
+    };
+
+    if (query.status) {
+        filter.status = query.status;
+    } else {
+        filter.status = "ACTIVE";
+    }
+
+    const page = parseInt(query.page as string) || 1;
+    const limit = parseInt(query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
+    const campaigns = await CampaignModel.find(filter)
+        .populate("createdBy", "name email role phone photo")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
+
+    const total = await CampaignModel.countDocuments(filter);
+
+    const campaignsWithStats = await Promise.all(
+        campaigns.map(async (campaign) => {
+            const stats = await getCampaignStats(campaign._id as Types.ObjectId);
+            return {
+                ...campaign,
+                totalPackagesSold: stats.totalPackagesSold,
+                totalRevenueSold: stats.totalRevenueSold,
+            };
+        })
+    );
+
+    return {
+        data: campaignsWithStats,
+        pagination: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+            hasNext: page < Math.ceil(total / limit),
+            hasPrev: page > 1,
+        },
+    };
+};
+
 export const campaignServices = {
     createCampaign,
     getAllCampaigns,
@@ -372,6 +445,7 @@ export const campaignServices = {
     getCampaignByCode,
     getCampaignsByGroup,
     getRunningCampaignByGroup,
+    getRunningCampaignForSeller,
     assignTierToCampaign,
     updateCampaign,
     updateCampaignStatus,
