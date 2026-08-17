@@ -380,19 +380,22 @@ const getSuperAdminGroupsStats = async (query: any) => {
 
     const groups = await GroupModel.find({ isDeleted: false })
         .populate({
-            path: "runningCampaignId",
-            model: "Campaign",
-        })
-        .populate({
             path: "createdBy",
-            model: "User",
+            select: "name email phone photo role",
         });
 
     const tiers = await TierModel.find({ isActive: true, isDeleted: false }).sort({ minSalesVolume: 1 });
 
     const groupsStats = await Promise.all(
         groups.map(async (group) => {
-            const campaign = await CampaignModel.findOne({ groupId: group._id, isDeleted: false, status: "ACTIVE" }).lean();
+            const activeCampaignDocs = await CampaignModel.find({
+                groupId: group._id,
+                isDeleted: false,
+                status: "ACTIVE",
+            }).select("_id").lean();
+
+            const activeCampaignsCount = activeCampaignDocs.length;
+            const activeCampaignIds = activeCampaignDocs.map((c) => c._id);
             const campaignAdmin = group.createdBy as any;
 
             const sellersCount = await SellerGroupModel.countDocuments({
@@ -404,11 +407,11 @@ const getSuperAdminGroupsStats = async (query: any) => {
             let revenue = 0;
             let profitPercentage = 40;
 
-            if (campaign) {
+            if (activeCampaignIds.length > 0) {
                 const ordersStats = await OrderModel.aggregate([
                     {
                         $match: {
-                            campaignId: campaign._id,
+                            campaignId: { $in: activeCampaignIds },
                             status: { $ne: "cancelled" },
                             isDeleted: false,
                         },
@@ -439,43 +442,23 @@ const getSuperAdminGroupsStats = async (query: any) => {
                 ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
                 : (nameParts[0]?.[0] || "").toUpperCase();
 
-            // Next tier logic
-            const nextTier = tiers.find(t => t.minSalesVolume > unitsSold);
-            const profitTierStatusText = nextTier 
-                ? `${nextTier.minSalesVolume - unitsSold} units to next tier` 
-                : "Goal Reached";
-
-            // Deadline status logic
-            const campaignEndDate = campaign?.endDate;
-            let deadlineStatusText = "Campaign ended";
-            if (campaignEndDate) {
-                const daysRemaining = Math.ceil((new Date(campaignEndDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-                if (daysRemaining > 0) {
-                    if (daysRemaining === 1) {
-                        deadlineStatusText = "1 day left";
-                    } else if (daysRemaining <= 7) {
-                        deadlineStatusText = `${daysRemaining} days left`;
-                    } else {
-                        deadlineStatusText = `In ${daysRemaining} days`;
-                    }
-                }
-            }
-
             return {
                 _id: group._id,
                 groupCode,
                 groupName: group.name,
-                campaignCode: campaign?.code || "N/A",
-                assignedAdmin: campaignAdmin?.name || "N/A",
+                assignedAdmin: campaignAdmin ? {
+                    _id: campaignAdmin._id,
+                    name: campaignAdmin.name,
+                    email: campaignAdmin.email,
+                    phone: campaignAdmin.phone,
+                    photo: campaignAdmin.photo,
+                } : null,
                 sellers: sellersCount,
+                activeCampaigns: activeCampaignsCount,
                 packagesSold: unitsSold,
-                profitTier: `${profitPercentage}% Tier`,
-                profitTierStatusText,
-                status: group.isActive, // just true/false
-                deadlineDate: campaignEndDate || null,
-                deadlineStatusText,
                 revenue,
                 groupProfit,
+                status: group.isActive,
                 createdAt: group.createdAt,
             };
         })
