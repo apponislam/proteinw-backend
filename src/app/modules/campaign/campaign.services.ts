@@ -126,16 +126,49 @@ const getAllCampaignsWithStats = async (query: any = {}) => {
     const limit = parseInt(query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    const campaigns = await CampaignModel.find(filter).populate("createdBy", "name email role phone photo").sort({ createdAt: -1 }).skip(skip).limit(limit).lean();
+    const campaigns = await CampaignModel.find(filter)
+        .populate("createdBy", "name email role phone photo")
+        .populate("tierId")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
+
     const total = await CampaignModel.countDocuments(filter);
+    const tiers = await TierModel.find({ isActive: true, isDeleted: false }).sort({ minSalesVolume: 1 });
 
     const campaignsWithStats = await Promise.all(
-        campaigns.map(async (campaign) => {
+        campaigns.map(async (campaign: any) => {
             const stats = await getCampaignStats(campaign._id as Types.ObjectId);
+            const totalPackagesSold = stats.totalPackagesSold;
+
+            let currentTier = campaign.tierId || null;
+            if (!currentTier) {
+                currentTier = tiers.find(t => 
+                    totalPackagesSold >= t.minSalesVolume && 
+                    (t.maxSalesVolume === undefined || t.maxSalesVolume === null || totalPackagesSold <= t.maxSalesVolume)
+                ) || null;
+            }
+
+            const currentMinVol = currentTier?.minSalesVolume ?? -1;
+            const nextTier = tiers.find(t => t.minSalesVolume > (currentMinVol >= 0 ? currentMinVol : totalPackagesSold)) || null;
+            const packagesNeededForNextTier = nextTier ? Math.max(0, nextTier.minSalesVolume - totalPackagesSold) : 0;
+
+            const formatTier = (t: any) => t ? {
+                _id: t._id,
+                name: t.name,
+                percentage: t.percentage,
+                minSalesVolume: t.minSalesVolume,
+                maxSalesVolume: t.maxSalesVolume,
+            } : null;
+
             return {
                 ...campaign,
-                totalPackagesSold: stats.totalPackagesSold,
+                totalPackagesSold,
                 totalRevenueSold: stats.totalRevenueSold,
+                currentTier: formatTier(currentTier),
+                nextTier: formatTier(nextTier),
+                packagesNeededForNextTier,
             };
         }),
     );
