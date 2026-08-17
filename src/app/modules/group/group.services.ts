@@ -7,6 +7,7 @@ import { OrderModel } from "../order/order.model";
 import { TierModel } from "../tier/tier.model";
 import { SellerGroupModel } from "../sellerGroup/sellerGroup.model";
 import { CampaignModel } from "../campaign/campaign.model";
+import { InvitationModel } from "../invitation/invitation.model";
 
 const createGroup = async (userId: string, payload: any) => {
     const user = await UserModel.findById(userId);
@@ -56,9 +57,43 @@ const getActiveGroups = async () => {
 };
 
 const getGroupById = async (groupId: string) => {
-    const group = await GroupModel.findOne({ _id: groupId, isDeleted: false });
+    const group = await GroupModel.findOne({ _id: groupId, isDeleted: false })
+        .populate("createdBy", "name email phone photo role")
+        .lean();
+
     if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Requested group was not found or has been deleted.");
-    return group;
+
+    // 1. Seller count in this group
+    const sellerCount = await SellerGroupModel.countDocuments({
+        groupId: group._id,
+        isDeleted: false,
+    });
+
+    // 2. Invitation count for this group (PENDING or all active invitations)
+    const invitationCount = await InvitationModel.countDocuments({
+        groupId: group._id,
+    });
+
+    // 3. Total campaigns created under this group
+    const totalCampaigns = await CampaignModel.countDocuments({
+        groupId: group._id,
+        isDeleted: false,
+    });
+
+    // 4. Active campaigns count under this group
+    const activeCampaigns = await CampaignModel.countDocuments({
+        groupId: group._id,
+        status: "ACTIVE",
+        isDeleted: false,
+    });
+
+    return {
+        ...group,
+        sellerCount,
+        invitationCount,
+        totalCampaigns,
+        activeCampaigns,
+    };
 };
 
 const getGroupByCode = async (code: string) => {
