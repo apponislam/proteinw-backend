@@ -93,63 +93,96 @@ const getMyGroup = async (userId: string | Types.ObjectId, query: any = {}) => {
     const skip = (page - 1) * limit;
 
     const filter: any = { isDeleted: false };
-
     filter.createdBy = new Types.ObjectId(userId);
 
     const total = await GroupModel.countDocuments(filter);
-    const groupDocs = await GroupModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit);
-
-    // Fetch all active tiers once for efficiency
-    const tiers = await TierModel.find({ isActive: true, isDeleted: false }).sort({ minSalesVolume: 1 });
+    const groupDocs = await GroupModel.find(filter)
+        .populate("createdBy", "name email phone photo role")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
 
     const groupsWithDetails = await Promise.all(
         groupDocs.map(async (groupDoc) => {
             const groupObj = groupDoc.toObject();
 
-            // Find active campaign for this group
-            const campaign = await CampaignModel.findOne({ groupId: groupDoc._id, isDeleted: false, status: "ACTIVE" }).populate("tierId");
-
-            let totalPackagesSold = 0;
-            let totalRevenue = 0;
-
-            const orderMatch: any = {
-                status: { $ne: "cancelled" },
+            // 1. Total campaigns created under this groupId
+            const totalCampaigns = await CampaignModel.countDocuments({
+                groupId: groupDoc._id,
                 isDeleted: false,
-            };
+            });
 
-            if (campaign) {
-                orderMatch.$or = [{ groupId: groupDoc._id }, { campaignId: campaign._id }];
-            } else {
-                orderMatch.groupId = groupDoc._id;
-            }
+            // 2. Active campaigns count under this groupId
+            const activeCampaignDocs = await CampaignModel.find({
+                groupId: groupDoc._id,
+                status: "ACTIVE",
+                isDeleted: false,
+            }).select("_id").lean();
 
+            const activeCampaigns = activeCampaignDocs.length;
+            const activeCampaignIds = activeCampaignDocs.map((ac) => ac._id);
+
+            // 3. Total packages sold & total sales revenue for ALL campaigns under this group
             const ordersStats = await OrderModel.aggregate([
-                { $match: orderMatch },
+                {
+                    $match: {
+                        groupId: groupDoc._id,
+                        status: { $ne: "cancelled" },
+                        isDeleted: false,
+                    },
+                },
                 {
                     $group: {
                         _id: null,
-                        totalPackagesSold: { $sum: "$totalPackage" },
-                        totalRevenue: { $sum: "$totalPrice" },
+                        packagesSold: { $sum: "$totalPackage" },
+                        totalSales: { $sum: "$totalPrice" },
                     },
                 },
             ]);
-            totalPackagesSold = ordersStats[0]?.totalPackagesSold || 0;
-            totalRevenue = ordersStats[0]?.totalRevenue || 0;
 
-            const currentTier = tiers.find((t) => totalPackagesSold >= t.minSalesVolume && (t.maxSalesVolume === undefined || t.maxSalesVolume === null || totalPackagesSold <= t.maxSalesVolume));
-            const nextTier = tiers.find((t) => t.minSalesVolume > totalPackagesSold);
-            const packagesNeededForNextTier = nextTier ? nextTier.minSalesVolume - totalPackagesSold : 0;
+            const packagesSold = ordersStats[0]?.packagesSold || 0;
+            const totalSales = ordersStats[0]?.totalSales || 0;
+
+            // 3b. Total packages sold & total sales revenue for ACTIVE campaigns only
+            let activeCampaignPackagesSold = 0;
+            let activeCampaignTotalSales = 0;
+
+            if (activeCampaignIds.length > 0) {
+                const activeOrdersStats = await OrderModel.aggregate([
+                    {
+                        $match: {
+                            campaignId: { $in: activeCampaignIds },
+                            status: { $ne: "cancelled" },
+                            isDeleted: false,
+                        },
+                    },
+                    {
+                        $group: {
+                            _id: null,
+                            activePackagesSold: { $sum: "$totalPackage" },
+                            activeTotalSales: { $sum: "$totalPrice" },
+                        },
+                    },
+                ]);
+                activeCampaignPackagesSold = activeOrdersStats[0]?.activePackagesSold || 0;
+                activeCampaignTotalSales = activeOrdersStats[0]?.activeTotalSales || 0;
+            }
+
+            // 4. Sellers count under this group
+            const totalSellers = await SellerGroupModel.countDocuments({
+                groupId: groupDoc._id,
+                isDeleted: false,
+            });
 
             return {
                 ...groupObj,
-                runningCampaign: campaign || null,
-                tierInfo: {
-                    totalPackagesSold,
-                    totalRevenue,
-                    currentTier: currentTier || null,
-                    nextTier: nextTier || null,
-                    packagesNeededForNextTier,
-                },
+                totalCampaigns,
+                activeCampaigns,
+                packagesSold,
+                totalSales,
+                activeCampaignPackagesSold,
+                activeCampaignTotalSales,
+                totalSellers,
             };
         }),
     );

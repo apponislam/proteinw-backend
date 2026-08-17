@@ -25,14 +25,21 @@ const joinCampaign = async (sellerId: string, campaignId: string) => {
         throw new ApiError(httpStatus.BAD_REQUEST, "Cannot join a campaign that is not in ACTIVE status.");
     }
 
-    // 3. Check if seller is already joined to this campaign
+    // 3. Check if seller join record already exists
     const existingJoin = await CampaignSellerModel.findOne({
         sellerId: new Types.ObjectId(sellerId),
         campaignId: new Types.ObjectId(campaignId),
-        isDeleted: false,
     });
+
     if (existingJoin) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "You have already joined this campaign.");
+        if (!existingJoin.isDeleted) {
+            throw new ApiError(httpStatus.BAD_REQUEST, "Seller has already joined this campaign.");
+        }
+        // If previously removed (isDeleted: true), restore it
+        existingJoin.isDeleted = false;
+        existingJoin.joinedAt = new Date();
+        await existingJoin.save();
+        return existingJoin;
     }
 
     // 4. Create join record
@@ -40,8 +47,6 @@ const joinCampaign = async (sellerId: string, campaignId: string) => {
         sellerId: new Types.ObjectId(sellerId),
         campaignId: new Types.ObjectId(campaignId),
     });
-
-
 
     // 5. Log activity safely
     try {
@@ -170,16 +175,23 @@ const addSellersToCampaign = async (campaignId: string, sellerIdsInput: string |
     }
 
     const results = [];
+    const errors = [];
     for (const sellerId of sellerIds) {
         try {
             const result = await joinCampaign(sellerId, campaignId);
             results.push(result);
         } catch (err: any) {
-            // Ignore already joined or skip errors
+            console.error(`Failed to add seller ${sellerId} to campaign ${campaignId}:`, err?.message || err);
+            errors.push({ sellerId, error: err?.message || "Failed to add seller" });
         }
     }
 
-    return { message: "Seller(s) added to campaign successfully", count: results.length };
+    return {
+        message: results.length > 0 ? "Seller(s) added to campaign successfully" : "No sellers were added (they may already be added or invalid)",
+        count: results.length,
+        added: results,
+        errors,
+    };
 };
 
 const removeSellersFromCampaign = async (campaignId: string, sellerIdsInput: string | string[]) => {
