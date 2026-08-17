@@ -59,9 +59,13 @@ const createCampaign = async (userId: string, groupId: string, payload: any) => 
         throw new ApiError(httpStatus.FORBIDDEN, "Your admin account has not been approved yet. You cannot create a campaign.");
     }
 
-    // Check if group exists
+    // Check if group exists and is active
     const group = await GroupModel.findOne({ _id: groupId, isDeleted: false });
     if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Associated group was not found or has been deleted.");
+
+    if (!group.isActive) {
+        throw new ApiError(httpStatus.BAD_REQUEST, "Cannot create a campaign for an inactive group.");
+    }
 
     // Create the campaign
     const campaignData: any = {
