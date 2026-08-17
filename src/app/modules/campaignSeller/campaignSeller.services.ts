@@ -22,7 +22,7 @@ const joinCampaign = async (sellerId: string, campaignId: string) => {
         throw new ApiError(httpStatus.NOT_FOUND, "Target campaign was not found or has been deleted.");
     }
     if (campaign.status !== "ACTIVE") {
-        throw new ApiError(httpStatus.BAD_REQUEST, "Cannot join a campaign that is not in ACTIVE status.");
+        throw new ApiError(httpStatus.BAD_REQUEST, "Cannot add sellers because campaign is not active.");
     }
 
     // 3. Check if seller join record already exists
@@ -175,22 +175,27 @@ const addSellersToCampaign = async (campaignId: string, sellerIdsInput: string |
     }
 
     const results = [];
-    const errors = [];
+    let firstErrorMsg = "";
+
     for (const sellerId of sellerIds) {
         try {
             const result = await joinCampaign(sellerId, campaignId);
             results.push(result);
         } catch (err: any) {
-            console.error(`Failed to add seller ${sellerId} to campaign ${campaignId}:`, err?.message || err);
-            errors.push({ sellerId, error: err?.message || "Failed to add seller" });
+            if (!firstErrorMsg) {
+                firstErrorMsg = err?.message || "Failed to add seller to campaign.";
+            }
         }
     }
 
+    if (results.length === 0) {
+        throw new ApiError(httpStatus.BAD_REQUEST, firstErrorMsg || "No sellers could be added to this campaign.");
+    }
+
     return {
-        message: results.length > 0 ? "Seller(s) added to campaign successfully" : "No sellers were added (they may already be added or invalid)",
+        message: "Seller(s) added to campaign successfully",
         count: results.length,
-        added: results,
-        errors,
+        sellers: results,
     };
 };
 

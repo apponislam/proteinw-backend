@@ -582,18 +582,41 @@ const getAdminsWithStats = async (query: any) => {
 
     const data = await Promise.all(
         admins.map(async (admin) => {
-            const group = await GroupModel.findOne({ createdBy: admin._id, isDeleted: false });
-            let groupName = null;
+            const groups = await GroupModel.find({ createdBy: admin._id, isDeleted: false }).select("_id name").lean();
+
+            let groupNames: string[] = [];
             let sellerCount = 0;
             let orderCount = 0;
 
-            if (group) {
-                groupName = group.name;
-                sellerCount = await SellerGroupModel.countDocuments({ groupId: group._id, isDeleted: false });
+            if (groups.length > 0) {
+                const groupIds = groups.map((g) => g._id);
 
-                const activeCampaign = await CampaignModel.findOne({ groupId: group._id, isDeleted: false, status: "ACTIVE" });
-                if (activeCampaign) {
-                    orderCount = await OrderModel.countDocuments({ campaignId: activeCampaign._id, isDeleted: false });
+                const names = groups.map((g) => g.name);
+                if (names.length > 9) {
+                    const first9 = names.slice(0, 9);
+                    first9.push(`9+`);
+                    groupNames = first9;
+                } else {
+                    groupNames = names;
+                }
+
+                sellerCount = await SellerGroupModel.countDocuments({
+                    groupId: { $in: groupIds },
+                    isDeleted: false,
+                });
+
+                const activeCampaigns = await CampaignModel.find({
+                    groupId: { $in: groupIds },
+                    isDeleted: false,
+                    status: "ACTIVE",
+                }).select("_id").lean();
+
+                if (activeCampaigns.length > 0) {
+                    const activeCampaignIds = activeCampaigns.map((ac) => ac._id);
+                    orderCount = await OrderModel.countDocuments({
+                        campaignId: { $in: activeCampaignIds },
+                        isDeleted: false,
+                    });
                 }
             }
 
@@ -603,7 +626,7 @@ const getAdminsWithStats = async (query: any) => {
                 email: admin.email,
                 isActive: admin.isActive,
                 isApproved: admin.isApproved ?? false,
-                groupName,
+                groupName: groupNames,
                 sellerCount,
                 orderCount,
             };

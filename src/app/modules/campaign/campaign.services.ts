@@ -51,6 +51,14 @@ const createCampaign = async (userId: string, groupId: string, payload: any) => 
         }
     }
 
+    // Check user approval status
+    const user = await UserModel.findById(userId);
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found.");
+
+    if (user.role === "ADMIN" && !user.isApproved) {
+        throw new ApiError(httpStatus.FORBIDDEN, "Your admin account has not been approved yet. You cannot create a campaign.");
+    }
+
     // Check if group exists
     const group = await GroupModel.findOne({ _id: groupId, isDeleted: false });
     if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Associated group was not found or has been deleted.");
