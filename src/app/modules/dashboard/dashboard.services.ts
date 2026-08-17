@@ -681,6 +681,45 @@ const getTotalDistributedProfit = async () => {
     };
 };
 
+const getActiveCampaignsOverview = async () => {
+    // Find all ACTIVE campaigns
+    const activeCampaigns = await CampaignModel.find({
+        status: "ACTIVE",
+        isDeleted: false,
+    }).select("_id target").lean();
+
+    const activeCampaignCount = activeCampaigns.length;
+    const totalGoal = activeCampaigns.reduce((sum, c) => sum + (c.target || 0), 0);
+
+    const activeCampaignIds = activeCampaigns.map((c) => c._id);
+
+    let totalSold = 0;
+    if (activeCampaignIds.length > 0) {
+        const orderStats = await OrderModel.aggregate([
+            {
+                $match: {
+                    campaignId: { $in: activeCampaignIds },
+                    status: { $ne: "cancelled" },
+                    isDeleted: false,
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalSold: { $sum: "$totalPrice" },
+                },
+            },
+        ]);
+        totalSold = orderStats[0]?.totalSold || 0;
+    }
+
+    return {
+        totalGoal,
+        activeCampaigns: activeCampaignCount,
+        totalSold,
+    };
+};
+
 export const dashboardServices = {
     getDashboardStats,
     getDashboardStatus,
@@ -692,4 +731,5 @@ export const dashboardServices = {
     getSuperAdminGroupsDashboardCards,
     getSuperAdminAdminsStats,
     getTotalDistributedProfit,
+    getActiveCampaignsOverview,
 };

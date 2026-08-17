@@ -136,6 +136,17 @@ const getTotalDistributedProfit = catchAsync(async (req: Request, res: Response)
     });
 });
 
+const getActiveCampaignsOverview = catchAsync(async (req: Request, res: Response) => {
+    const result = await dashboardServices.getActiveCampaignsOverview();
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Active campaigns overview retrieved successfully",
+        data: result,
+    });
+});
+
 export const dashboardControllers = {
     getDashboardStats,
     getDashboardStatus,
@@ -147,4 +158,5 @@ export const dashboardControllers = {
     getSuperAdminGroupsDashboardCards,
     getSuperAdminAdminsStats,
     getTotalDistributedProfit,
+    getActiveCampaignsOverview,
 };

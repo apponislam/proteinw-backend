@@ -14,6 +14,7 @@ router.get("/superadmin-groups-stats", auth, authorize(["SUPER_ADMIN"]), dashboa
 router.get("/superadmin-groups-cards", auth, authorize(["SUPER_ADMIN"]), dashboardControllers.getSuperAdminGroupsDashboardCards);
 router.get("/superadmin-admins-stats", auth, authorize(["SUPER_ADMIN"]), dashboardControllers.getSuperAdminAdminsStats);
 router.get("/total-distributed-profit", auth, authorize(["SUPER_ADMIN", "ADMIN"]), dashboardControllers.getTotalDistributedProfit);
+router.get("/active-campaigns-overview", auth, authorize(["SUPER_ADMIN", "ADMIN"]), dashboardControllers.getActiveCampaignsOverview);
 router.get("/store-info", dashboardControllers.getStoreInfo);
 
 export const dashboardRoutes = router;
