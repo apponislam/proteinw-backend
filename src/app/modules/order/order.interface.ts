@@ -22,7 +22,7 @@ export interface IOrder {
         street: string;
         city: string;
         postalCode: string;
-        country: string;
+        locality: string;
     };
 
     // Order items

@@ -150,7 +150,7 @@ erDiagram
 | `groupId` | ObjectId | Ref: `"Group"`, Required |
 | `sellerId` | ObjectId | Ref: `"User"`, Optional (Attributed seller) |
 | `buyerInfo` | Object | `{ name, email, phone }` |
-| `shippingAddress` | Object | `{ street, city, postalCode, country }` |
+| `shippingAddress` | Object | `{ street, city, postalCode, locality }` |
 | `items` | Array[Object] | `[{ productId, productName, quantity, price, totalPrice }]` |
 | `totalPackage` | Number | Sum of all item quantities |
 | `totalPrice` | Number | Total monetary price (SEK) |

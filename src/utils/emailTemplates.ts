@@ -182,7 +182,7 @@ export const sendOrderConfirmationEmail = (email: string, customerName: string, 
                     <p style="color: #4a4a4a; margin: 0; line-height: 1.7; font-size: 14px;">
                         ${address.street}<br>
                         ${address.city}, ${address.postalCode}<br>
-                        ${address.country}
+                        ${address.locality}
                     </p>
                 </div>
                 

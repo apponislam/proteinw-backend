@@ -21,7 +21,7 @@ const OrderSchema = new Schema<OrderDocument>(
             street: { type: String, required: true, trim: true },
             city: { type: String, required: true, trim: true },
             postalCode: { type: String, required: true, trim: true },
-            country: { type: String, required: true, trim: true },
+            locality: { type: String, required: true, trim: true },
         },
         items: [OrderItemSchema],
         totalPackage: { type: Number, required: true, min: 0 },
