@@ -256,90 +256,50 @@ const getCampaignById = async (campaignId: string) => {
     if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Requested campaign was not found or has been deleted.");
 
     const stats = await getCampaignStats(campaign._id as Types.ObjectId);
+    const totalPackagesSold = stats.totalPackagesSold;
 
-    // 1. Fetch Campaign Admin (createdBy user details)
+    // Fetch simple Campaign Admin info
     let campaignAdmin = null;
     if (campaign.createdBy) {
-        campaignAdmin = await UserModel.findOne({ _id: campaign.createdBy, isDeleted: false }, { password: 0 }).lean();
+        campaignAdmin = await UserModel.findOne(
+            { _id: campaign.createdBy, isDeleted: false },
+            { name: 1, email: 1, phone: 1, role: 1, profession: 1 }
+        ).lean();
     }
 
-    // 2. Fetch Campaign Sellers using CampaignSellerModel & SellerGroupModel
-    const campaignSellerJoins = await CampaignSellerModel.find({ campaignId: campaign._id, isDeleted: false }).select("sellerId").lean();
-    const campaignSellerIds = campaignSellerJoins.map((cs: any) => cs.sellerId);
+    // Calculate Tiers
+    const tiers = await TierModel.find({ isActive: true, isDeleted: false }).sort({ minSalesVolume: 1 });
+    const formatTier = (t: any) => t ? {
+        _id: t._id,
+        name: t.name,
+        percentage: t.percentage,
+        minSalesVolume: t.minSalesVolume,
+        maxSalesVolume: t.maxSalesVolume,
+    } : null;
 
-    let sellerIds = [...campaignSellerIds];
-    if (campaign.groupId) {
-        const groupSellerJoins = await SellerGroupModel.find({ groupId: campaign.groupId, isDeleted: false }).select("sellerId").lean();
-        const groupSellerIds = groupSellerJoins.map((gs: any) => gs.sellerId);
-        const allIdsSet = new Set([...campaignSellerIds.map((id: any) => id.toString()), ...groupSellerIds.map((id: any) => id.toString())]);
-        sellerIds = Array.from(allIdsSet).map((id: string) => new Types.ObjectId(id));
+    let currentTier = null;
+    if (campaign.tierId) {
+        currentTier = tiers.find(t => t._id.toString() === campaign.tierId?.toString()) || null;
+    }
+    if (!currentTier) {
+        currentTier = tiers.find(t => 
+            totalPackagesSold >= t.minSalesVolume && 
+            (t.maxSalesVolume === undefined || t.maxSalesVolume === null || totalPackagesSold <= t.maxSalesVolume)
+        ) || null;
     }
 
-    const sellers = await UserModel.find(
-        {
-            _id: { $in: sellerIds },
-            role: "SELLER",
-            isDeleted: false,
-        },
-        { password: 0 },
-    ).lean();
-
-    const sellersWithStats = await Promise.all(
-        sellers.map(async (seller) => {
-            const sellerStats = await OrderModel.aggregate([
-                { $match: { campaignId: new Types.ObjectId(campaign._id), memberId: new Types.ObjectId(seller._id), isDeleted: false, status: { $ne: "cancelled" } } },
-                {
-                    $group: {
-                        _id: null,
-                        totalPackagesSold: { $sum: "$totalPackage" },
-                        totalRevenueSold: { $sum: "$totalPrice" },
-                    },
-                },
-            ]);
-            return {
-                ...seller,
-                totalPackagesSold: sellerStats[0]?.totalPackagesSold || 0,
-                totalRevenueSold: sellerStats[0]?.totalRevenueSold || 0,
-            };
-        }),
-    );
-
-    // 3. Fetch Campaign Products
-    const campaignProducts = await CampaignProductModel.find({ campaignId: campaign._id, isDeleted: false }).populate("productId").lean();
-
-    const productsWithStats = await Promise.all(
-        campaignProducts.map(async (cp: any) => {
-            const product = cp.productId;
-            if (!product) return null;
-
-            const productStats = await OrderModel.aggregate([
-                { $match: { campaignId: new Types.ObjectId(campaign._id), isDeleted: false, status: { $ne: "cancelled" } } },
-                { $unwind: "$items" },
-                { $match: { "items.productId": new Types.ObjectId(product._id) } },
-                {
-                    $group: {
-                        _id: null,
-                        totalSold: { $sum: "$items.quantity" },
-                    },
-                },
-            ]);
-
-            return {
-                ...product,
-                totalSold: productStats[0]?.totalSold || 0,
-            };
-        }),
-    );
-
-    const filteredProducts = productsWithStats.filter(Boolean);
+    const currentMinVol = currentTier?.minSalesVolume ?? -1;
+    const nextTier = tiers.find(t => t.minSalesVolume > (currentMinVol >= 0 ? currentMinVol : totalPackagesSold)) || null;
+    const packagesNeededForNextTier = nextTier ? Math.max(0, nextTier.minSalesVolume - totalPackagesSold) : 0;
 
     return {
         ...campaign,
-        totalPackagesSold: stats.totalPackagesSold,
+        totalPackagesSold,
         totalRevenueSold: stats.totalRevenueSold,
         campaignAdmin,
-        sellers: sellersWithStats,
-        products: filteredProducts,
+        currentTier: formatTier(currentTier),
+        nextTier: formatTier(nextTier),
+        packagesNeededForNextTier,
     };
 };
 
