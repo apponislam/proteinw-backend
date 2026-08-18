@@ -160,22 +160,27 @@ const loginWithInvitationCode = async (data: { email: string; password: string; 
 };
 
 const verifyEmail = async (email: string, token?: string, otp?: string) => {
-    const user = await UserModel.findOne({
-        email,
-        verificationExpiry: { $gt: new Date() },
-    });
+    const user = await UserModel.findOne({ email });
 
     if (!user) {
-        throw new ApiError(httpStatus.NOT_FOUND, "User was not found or verification period has expired.");
+        throw new ApiError(httpStatus.NOT_FOUND, "User with this email was not found.");
+    }
+
+    if (user.isEmailVerified) {
+        return { message: "Email is already verified." };
+    }
+
+    if (!user.verificationExpiry || user.verificationExpiry <= new Date()) {
+        throw new ApiError(httpStatus.BAD_REQUEST, "Verification period has expired.");
     }
 
     if (token) {
         if (user.verificationToken !== token) {
-            throw new ApiError(httpStatus.BAD_REQUEST, "Verification token is invalid or expired.");
+            throw new ApiError(httpStatus.BAD_REQUEST, "Verification token is invalid.");
         }
     } else if (otp) {
         if (user.verificationCode !== otp) {
-            throw new ApiError(httpStatus.BAD_REQUEST, "Verification code (OTP) is invalid or expired.");
+            throw new ApiError(httpStatus.BAD_REQUEST, "Verification code (OTP) is invalid.");
         }
     } else {
         throw new ApiError(httpStatus.BAD_REQUEST, "Token or OTP is required for verification.");

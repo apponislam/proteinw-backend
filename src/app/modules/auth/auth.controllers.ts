@@ -116,12 +116,12 @@ const verifyEmail = catchAsync(async (req: Request, res: Response) => {
         throw new ApiError(httpStatus.BAD_REQUEST, "Email is required");
     }
 
-    await authServices.verifyEmail(email, token, otp);
+    const result = await authServices.verifyEmail(email, token, otp);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Email verified successfully",
+        message: result.message,
         data: null,
     });
 });
