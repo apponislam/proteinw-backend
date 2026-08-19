@@ -33,6 +33,5 @@ InvitationSchema.pre("save", function () {
 InvitationSchema.index({ groupId: 1 });
 InvitationSchema.index({ inviterId: 1 });
 InvitationSchema.index({ status: 1 });
-InvitationSchema.index({ code: 1 });
 
 export const InvitationModel = mongoose.model<InvitationDocument>("Invitation", InvitationSchema);

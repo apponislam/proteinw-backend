@@ -31,7 +31,14 @@ const getCampaignStats = async (campaignId: Types.ObjectId) => {
 const createCampaign = async (userId: string, groupId: string, payload: any) => {
     // Validate startDate and endDate
     const now = new Date();
-    const twentyOneDaysInMs = 21 * 24 * 60 * 60 * 1000;
+    // 21 full days (21 * 24 * 60 * 60 * 1000 ms) + 12 hours buffer for timezone/end-of-day times (e.g. 23:59:59)
+    const twentyOneDaysInMs = (21 * 24 * 60 * 60 * 1000) + (12 * 60 * 60 * 1000);
+
+    console.log("📌 createCampaign raw payload dates:", {
+        startDate: payload.startDate,
+        endDate: payload.endDate,
+        now: now.toISOString(),
+    });
 
     if (payload.startDate && payload.endDate) {
         const start = new Date(payload.startDate);
@@ -45,7 +52,15 @@ const createCampaign = async (userId: string, groupId: string, payload: any) => 
         if (end <= now) {
             throw new ApiError(httpStatus.BAD_REQUEST, "The campaign end date must be set to a future date.");
         }
-        if (end.getTime() - start.getTime() > twentyOneDaysInMs) {
+
+        // Calculate calendar day difference
+        const startDay = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+        const endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+        const diffInCalendarDays = Math.round((endDay.getTime() - startDay.getTime()) / (1000 * 60 * 60 * 24));
+
+        console.log(`📌 [Campaign Duration Check] Start: ${start.toISOString()}, End: ${end.toISOString()}, Calendar Days: ${diffInCalendarDays}`);
+
+        if (diffInCalendarDays > 21) {
             throw new ApiError(httpStatus.BAD_REQUEST, "Campaign duration cannot exceed 3 weeks (21 days). Please adjust your end date.");
         }
     } else if (payload.endDate) {
@@ -53,7 +68,15 @@ const createCampaign = async (userId: string, groupId: string, payload: any) => 
         if (isNaN(end.getTime()) || end <= now) {
             throw new ApiError(httpStatus.BAD_REQUEST, "Please select a valid future date for the campaign end date.");
         }
-        if (end.getTime() - now.getTime() > twentyOneDaysInMs) {
+
+        // Calculate calendar day difference from today
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+        const diffInCalendarDays = Math.round((endDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+        console.log(`📌 [Campaign Duration Check (from today)] End: ${end.toISOString()}, Calendar Days: ${diffInCalendarDays}`);
+
+        if (diffInCalendarDays > 21) {
             throw new ApiError(httpStatus.BAD_REQUEST, "Campaign duration cannot exceed 3 weeks (21 days). Please adjust your end date.");
         }
     }
@@ -74,9 +97,12 @@ const createCampaign = async (userId: string, groupId: string, payload: any) => 
         throw new ApiError(httpStatus.BAD_REQUEST, "Campaigns can only be launched for active groups.");
     }
 
+    // Destructure transient boolean and array flags from payload (do not store in DB)
+    const { addAllGroupSellers, sellerIds, ...campaignDataPayload } = payload;
+
     // Create the campaign
     const campaignData: any = {
-        ...payload,
+        ...campaignDataPayload,
         status: payload.status || "ACTIVE",
         groupId: new Types.ObjectId(groupId),
         createdBy: new Types.ObjectId(userId),
@@ -86,13 +112,28 @@ const createCampaign = async (userId: string, groupId: string, payload: any) => 
     }
     const campaign = await CampaignModel.create(campaignData);
 
-    // If initial sellers are provided, attach them to the campaign
-    if (payload.sellerIds && (Array.isArray(payload.sellerIds) ? payload.sellerIds.length > 0 : Boolean(payload.sellerIds))) {
+    // If addAllGroupSellers boolean flag is true, add all existing group sellers to this campaign
+    let sellersToAdd: string[] = [];
+    if (addAllGroupSellers) {
+        const { SellerGroupModel } = await import("../sellerGroup/sellerGroup.model");
+        const groupSellers = await SellerGroupModel.find({
+            groupId: new Types.ObjectId(groupId),
+            isDeleted: false,
+        })
+            .select("sellerId")
+            .lean();
+
+        sellersToAdd = groupSellers.map((gs) => gs.sellerId.toString());
+    } else if (sellerIds && (Array.isArray(sellerIds) ? sellerIds.length > 0 : Boolean(sellerIds))) {
+        sellersToAdd = Array.isArray(sellerIds) ? sellerIds : [sellerIds];
+    }
+
+    if (sellersToAdd.length > 0) {
         try {
             const { campaignSellerServices } = await import("../campaignSeller/campaignSeller.services");
-            await campaignSellerServices.addSellersToCampaign(campaign._id.toString(), payload.sellerIds);
+            await campaignSellerServices.addSellersToCampaign(campaign._id.toString(), sellersToAdd);
         } catch (sellerError) {
-            console.error("Failed to add initial sellers to created campaign:", sellerError);
+            console.error("Failed to add sellers to created campaign:", sellerError);
         }
     }
 
