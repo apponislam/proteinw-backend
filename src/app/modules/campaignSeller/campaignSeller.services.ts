@@ -25,7 +25,30 @@ const joinCampaign = async (sellerId: string, campaignId: string) => {
         throw new ApiError(httpStatus.BAD_REQUEST, "Cannot add sellers because campaign is not active.");
     }
 
-    // 3. Check if seller join record already exists
+    // 3. Ensure seller is also attached to campaign's group if groupId exists
+    if (campaign.groupId) {
+        try {
+            const { SellerGroupModel } = await import("../sellerGroup/sellerGroup.model");
+            const existingGroupJoin = await SellerGroupModel.findOne({
+                sellerId: new Types.ObjectId(sellerId),
+                groupId: campaign.groupId as Types.ObjectId,
+            });
+
+            if (!existingGroupJoin) {
+                await SellerGroupModel.create({
+                    sellerId: new Types.ObjectId(sellerId),
+                    groupId: campaign.groupId as Types.ObjectId,
+                });
+            } else if (existingGroupJoin.isDeleted) {
+                existingGroupJoin.isDeleted = false;
+                await existingGroupJoin.save();
+            }
+        } catch (groupError) {
+            console.error("Failed to auto-join seller to campaign group:", groupError);
+        }
+    }
+
+    // 4. Check if seller join record already exists
     const existingJoin = await CampaignSellerModel.findOne({
         sellerId: new Types.ObjectId(sellerId),
         campaignId: new Types.ObjectId(campaignId),
@@ -42,13 +65,13 @@ const joinCampaign = async (sellerId: string, campaignId: string) => {
         return existingJoin;
     }
 
-    // 4. Create join record
+    // 5. Create join record
     const joinRecord = await CampaignSellerModel.create({
         sellerId: new Types.ObjectId(sellerId),
         campaignId: new Types.ObjectId(campaignId),
     });
 
-    // 5. Log activity safely
+    // 6. Log activity safely
     try {
         if (campaign.groupId) {
             await activityLogServices.createActivityLog({

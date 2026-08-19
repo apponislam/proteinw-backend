@@ -86,6 +86,16 @@ const createCampaign = async (userId: string, groupId: string, payload: any) => 
     }
     const campaign = await CampaignModel.create(campaignData);
 
+    // If initial sellers are provided, attach them to the campaign
+    if (payload.sellerIds && (Array.isArray(payload.sellerIds) ? payload.sellerIds.length > 0 : Boolean(payload.sellerIds))) {
+        try {
+            const { campaignSellerServices } = await import("../campaignSeller/campaignSeller.services");
+            await campaignSellerServices.addSellersToCampaign(campaign._id.toString(), payload.sellerIds);
+        } catch (sellerError) {
+            console.error("Failed to add initial sellers to created campaign:", sellerError);
+        }
+    }
+
     // Log Activity (Campaign Started)
     try {
         await activityLogServices.createActivityLog({
