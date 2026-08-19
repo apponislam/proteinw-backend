@@ -49,9 +49,7 @@ const createOrder = async (payload: any) => {
         resolvedMemberId = member._id as Types.ObjectId;
     }
 
-    const resolvedGroupId = campaign?.groupId 
-        ? (campaign.groupId as Types.ObjectId) 
-        : undefined;
+    const resolvedGroupId = campaign?.groupId ? (campaign.groupId as Types.ObjectId) : undefined;
 
     // Validate items and calculate prices
     const productIds = items.map((item: any) => new Types.ObjectId(item.productId));
@@ -113,26 +111,20 @@ const createOrder = async (payload: any) => {
     // Update campaign tier based on total packages sold
     if (resolvedCampaignId) {
         try {
-            const campaignOrders = await OrderModel.aggregate([
-                { $match: { campaignId: resolvedCampaignId, isDeleted: false } },
-                { $group: { _id: null, totalPackages: { $sum: "$totalPackage" } } }
-            ]);
+            const campaignOrders = await OrderModel.aggregate([{ $match: { campaignId: resolvedCampaignId, isDeleted: false } }, { $group: { _id: null, totalPackages: { $sum: "$totalPackage" } } }]);
             const totalPackagesForCampaign = campaignOrders.length > 0 ? campaignOrders[0].totalPackages : 0;
 
             const eligibleTier = await TierModel.findOne({
                 isActive: true,
                 isDeleted: false,
-                minSalesVolume: { $lte: totalPackagesForCampaign }
+                minSalesVolume: { $lte: totalPackagesForCampaign },
             }).sort({ minSalesVolume: -1 });
 
             if (eligibleTier) {
                 // Only update tierAssignDate if the tier actually changed
                 const currentTierId = campaign?.tierId ? campaign.tierId.toString() : null;
                 if (currentTierId !== eligibleTier._id.toString()) {
-                    await CampaignModel.updateOne(
-                        { _id: resolvedCampaignId },
-                        { $set: { tierId: eligibleTier._id, tierAssignDate: new Date() } }
-                    );
+                    await CampaignModel.updateOne({ _id: resolvedCampaignId }, { $set: { tierId: eligibleTier._id, tierAssignDate: new Date() } });
                 }
             }
         } catch (tierError) {
@@ -175,15 +167,12 @@ const createOrder = async (payload: any) => {
 
             // Check Milestone reached for Campaign
             if (resolvedCampaignId) {
-                const campaignOrders = await OrderModel.aggregate([
-                    { $match: { campaignId: resolvedCampaignId, isDeleted: false } },
-                    { $group: { _id: null, totalPackages: { $sum: "$totalPackage" } } }
-                ]);
+                const campaignOrders = await OrderModel.aggregate([{ $match: { campaignId: resolvedCampaignId, isDeleted: false } }, { $group: { _id: null, totalPackages: { $sum: "$totalPackage" } } }]);
                 const totalPackagesForCampaign = campaignOrders.length > 0 ? campaignOrders[0].totalPackages : 0;
 
                 if (campaign && campaign.target > 0) {
                     const percentage = Math.round((totalPackagesForCampaign / campaign.target) * 100);
-                    
+
                     let thresholdReached = 0;
                     if (percentage >= 100) thresholdReached = 100;
                     else if (percentage >= 70) thresholdReached = 70;
@@ -380,7 +369,9 @@ const getRunningCampaignOrders = async (user: any, query: any = {}) => {
         const adminCampaigns = await CampaignModel.find({
             $or: [{ createdBy: user._id }, { groupId: { $in: groupIds } }],
             isDeleted: false,
-        }).select("_id").lean();
+        })
+            .select("_id")
+            .lean();
         const campaignIds = adminCampaigns.map((c) => c._id);
 
         filter.$or = [{ groupId: { $in: groupIds } }, { campaignId: { $in: campaignIds } }];
@@ -394,13 +385,7 @@ const getRunningCampaignOrders = async (user: any, query: any = {}) => {
     const limit = parseInt(query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    const orders = await OrderModel.find(filter)
-        .populate("memberId", "name email")
-        .populate("campaignId", "name code")
-        .populate("groupId", "name")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit);
+    const orders = await OrderModel.find(filter).populate("memberId", "name email").populate("campaignId", "name code").populate("groupId", "name").sort({ createdAt: -1 }).skip(skip).limit(limit);
 
     const total = await OrderModel.countDocuments(filter);
 
@@ -434,7 +419,9 @@ const getRunningCampaignStats = async (user: any) => {
         const adminCampaigns = await CampaignModel.find({
             $or: [{ createdBy: user._id }, { groupId: { $in: groupIds } }],
             isDeleted: false,
-        }).select("_id").lean();
+        })
+            .select("_id")
+            .lean();
         const campaignIds = adminCampaigns.map((c) => c._id);
 
         matchStage.$or = [{ groupId: { $in: groupIds } }, { campaignId: { $in: campaignIds } }];
@@ -491,25 +478,33 @@ const getRunningCampaignStats = async (user: any) => {
     };
 };
 
-const getCampaignContributors = async (groupId: string | Types.ObjectId | undefined) => {
-    if (!groupId) {
+const getCampaignContributors = async (user: any) => {
+    if (!user?._id) {
         return [];
     }
 
-    const group = await GroupModel.findOne({ _id: groupId, isDeleted: false });
-    if (!group) {
+    const userId = new Types.ObjectId(user._id);
+
+    // 1. Find all groups created by admin
+    const adminGroups = await GroupModel.find({ createdBy: userId, isDeleted: false }).select("_id").lean();
+    const groupIds = adminGroups.map((g) => g._id);
+
+    // 2. Find all campaigns created by admin or belonging to admin groups
+    const adminCampaigns = await CampaignModel.find({
+        $or: [{ createdBy: userId }, { groupId: { $in: groupIds } }],
+        isDeleted: false,
+    }).select("_id").lean();
+    const campaignIds = adminCampaigns.map((c) => c._id);
+
+    if (campaignIds.length === 0 && groupIds.length === 0) {
         return [];
     }
 
-    const campaign = await CampaignModel.findOne({ groupId: group._id, isDeleted: false });
-    if (!campaign) {
-        return [];
-    }
-
+    // 3. Aggregate top seller contributors across all admin campaigns/groups
     const ordersAggregation = await OrderModel.aggregate([
         {
             $match: {
-                campaignId: campaign._id,
+                $or: [{ campaignId: { $in: campaignIds } }, { groupId: { $in: groupIds } }],
                 status: { $ne: "cancelled" },
                 isDeleted: false,
                 memberId: { $ne: null },
@@ -548,7 +543,7 @@ const getCampaignContributors = async (groupId: string | Types.ObjectId | undefi
         },
     ]);
 
-    const contributors = ordersAggregation.map(item => {
+    return ordersAggregation.map(item => {
         const nameParts = (item.name || "").trim().split(/\s+/);
         const initials = nameParts.length > 1 
             ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
@@ -564,8 +559,6 @@ const getCampaignContributors = async (groupId: string | Types.ObjectId | undefi
             sales: item.sales,
         };
     });
-
-    return contributors;
 };
 
 const getMemberOrderStats = async (userId: Types.ObjectId | string) => {

@@ -123,8 +123,8 @@ const getRunningCampaignStats = catchAsync(async (req: Request, res: Response) =
 });
 
 const getCampaignContributors = catchAsync(async (req: Request, res: Response) => {
-    const groupId = (req.query.groupId || req.params.groupId) as string;
-    const result = await orderServices.getCampaignContributors(groupId);
+    const user = req.user as any;
+    const result = await orderServices.getCampaignContributors(user);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
