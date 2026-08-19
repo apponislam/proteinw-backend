@@ -30,6 +30,9 @@ const getCampaignStats = async (campaignId: Types.ObjectId) => {
 
 const createCampaign = async (userId: string, groupId: string, payload: any) => {
     // Validate startDate and endDate
+    const now = new Date();
+    const twentyOneDaysInMs = 21 * 24 * 60 * 60 * 1000;
+
     if (payload.startDate && payload.endDate) {
         const start = new Date(payload.startDate);
         const end = new Date(payload.endDate);
@@ -39,13 +42,19 @@ const createCampaign = async (userId: string, groupId: string, payload: any) => 
         if (end <= start) {
             throw new ApiError(httpStatus.BAD_REQUEST, "The campaign end date must be scheduled after the start date.");
         }
-        if (end <= new Date()) {
+        if (end <= now) {
             throw new ApiError(httpStatus.BAD_REQUEST, "The campaign end date must be set to a future date.");
+        }
+        if (end.getTime() - start.getTime() > twentyOneDaysInMs) {
+            throw new ApiError(httpStatus.BAD_REQUEST, "Campaign duration cannot exceed 3 weeks (21 days). Please adjust your end date.");
         }
     } else if (payload.endDate) {
         const end = new Date(payload.endDate);
-        if (isNaN(end.getTime()) || end <= new Date()) {
+        if (isNaN(end.getTime()) || end <= now) {
             throw new ApiError(httpStatus.BAD_REQUEST, "Please select a valid future date for the campaign end date.");
+        }
+        if (end.getTime() - now.getTime() > twentyOneDaysInMs) {
+            throw new ApiError(httpStatus.BAD_REQUEST, "Campaign duration cannot exceed 3 weeks (21 days). Please adjust your end date.");
         }
     }
 
