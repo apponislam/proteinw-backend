@@ -133,75 +133,99 @@ const getCampaignsByProduct = async (productId: string) => {
     return campaignProducts.map((cp) => cp.campaignId);
 };
 
-// Get products of the logged in user's campaign
+// Get products of ALL campaigns created by or belonging to the logged-in ADMIN
 const getMyCampaignProducts = async (user: any, query: any = {}) => {
-    let campaignId = null;
+    const { GroupModel } = await import("../group/group.model");
 
-    // 1. If user is ADMIN, check campaigns created by them
-    if (user.role === "ADMIN") {
-        const adminCampaign = await CampaignModel.findOne({
+    let campaignIds: Types.ObjectId[] = [];
+
+    // 0. Explicit campaignId or groupId passed in query
+    if (query.campaignId) {
+        campaignIds = [new Types.ObjectId(query.campaignId)];
+    } else if (query.groupId) {
+        const campaigns = await CampaignModel.find({
+            groupId: new Types.ObjectId(query.groupId),
+            isDeleted: false,
+        }).select("_id").lean();
+        campaignIds = campaigns.map((c) => c._id);
+    } else {
+        // 1. Find all groups created by admin
+        const adminGroups = await GroupModel.find({
             createdBy: user._id,
             isDeleted: false,
-        }).sort({ createdAt: -1 });
+        }).select("_id").lean();
+        const groupIds = adminGroups.map((g) => g._id);
 
-        if (adminCampaign) {
-            campaignId = adminCampaign._id;
-        } else {
-            const { GroupModel } = await import("../group/group.model");
-            const adminGroup = await GroupModel.findOne({
-                createdBy: user._id,
-                isDeleted: false,
-            }).sort({ createdAt: -1 });
-
-            if (adminGroup) {
-                const groupCampaign = await CampaignModel.findOne({
-                    groupId: adminGroup._id,
-                    isDeleted: false,
-                }).sort({ createdAt: -1 });
-
-                if (groupCampaign) {
-                    campaignId = groupCampaign._id;
-                }
-            }
-        }
-    }
-
-    // 2. If campaign not found yet (or user is SELLER), check CampaignSellerModel
-    if (!campaignId) {
-        const campaignSeller = await CampaignSellerModel.findOne({
-            sellerId: user._id,
+        // 2. Find all campaigns created by admin or belonging to admin groups
+        const adminCampaigns = await CampaignModel.find({
+            $or: [{ createdBy: user._id }, { groupId: { $in: groupIds } }],
             isDeleted: false,
-        }).sort({ createdAt: -1 });
+        }).select("_id").lean();
 
-        if (campaignSeller) {
-            campaignId = campaignSeller.campaignId;
-        }
+        campaignIds = adminCampaigns.map((c) => c._id);
     }
 
-    // 3. Fallback to campaign of seller's joined group (SellerGroupModel)
-    if (!campaignId) {
-        const sellerGroup = await SellerGroupModel.findOne({
-            sellerId: user._id,
-            isDeleted: false,
-        }).sort({ createdAt: -1 });
-
-        if (sellerGroup) {
-            const campaign = await CampaignModel.findOne({
-                groupId: sellerGroup.groupId,
-                isDeleted: false,
-            }).sort({ createdAt: -1 });
-
-            if (campaign) {
-                campaignId = campaign._id;
-            }
-        }
+    if (campaignIds.length === 0) {
+        return {
+            data: [],
+            pagination: {
+                page: 1,
+                limit: parseInt(query.limit as string) || 10,
+                total: 0,
+                totalPages: 0,
+                hasNext: false,
+                hasPrev: false,
+            },
+        };
     }
 
-    if (!campaignId) {
-        throw new ApiError(httpStatus.NOT_FOUND, "No active campaign assigned to your account.");
+    const page = parseInt(query.page as string) || 1;
+    const limit = parseInt(query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
+    const baseMatch = { campaignId: { $in: campaignIds }, isDeleted: false };
+
+    // Get distinct unique productIds across all selected campaigns
+    const uniqueProductIds = await CampaignProductModel.distinct("productId", baseMatch);
+
+    if (uniqueProductIds.length === 0) {
+        return {
+            data: [],
+            pagination: {
+                page: 1,
+                limit,
+                total: 0,
+                totalPages: 0,
+                hasNext: false,
+                hasPrev: false,
+            },
+        };
     }
 
-    return getProductsByCampaign(campaignId.toString(), query);
+    const total = uniqueProductIds.length;
+
+    // Fetch actual unique product documents with pagination
+    const products = await ProductModel.find({
+        _id: { $in: uniqueProductIds },
+        isDeleted: false,
+        isActive: true,
+    })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
+
+    return {
+        data: products,
+        pagination: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+            hasNext: page < Math.ceil(total / limit),
+            hasPrev: page > 1,
+        },
+    };
 };
 
 // Get all products in a campaign by campaign code
