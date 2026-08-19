@@ -5,9 +5,7 @@ import { CampaignModel } from "./campaign.model";
 import { GroupModel } from "../group/group.model";
 import { UserModel } from "../auth/auth.model";
 import { OrderModel } from "../order/order.model";
-import { CampaignProductModel } from "../campaignProduct/campaignProduct.model";
 import { CampaignSellerModel } from "../campaignSeller/campaignSeller.model";
-import { SellerGroupModel } from "../sellerGroup/sellerGroup.model";
 import { TierModel } from "../tier/tier.model";
 import { activityLogServices } from "../activityLog/activityLog.services";
 
@@ -36,35 +34,35 @@ const createCampaign = async (userId: string, groupId: string, payload: any) => 
         const start = new Date(payload.startDate);
         const end = new Date(payload.endDate);
         if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-            throw new ApiError(httpStatus.BAD_REQUEST, "Invalid start date or end date format.");
+            throw new ApiError(httpStatus.BAD_REQUEST, "Please provide valid start and end dates for your campaign.");
         }
         if (end <= start) {
-            throw new ApiError(httpStatus.BAD_REQUEST, "Campaign end date must be after start date.");
+            throw new ApiError(httpStatus.BAD_REQUEST, "The campaign end date must be scheduled after the start date.");
         }
         if (end <= new Date()) {
-            throw new ApiError(httpStatus.BAD_REQUEST, "Campaign end date must be in the future.");
+            throw new ApiError(httpStatus.BAD_REQUEST, "The campaign end date must be set to a future date.");
         }
     } else if (payload.endDate) {
         const end = new Date(payload.endDate);
         if (isNaN(end.getTime()) || end <= new Date()) {
-            throw new ApiError(httpStatus.BAD_REQUEST, "Campaign end date must be a valid future date.");
+            throw new ApiError(httpStatus.BAD_REQUEST, "Please select a valid future date for the campaign end date.");
         }
     }
 
     // Check user approval status
     const user = await UserModel.findById(userId);
-    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found.");
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User account was not found.");
 
     if (user.role === "ADMIN" && !user.isApproved) {
-        throw new ApiError(httpStatus.FORBIDDEN, "Your admin account has not been approved yet. You cannot create a campaign.");
+        throw new ApiError(httpStatus.FORBIDDEN, "Your admin account is pending approval. You will be able to launch campaigns once your account is verified.");
     }
 
     // Check if group exists and is active
     const group = await GroupModel.findOne({ _id: groupId, isDeleted: false });
-    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Associated group was not found or has been deleted.");
+    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "The group specified for this campaign could not be found.");
 
     if (!group.isActive) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "Cannot create a campaign for an inactive group.");
+        throw new ApiError(httpStatus.BAD_REQUEST, "Campaigns can only be launched for active groups.");
     }
 
     // Create the campaign
@@ -126,12 +124,7 @@ const getAllCampaignsWithStats = async (query: any = {}) => {
     const limit = parseInt(query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    const campaigns = await CampaignModel.find(filter)
-        .populate("createdBy", "name email role phone photo")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean();
+    const campaigns = await CampaignModel.find(filter).populate("createdBy", "name email role phone photo").sort({ createdAt: -1 }).skip(skip).limit(limit).lean();
 
     const total = await CampaignModel.countDocuments(filter);
     const tiers = await TierModel.find({ isActive: true, isDeleted: false }).sort({ minSalesVolume: 1 });
@@ -143,26 +136,26 @@ const getAllCampaignsWithStats = async (query: any = {}) => {
 
             let currentTier = null;
             if (campaign.tierId) {
-                currentTier = tiers.find(t => t._id.toString() === campaign.tierId.toString()) || null;
+                currentTier = tiers.find((t) => t._id.toString() === campaign.tierId.toString()) || null;
             }
             if (!currentTier) {
-                currentTier = tiers.find(t => 
-                    totalPackagesSold >= t.minSalesVolume && 
-                    (t.maxSalesVolume === undefined || t.maxSalesVolume === null || totalPackagesSold <= t.maxSalesVolume)
-                ) || null;
+                currentTier = tiers.find((t) => totalPackagesSold >= t.minSalesVolume && (t.maxSalesVolume === undefined || t.maxSalesVolume === null || totalPackagesSold <= t.maxSalesVolume)) || null;
             }
 
             const currentMinVol = currentTier?.minSalesVolume ?? -1;
-            const nextTier = tiers.find(t => t.minSalesVolume > (currentMinVol >= 0 ? currentMinVol : totalPackagesSold)) || null;
+            const nextTier = tiers.find((t) => t.minSalesVolume > (currentMinVol >= 0 ? currentMinVol : totalPackagesSold)) || null;
             const packagesNeededForNextTier = nextTier ? Math.max(0, nextTier.minSalesVolume - totalPackagesSold) : 0;
 
-            const formatTier = (t: any) => t ? {
-                _id: t._id,
-                name: t.name,
-                percentage: t.percentage,
-                minSalesVolume: t.minSalesVolume,
-                maxSalesVolume: t.maxSalesVolume,
-            } : null;
+            const formatTier = (t: any) =>
+                t
+                    ? {
+                          _id: t._id,
+                          name: t.name,
+                          percentage: t.percentage,
+                          minSalesVolume: t.minSalesVolume,
+                          maxSalesVolume: t.maxSalesVolume,
+                      }
+                    : null;
 
             const sellersCount = await CampaignSellerModel.countDocuments({
                 campaignId: campaign._id,
@@ -261,35 +254,32 @@ const getCampaignById = async (campaignId: string) => {
     // Fetch simple Campaign Admin info
     let campaignAdmin = null;
     if (campaign.createdBy) {
-        campaignAdmin = await UserModel.findOne(
-            { _id: campaign.createdBy, isDeleted: false },
-            { name: 1, email: 1, phone: 1, role: 1, profession: 1 }
-        ).lean();
+        campaignAdmin = await UserModel.findOne({ _id: campaign.createdBy, isDeleted: false }, { name: 1, email: 1, phone: 1, role: 1, profession: 1 }).lean();
     }
 
     // Calculate Tiers
     const tiers = await TierModel.find({ isActive: true, isDeleted: false }).sort({ minSalesVolume: 1 });
-    const formatTier = (t: any) => t ? {
-        _id: t._id,
-        name: t.name,
-        percentage: t.percentage,
-        minSalesVolume: t.minSalesVolume,
-        maxSalesVolume: t.maxSalesVolume,
-    } : null;
+    const formatTier = (t: any) =>
+        t
+            ? {
+                  _id: t._id,
+                  name: t.name,
+                  percentage: t.percentage,
+                  minSalesVolume: t.minSalesVolume,
+                  maxSalesVolume: t.maxSalesVolume,
+              }
+            : null;
 
     let currentTier = null;
     if (campaign.tierId) {
-        currentTier = tiers.find(t => t._id.toString() === campaign.tierId?.toString()) || null;
+        currentTier = tiers.find((t) => t._id.toString() === campaign.tierId?.toString()) || null;
     }
     if (!currentTier) {
-        currentTier = tiers.find(t => 
-            totalPackagesSold >= t.minSalesVolume && 
-            (t.maxSalesVolume === undefined || t.maxSalesVolume === null || totalPackagesSold <= t.maxSalesVolume)
-        ) || null;
+        currentTier = tiers.find((t) => totalPackagesSold >= t.minSalesVolume && (t.maxSalesVolume === undefined || t.maxSalesVolume === null || totalPackagesSold <= t.maxSalesVolume)) || null;
     }
 
     const currentMinVol = currentTier?.minSalesVolume ?? -1;
-    const nextTier = tiers.find(t => t.minSalesVolume > (currentMinVol >= 0 ? currentMinVol : totalPackagesSold)) || null;
+    const nextTier = tiers.find((t) => t.minSalesVolume > (currentMinVol >= 0 ? currentMinVol : totalPackagesSold)) || null;
     const packagesNeededForNextTier = nextTier ? Math.max(0, nextTier.minSalesVolume - totalPackagesSold) : 0;
 
     return {
@@ -323,23 +313,21 @@ const getCampaignsByGroup = async (groupId: string, query: any = {}) => {
     const limit = parseInt(query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    const campaigns = await CampaignModel.find(filter)
-        .populate("createdBy", "name email role phone photo")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean();
+    const campaigns = await CampaignModel.find(filter).populate("createdBy", "name email role phone photo").sort({ createdAt: -1 }).skip(skip).limit(limit).lean();
 
     const total = await CampaignModel.countDocuments(filter);
     const tiers = await TierModel.find({ isActive: true, isDeleted: false }).sort({ minSalesVolume: 1 });
 
-    const formatTier = (t: any) => t ? {
-        _id: t._id,
-        name: t.name,
-        percentage: t.percentage,
-        minSalesVolume: t.minSalesVolume,
-        maxSalesVolume: t.maxSalesVolume,
-    } : null;
+    const formatTier = (t: any) =>
+        t
+            ? {
+                  _id: t._id,
+                  name: t.name,
+                  percentage: t.percentage,
+                  minSalesVolume: t.minSalesVolume,
+                  maxSalesVolume: t.maxSalesVolume,
+              }
+            : null;
 
     const campaignsWithDetails = await Promise.all(
         campaigns.map(async (campaign: any) => {
@@ -348,17 +336,14 @@ const getCampaignsByGroup = async (groupId: string, query: any = {}) => {
 
             let currentTier = null;
             if (campaign.tierId) {
-                currentTier = tiers.find(t => t._id.toString() === campaign.tierId.toString()) || null;
+                currentTier = tiers.find((t) => t._id.toString() === campaign.tierId.toString()) || null;
             }
             if (!currentTier) {
-                currentTier = tiers.find(t => 
-                    totalPackagesSold >= t.minSalesVolume && 
-                    (t.maxSalesVolume === undefined || t.maxSalesVolume === null || totalPackagesSold <= t.maxSalesVolume)
-                ) || null;
+                currentTier = tiers.find((t) => totalPackagesSold >= t.minSalesVolume && (t.maxSalesVolume === undefined || t.maxSalesVolume === null || totalPackagesSold <= t.maxSalesVolume)) || null;
             }
 
             const currentMinVol = currentTier?.minSalesVolume ?? -1;
-            const nextTier = tiers.find(t => t.minSalesVolume > (currentMinVol >= 0 ? currentMinVol : totalPackagesSold)) || null;
+            const nextTier = tiers.find((t) => t.minSalesVolume > (currentMinVol >= 0 ? currentMinVol : totalPackagesSold)) || null;
             const packagesNeededForNextTier = nextTier ? Math.max(0, nextTier.minSalesVolume - totalPackagesSold) : 0;
 
             const sellersCount = await CampaignSellerModel.countDocuments({
