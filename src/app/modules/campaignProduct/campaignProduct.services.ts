@@ -210,14 +210,16 @@ const getMyCampaignProducts = async (user: any, query: any = {}) => {
         };
     }
 
-    const total = uniqueProductIds.length;
-
-    // Fetch actual unique product documents with pagination
-    const products = await ProductModel.find({
+    const productFilter = {
         _id: { $in: uniqueProductIds },
         isDeleted: false,
         isActive: true,
-    })
+    };
+
+    const total = await ProductModel.countDocuments(productFilter);
+
+    // Fetch actual unique product documents with pagination
+    const products = await ProductModel.find(productFilter)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
