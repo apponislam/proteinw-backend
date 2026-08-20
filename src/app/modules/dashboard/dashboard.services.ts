@@ -162,6 +162,8 @@ const getSellerDashboardStats = async (campaignId?: string, groupId?: string, us
         packagesSold: 0,
         daysRemaining: 0,
         goal: 0,
+        current: 0,
+        remaining: 0,
     };
 
     let campaign = null;
@@ -213,6 +215,8 @@ const getSellerDashboardStats = async (campaignId?: string, groupId?: string, us
     );
 
     const goal = campaign.target || 0;
+    const current = totalSales;
+    const remaining = Math.max(0, goal - current);
 
     return {
         totalSales,
@@ -220,6 +224,8 @@ const getSellerDashboardStats = async (campaignId?: string, groupId?: string, us
         packagesSold,
         daysRemaining,
         goal,
+        current,
+        remaining,
     };
 };
 
