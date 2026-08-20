@@ -17,13 +17,21 @@ const addProductToCampaign = async (campaignId: string, productId: string) => {
     const product = await ProductModel.findOne({ _id: productId, isDeleted: false });
     if (!product) throw new ApiError(httpStatus.NOT_FOUND, "Target product was not found or has been deleted.");
 
-    // Check if product is already in campaign
+    // Check if campaign product record already exists
     const existing = await CampaignProductModel.findOne({
         campaignId: new Types.ObjectId(campaignId),
         productId: new Types.ObjectId(productId),
-        isDeleted: false,
     });
-    if (existing) throw new ApiError(httpStatus.BAD_REQUEST, "This product has already been added to the campaign.");
+
+    if (existing) {
+        if (!existing.isDeleted) {
+            throw new ApiError(httpStatus.BAD_REQUEST, "This product has already been added to the campaign.");
+        }
+        // If previously removed (isDeleted: true), restore it
+        existing.isDeleted = false;
+        await existing.save();
+        return existing;
+    }
 
     // Create the association
     const campaignProduct = await CampaignProductModel.create({
@@ -46,14 +54,14 @@ const addMultipleProductsToCampaign = async (campaignId: string, productIds: str
         throw new ApiError(httpStatus.NOT_FOUND, "One or more requested products were not found or have been deleted.");
     }
 
-    // Prepare operations for bulk write
+    // Prepare operations for bulk write (using $set so previously deleted records are restored)
     const operations = productIds.map((productId) => ({
         updateOne: {
             filter: {
                 campaignId: new Types.ObjectId(campaignId),
                 productId: new Types.ObjectId(productId),
             },
-            update: { $setOnInsert: { isDeleted: false } },
+            update: { $set: { isDeleted: false } },
             upsert: true,
         },
     }));

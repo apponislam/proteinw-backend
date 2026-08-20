@@ -14,6 +14,7 @@ router.get("/:productId", productControllers.getProductById);
 router.post("/", auth, authorize(["SUPER_ADMIN", "ADMIN"]), uploadProductImage, productControllers.createProduct);
 router.get("/admin/all", auth, authorize(["SUPER_ADMIN", "ADMIN"]), productControllers.getAllProducts);
 router.get("/admin/stats", auth, authorize(["SUPER_ADMIN", "ADMIN"]), productControllers.getProductStats);
+router.get("/admin/campaign/:campaignId", productControllers.getProductsWithCampaignStatus);
 router.patch("/:productId", auth, authorize(["SUPER_ADMIN", "ADMIN"]), uploadProductImage, productControllers.updateProduct);
 router.patch("/:productId/toggle-status", auth, authorize(["SUPER_ADMIN", "ADMIN"]), productControllers.toggleProductStatus);
 router.delete("/:productId", auth, authorize(["SUPER_ADMIN", "ADMIN"]), productControllers.deleteProduct);

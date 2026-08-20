@@ -72,6 +72,79 @@ const getAllProducts = async (query: any = {}) => {
     };
 };
 
+const getProductsWithCampaignStatus = async (campaignId: string, query: any = {}) => {
+    if (!Types.ObjectId.isValid(campaignId)) {
+        throw new ApiError(httpStatus.BAD_REQUEST, "Invalid campaign ID");
+    }
+
+    const campaignObjectId = new Types.ObjectId(campaignId);
+
+    // Fetch all product IDs added to this campaign
+    const campaignProducts = await CampaignProductModel.find({
+        campaignId: campaignObjectId,
+        isDeleted: false,
+    })
+        .select("productId")
+        .lean();
+
+    const addedProductIdsSet = new Set(campaignProducts.map((cp) => cp.productId.toString()));
+
+    const filter: any = { isDeleted: false };
+    if (query.category) filter.category = query.category;
+    if (query.subCategory) filter.subCategory = query.subCategory;
+    if (query.isActive !== undefined) filter.isActive = query.isActive === "true";
+    if (query.search || query.searchTerm) {
+        const searchRegex = new RegExp(query.search || query.searchTerm, "i");
+        filter.$or = [{ name: searchRegex }, { shortDescription: searchRegex }];
+    }
+
+    if (query.isAdded !== undefined) {
+        const isAddedBool = query.isAdded === "true";
+        const addedArray = Array.from(addedProductIdsSet).map((id) => new Types.ObjectId(id));
+        if (isAddedBool) {
+            filter._id = { $in: addedArray };
+        } else {
+            filter._id = { $nin: addedArray };
+        }
+    }
+
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const total = await ProductModel.countDocuments(filter);
+    const products = await ProductModel.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
+
+    const formattedProducts = products.map((product: any) => {
+        const isAdded = addedProductIdsSet.has(product._id.toString());
+        const { isActive, isDeleted, createdAt, updatedAt, ...rest } = product;
+        return {
+            ...rest,
+            isAdded,
+        };
+    });
+
+    const totalPages = Math.ceil(total / limit);
+    const hasNext = page < totalPages;
+    const hasPrev = page > 1;
+
+    return {
+        data: formattedProducts,
+        meta: {
+            page,
+            limit,
+            total,
+            totalPages,
+            hasNext,
+            hasPrev,
+        },
+    };
+};
+
 const getActiveProducts = async (query: any = {}) => {
     const filter: any = { isActive: true, isDeleted: false };
     if (query.category) filter.category = query.category;
@@ -152,6 +225,7 @@ const getProductStats = async () => {
 export const productServices = {
     createProduct,
     getAllProducts,
+    getProductsWithCampaignStatus,
     getActiveProducts,
     getProductById,
     updateProduct,

@@ -100,9 +100,23 @@ const getProductStats = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const getProductsWithCampaignStatus = catchAsync(async (req: Request, res: Response) => {
+    const campaignId = (req.params.campaignId || req.query.campaignId) as string;
+    const result = await productServices.getProductsWithCampaignStatus(campaignId, req.query);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Products with campaign status retrieved successfully",
+        data: result.data,
+        meta: result.meta,
+    });
+});
+
 export const productControllers = {
     createProduct,
     getAllProducts,
+    getProductsWithCampaignStatus,
     getActiveProducts,
     getProductById,
     updateProduct,
