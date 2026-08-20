@@ -155,43 +155,25 @@ const getStoreInfo = async (campaignCode: string, referralCode: string) => {
     };
 };
 
-const getSellerDashboardStats = async (groupId: string | undefined, userId?: string, role?: string) => {
-    if (!groupId) {
-        return {
-            totalSales: 0,
-            totalProfit: 0,
-            packagesSold: 0,
-            daysRemaining: 0,
-            goal: 0,
-            groupName: "",
-            shortDescription: "",
-        };
+const getSellerDashboardStats = async (campaignId?: string, groupId?: string, userId?: string, role?: string) => {
+    const defaultStats = {
+        totalSales: 0,
+        totalProfit: 0,
+        packagesSold: 0,
+        daysRemaining: 0,
+        goal: 0,
+    };
+
+    let campaign = null;
+
+    if (campaignId && Types.ObjectId.isValid(campaignId)) {
+        campaign = await CampaignModel.findOne({ _id: new Types.ObjectId(campaignId), isDeleted: false });
+    } else if (groupId && Types.ObjectId.isValid(groupId)) {
+        campaign = await CampaignModel.findOne({ groupId: new Types.ObjectId(groupId), isDeleted: false });
     }
 
-    const group = await GroupModel.findOne({ _id: groupId, isDeleted: false });
-    if (!group) {
-        return {
-            totalSales: 0,
-            totalProfit: 0,
-            packagesSold: 0,
-            daysRemaining: 0,
-            goal: 0,
-            groupName: "",
-            shortDescription: "",
-        };
-    }
-
-    const campaign = await CampaignModel.findOne({ groupId: group._id, isDeleted: false });
     if (!campaign) {
-        return {
-            totalSales: 0,
-            totalProfit: 0,
-            packagesSold: 0,
-            daysRemaining: 0,
-            goal: 0,
-            groupName: group.name,
-            shortDescription: group.shortDescription,
-        };
+        return defaultStats;
     }
 
     const matchStage: any = {
@@ -217,14 +199,18 @@ const getSellerDashboardStats = async (groupId: string | undefined, userId?: str
     const packagesSold = ordersStats[0]?.totalPackagesSold || 0;
 
     const tiers = await TierModel.find({ isActive: true, isDeleted: false }).sort({ minSalesVolume: 1 });
-    const currentTier = tiers.find(t => 
-        packagesSold >= t.minSalesVolume && 
-        (t.maxSalesVolume === undefined || t.maxSalesVolume === null || packagesSold <= t.maxSalesVolume)
+    const currentTier = tiers.find(
+        (t) =>
+            packagesSold >= t.minSalesVolume &&
+            (t.maxSalesVolume === undefined || t.maxSalesVolume === null || packagesSold <= t.maxSalesVolume),
     );
     const profitPercentage = currentTier ? currentTier.percentage : 40;
     const totalProfit = totalSales * (profitPercentage / 100);
 
-    const daysRemaining = Math.max(0, Math.ceil((new Date(campaign.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
+    const daysRemaining = Math.max(
+        0,
+        Math.ceil((new Date(campaign.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)),
+    );
 
     const goal = campaign.target || 0;
 
@@ -234,8 +220,6 @@ const getSellerDashboardStats = async (groupId: string | undefined, userId?: str
         packagesSold,
         daysRemaining,
         goal,
-        groupName: group.name,
-        shortDescription: group.shortDescription,
     };
 };
 

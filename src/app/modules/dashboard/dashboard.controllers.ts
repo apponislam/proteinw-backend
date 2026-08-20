@@ -57,8 +57,9 @@ const getStoreInfo = catchAsync(async (req: Request, res: Response) => {
 
 const getSellerDashboardStats = catchAsync(async (req: Request, res: Response) => {
     const user = req.user as any;
+    const campaignId = (req.query.campaignId as string) || (req.query.campaign as string) || undefined;
     const groupId = (req.query.groupId as string) || undefined;
-    const result = await dashboardServices.getSellerDashboardStats(groupId, user?._id, user?.role);
+    const result = await dashboardServices.getSellerDashboardStats(campaignId, groupId, user?._id, user?.role);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,

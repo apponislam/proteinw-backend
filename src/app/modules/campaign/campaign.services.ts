@@ -594,9 +594,52 @@ const getRunningCampaignForSeller = async (sellerId: string, groupId: string, qu
     };
 };
 
+const getMyCampaigns = async (user: any, query: any = {}) => {
+    const filter: any = {
+        createdBy: new Types.ObjectId(user._id),
+        isDeleted: false,
+    };
+
+    if (query.status) filter.status = query.status;
+    if (query.groupId) filter.groupId = new Types.ObjectId(query.groupId);
+
+    const searchTerm = query.search || query.searchTerm;
+    if (searchTerm) {
+        filter.$and = [
+            { $or: [{ name: { $regex: searchTerm, $options: "i" } }, { code: { $regex: searchTerm, $options: "i" } }] },
+        ];
+    }
+
+    const page = parseInt(query.page as string) || 1;
+    const limit = parseInt(query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
+    const campaigns = await CampaignModel.find(filter)
+        .select("_id name shortDescription status")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
+
+    const total = await CampaignModel.countDocuments(filter);
+
+    return {
+        data: campaigns,
+        pagination: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+            hasNext: page < Math.ceil(total / limit),
+            hasPrev: page > 1,
+        },
+    };
+};
+
 export const campaignServices = {
     createCampaign,
     getAllCampaigns,
+    getMyCampaigns,
     getAllCampaignsWithStats,
     getAllCampaignsSummary,
     getActiveCampaigns,

@@ -9,9 +9,9 @@ const router = Router();
 router.get("/active", campaignControllers.getActiveCampaigns);
 router.get("/code/:code", campaignControllers.getCampaignByCode);
 router.get("/admin/all", auth, authorize(["ADMIN", "SUPER_ADMIN"]), campaignControllers.getAllCampaignsWithStats);
+// Static routes (must be placed before parameterized /:campaignId route)
+router.get("/my-campaigns", auth, authorize(["ADMIN"]), campaignControllers.getMyCampaigns);
 router.get("/:campaignId", campaignControllers.getCampaignById);
-
-// Protected routes
 router.get("/seller/running-campaign/:groupId", auth, campaignControllers.getRunningCampaignForSeller);
 router.get("/group/:groupId", auth, campaignControllers.getCampaignsByGroup);
 router.get("/running-campaign/:groupId", auth, campaignControllers.getRunningCampaignByGroup);

@@ -165,9 +165,23 @@ const assignTierToCampaign = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const getMyCampaigns = catchAsync(async (req: Request, res: Response) => {
+    const user = req.user;
+    const result = await campaignServices.getMyCampaigns(user, req.query);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "My campaigns retrieved successfully",
+        data: result.data,
+        meta: result.pagination,
+    });
+});
+
 export const campaignControllers = {
     createCampaign,
     getAllCampaigns,
+    getMyCampaigns,
     getAllCampaignsWithStats,
     getAllCampaignsSummary,
     getActiveCampaigns,
