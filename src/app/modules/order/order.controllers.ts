@@ -146,10 +146,24 @@ const getMemberOrderStats = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const getOrdersByCampaign = catchAsync(async (req: Request, res: Response) => {
+    const campaignId = (req.params.campaignId || req.query.campaignId) as string;
+    const result = await orderServices.getOrdersByCampaign(campaignId, req.query);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Campaign orders retrieved successfully",
+        data: result.data,
+        meta: result.pagination,
+    });
+});
+
 export const orderControllers = {
     createOrder,
     getAllOrders,
     getOrdersByMember,
+    getOrdersByCampaign,
     getOrderById,
     updateOrderStatus,
     deleteOrder,

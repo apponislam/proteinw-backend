@@ -622,10 +622,62 @@ const getMemberOrderStats = async (userId: Types.ObjectId | string) => {
     };
 };
 
+const getOrdersByCampaign = async (campaignId: string, query: any = {}) => {
+    if (!Types.ObjectId.isValid(campaignId)) {
+        throw new ApiError(httpStatus.BAD_REQUEST, "Invalid campaign ID");
+    }
+
+    const filter: any = {
+        campaignId: new Types.ObjectId(campaignId),
+        isDeleted: false,
+    };
+
+    if (query.status) {
+        filter.status = query.status;
+    }
+
+    const searchTerm = query.search || query.searchTerm;
+    if (searchTerm) {
+        const searchRegex = new RegExp(searchTerm, "i");
+        filter.$or = [
+            { customerName: searchRegex },
+            { customerEmail: searchRegex },
+            { customerPhone: searchRegex },
+        ];
+    }
+
+    const page = parseInt(query.page as string) || 1;
+    const limit = parseInt(query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
+    const orders = await OrderModel.find(filter)
+        .populate("memberId", "name email referralCode")
+        .populate("campaignId", "name code")
+        .populate("groupId", "name")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+
+    const total = await OrderModel.countDocuments(filter);
+
+    return {
+        data: orders,
+        pagination: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+            hasNext: page < Math.ceil(total / limit),
+            hasPrev: page > 1,
+        },
+    };
+};
+
 export const orderServices = {
     createOrder,
     getAllOrders,
     getOrdersByMember,
+    getOrdersByCampaign,
     getOrderById,
     updateOrderStatus,
     deleteOrder,

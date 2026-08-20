@@ -14,6 +14,7 @@ router.get("/seller-stats", auth, authorize(["SELLER"]), orderControllers.getMem
 router.get("/campaign-orders", auth, authorize(["ADMIN", "SUPER_ADMIN", "SELLER"]), orderControllers.getRunningCampaignOrders);
 router.get("/campaign-stats", auth, authorize(["ADMIN", "SUPER_ADMIN", "SELLER"]), orderControllers.getRunningCampaignStats);
 router.get("/campaign-contributors", auth, authorize(["ADMIN"]), orderControllers.getCampaignContributors);
+router.get("/campaign/:campaignId", auth, authorize(["ADMIN", "SUPER_ADMIN", "SELLER"]), orderControllers.getOrdersByCampaign);
 router.get("/metrics/stats", auth, authorize(["SUPER_ADMIN"]), orderControllers.getOrderStats);
 router.get("/:orderId", auth, orderControllers.getOrderById);
 

@@ -209,10 +209,11 @@ const getSellerDashboardStats = async (campaignId?: string, groupId?: string, us
     const profitPercentage = currentTier ? currentTier.percentage : 40;
     const totalProfit = totalSales * (profitPercentage / 100);
 
-    const daysRemaining = Math.max(
-        0,
-        Math.ceil((new Date(campaign.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)),
-    );
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endDate = new Date(campaign.endDate);
+    const endDayStart = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+    const daysRemaining = Math.max(0, Math.floor((endDayStart.getTime() - todayStart.getTime()) / (1000 * 60 * 60 * 24)));
 
     const goal = campaign.target || 0;
     const current = totalSales;
