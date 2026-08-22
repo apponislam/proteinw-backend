@@ -136,7 +136,7 @@ const getCampaignContributors = catchAsync(async (req: Request, res: Response) =
 
 const getMemberOrderStats = catchAsync(async (req: Request, res: Response) => {
     const userId = (req.user as any)?._id;
-    const result = await orderServices.getMemberOrderStats(userId);
+    const result = await orderServices.getMemberOrderStats(userId, req.query);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,

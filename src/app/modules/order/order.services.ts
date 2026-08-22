@@ -236,16 +236,77 @@ const getAllOrders = async (query: any = {}) => {
     };
 };
 
-// Get orders by member (for logged in members)
+// Get orders by member
+// - Default: Returns orders from ACTIVE campaigns of that seller
+// - If query.campaignId is provided: Returns orders for that specific campaign
 const getOrdersByMember = async (memberId: string, query: any = {}) => {
-    const filter: any = { memberId: new Types.ObjectId(memberId), isDeleted: false };
-    if (query.status) filter.status = query.status;
-
+    const memberObjectId = new Types.ObjectId(memberId);
     const page = parseInt(query.page as string) || 1;
     const limit = parseInt(query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    const orders = await OrderModel.find(filter).populate("memberId", "name email").populate("campaignId", "name code").populate("groupId", "name").sort({ createdAt: -1 }).skip(skip).limit(limit);
+    const filter: any = {
+        memberId: memberObjectId,
+        isDeleted: false,
+    };
+    if (query.status) filter.status = query.status;
+
+    if (query.campaignId && Types.ObjectId.isValid(query.campaignId as string)) {
+        filter.campaignId = new Types.ObjectId(query.campaignId as string);
+    } else {
+        // By default: Filter by all ACTIVE campaigns for this seller
+        const joinedCampaigns = await CampaignSellerModel.find({
+            sellerId: memberObjectId,
+            isDeleted: false,
+        })
+            .populate("campaignId")
+            .lean();
+
+        const activeCampaignIds: Types.ObjectId[] = joinedCampaigns
+            .filter((j: any) => j.campaignId && !j.campaignId.isDeleted && j.campaignId.status === "ACTIVE")
+            .map((j: any) => j.campaignId._id);
+
+        const sellerGroup = await SellerGroupModel.findOne({ sellerId: memberObjectId, isDeleted: false });
+        if (sellerGroup) {
+            const groupCampaigns = await CampaignModel.find({
+                groupId: sellerGroup.groupId,
+                status: "ACTIVE",
+                isDeleted: false,
+            })
+                .select("_id")
+                .lean();
+
+            for (const gc of groupCampaigns) {
+                if (!activeCampaignIds.some((id) => id.toString() === gc._id.toString())) {
+                    activeCampaignIds.push(gc._id as Types.ObjectId);
+                }
+            }
+        }
+
+        if (activeCampaignIds.length === 0) {
+            return {
+                data: [],
+                pagination: {
+                    page,
+                    limit,
+                    total: 0,
+                    totalPages: 0,
+                    hasNext: false,
+                    hasPrev: false,
+                },
+            };
+        }
+
+        filter.campaignId = { $in: activeCampaignIds };
+    }
+
+    const orders = await OrderModel.find(filter)
+        .populate("memberId", "name email")
+        .populate("campaignId", "name code")
+        .populate("groupId", "name")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
 
     const total = await OrderModel.countDocuments(filter);
 
@@ -563,44 +624,49 @@ const getCampaignContributors = async (user: any) => {
     });
 };
 
-const getMemberOrderStats = async (userId: Types.ObjectId | string) => {
+const getMemberOrderStats = async (userId: Types.ObjectId | string, query: any = {}) => {
     if (!userId) {
         throw new ApiError(httpStatus.BAD_REQUEST, "User ID is required");
     }
 
     const memberId = new Types.ObjectId(userId);
+    let targetCampaignIds: Types.ObjectId[] = [];
 
-    // Find all ACTIVE campaigns for this seller
-    const joinedCampaigns = await CampaignSellerModel.find({
-        sellerId: memberId,
-        isDeleted: false,
-    })
-        .populate("campaignId")
-        .lean();
-
-    const activeCampaignIds: Types.ObjectId[] = joinedCampaigns
-        .filter((j: any) => j.campaignId && !j.campaignId.isDeleted && j.campaignId.status === "ACTIVE")
-        .map((j: any) => j.campaignId._id);
-
-    // Also check seller group active campaigns
-    const sellerGroup = await SellerGroupModel.findOne({ sellerId: memberId, isDeleted: false });
-    if (sellerGroup) {
-        const groupCampaigns = await CampaignModel.find({
-            groupId: sellerGroup.groupId,
-            status: "ACTIVE",
+    if (query.campaignId && Types.ObjectId.isValid(query.campaignId as string)) {
+        targetCampaignIds = [new Types.ObjectId(query.campaignId as string)];
+    } else {
+        // Find all ACTIVE campaigns for this seller
+        const joinedCampaigns = await CampaignSellerModel.find({
+            sellerId: memberId,
             isDeleted: false,
         })
-            .select("_id")
+            .populate("campaignId")
             .lean();
 
-        for (const gc of groupCampaigns) {
-            if (!activeCampaignIds.some((id) => id.toString() === gc._id.toString())) {
-                activeCampaignIds.push(gc._id as Types.ObjectId);
+        targetCampaignIds = joinedCampaigns
+            .filter((j: any) => j.campaignId && !j.campaignId.isDeleted && j.campaignId.status === "ACTIVE")
+            .map((j: any) => j.campaignId._id);
+
+        // Also check seller group active campaigns
+        const sellerGroup = await SellerGroupModel.findOne({ sellerId: memberId, isDeleted: false });
+        if (sellerGroup) {
+            const groupCampaigns = await CampaignModel.find({
+                groupId: sellerGroup.groupId,
+                status: "ACTIVE",
+                isDeleted: false,
+            })
+                .select("_id")
+                .lean();
+
+            for (const gc of groupCampaigns) {
+                if (!targetCampaignIds.some((id) => id.toString() === gc._id.toString())) {
+                    targetCampaignIds.push(gc._id as Types.ObjectId);
+                }
             }
         }
     }
 
-    if (activeCampaignIds.length === 0) {
+    if (targetCampaignIds.length === 0) {
         return {
             totalRevenue: 0,
             activeOrders: 0,
@@ -608,12 +674,12 @@ const getMemberOrderStats = async (userId: Types.ObjectId | string) => {
         };
     }
 
-    // 1. Total Revenue: sum of totalPrice of non-cancelled and non-deleted orders for this member in active campaigns
+    // 1. Total Revenue: sum of totalPrice of non-cancelled and non-deleted orders for this member in targeted campaign(s)
     const totalRevenueResult = await OrderModel.aggregate([
         {
             $match: {
                 memberId: memberId,
-                campaignId: { $in: activeCampaignIds },
+                campaignId: { $in: targetCampaignIds },
                 status: { $ne: "cancelled" },
                 isDeleted: false,
             },
@@ -627,15 +693,15 @@ const getMemberOrderStats = async (userId: Types.ObjectId | string) => {
     ]);
     const totalRevenue = totalRevenueResult[0]?.total || 0;
 
-    // 2. Active Orders count: pending, confirmed, shipped status, and not deleted for this member in active campaigns
+    // 2. Active Orders count: pending, confirmed, shipped status, and not deleted for this member in targeted campaign(s)
     const activeOrdersCount = await OrderModel.countDocuments({
         memberId: memberId,
-        campaignId: { $in: activeCampaignIds },
+        campaignId: { $in: targetCampaignIds },
         status: { $in: ["pending", "confirmed", "shipped"] },
         isDeleted: false,
     });
 
-    // 3. Month-to-Date (MTD) Sales: sum of totalPrice of non-cancelled/non-deleted orders since the start of the current month for this member in active campaigns
+    // 3. Month-to-Date (MTD) Sales: sum of totalPrice of non-cancelled/non-deleted orders since the start of the current month for this member in targeted campaign(s)
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
@@ -643,7 +709,7 @@ const getMemberOrderStats = async (userId: Types.ObjectId | string) => {
         {
             $match: {
                 memberId: memberId,
-                campaignId: { $in: activeCampaignIds },
+                campaignId: { $in: targetCampaignIds },
                 status: { $ne: "cancelled" },
                 isDeleted: false,
                 createdAt: { $gte: startOfMonth },
