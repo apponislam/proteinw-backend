@@ -11,6 +11,8 @@ import { TierModel } from "../tier/tier.model";
 import { sendOrderConfirmationEmail } from "../../../utils/emailTemplates";
 import { activityLogServices } from "../activityLog/activityLog.services";
 import { ActivityLogModel } from "../activityLog/activityLog.model";
+import { CampaignSellerModel } from "../campaignSeller/campaignSeller.model";
+import { SellerGroupModel } from "../sellerGroup/sellerGroup.model";
 
 // Create a guest order
 const createOrder = async (payload: any) => {
@@ -568,11 +570,50 @@ const getMemberOrderStats = async (userId: Types.ObjectId | string) => {
 
     const memberId = new Types.ObjectId(userId);
 
-    // 1. Total Revenue: sum of totalPrice of non-cancelled and non-deleted orders for this member
+    // Find all ACTIVE campaigns for this seller
+    const joinedCampaigns = await CampaignSellerModel.find({
+        sellerId: memberId,
+        isDeleted: false,
+    })
+        .populate("campaignId")
+        .lean();
+
+    const activeCampaignIds: Types.ObjectId[] = joinedCampaigns
+        .filter((j: any) => j.campaignId && !j.campaignId.isDeleted && j.campaignId.status === "ACTIVE")
+        .map((j: any) => j.campaignId._id);
+
+    // Also check seller group active campaigns
+    const sellerGroup = await SellerGroupModel.findOne({ sellerId: memberId, isDeleted: false });
+    if (sellerGroup) {
+        const groupCampaigns = await CampaignModel.find({
+            groupId: sellerGroup.groupId,
+            status: "ACTIVE",
+            isDeleted: false,
+        })
+            .select("_id")
+            .lean();
+
+        for (const gc of groupCampaigns) {
+            if (!activeCampaignIds.some((id) => id.toString() === gc._id.toString())) {
+                activeCampaignIds.push(gc._id as Types.ObjectId);
+            }
+        }
+    }
+
+    if (activeCampaignIds.length === 0) {
+        return {
+            totalRevenue: 0,
+            activeOrders: 0,
+            mtdSales: 0,
+        };
+    }
+
+    // 1. Total Revenue: sum of totalPrice of non-cancelled and non-deleted orders for this member in active campaigns
     const totalRevenueResult = await OrderModel.aggregate([
         {
             $match: {
                 memberId: memberId,
+                campaignId: { $in: activeCampaignIds },
                 status: { $ne: "cancelled" },
                 isDeleted: false,
             },
@@ -586,14 +627,15 @@ const getMemberOrderStats = async (userId: Types.ObjectId | string) => {
     ]);
     const totalRevenue = totalRevenueResult[0]?.total || 0;
 
-    // 2. Active Orders count: pending, confirmed, shipped status, and not deleted for this member
+    // 2. Active Orders count: pending, confirmed, shipped status, and not deleted for this member in active campaigns
     const activeOrdersCount = await OrderModel.countDocuments({
         memberId: memberId,
+        campaignId: { $in: activeCampaignIds },
         status: { $in: ["pending", "confirmed", "shipped"] },
         isDeleted: false,
     });
 
-    // 3. Month-to-Date (MTD) Sales: sum of totalPrice of non-cancelled/non-deleted orders since the start of the current month for this member
+    // 3. Month-to-Date (MTD) Sales: sum of totalPrice of non-cancelled/non-deleted orders since the start of the current month for this member in active campaigns
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
@@ -601,6 +643,7 @@ const getMemberOrderStats = async (userId: Types.ObjectId | string) => {
         {
             $match: {
                 memberId: memberId,
+                campaignId: { $in: activeCampaignIds },
                 status: { $ne: "cancelled" },
                 isDeleted: false,
                 createdAt: { $gte: startOfMonth },
