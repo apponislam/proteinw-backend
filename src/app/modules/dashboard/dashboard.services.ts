@@ -841,6 +841,73 @@ const getAsSellerDashboardStats = async (userId: string, query: any = {}) => {
     };
 };
 
+const getAsSellerCampaignInfo = async (userId: string, query: any = {}) => {
+    const emptyResult = {
+        campaignId: null,
+        name: "",
+        shortDescription: "",
+        campaignCode: "",
+        referralCode: "",
+        shopUrl: "",
+    };
+
+    if (!userId || !Types.ObjectId.isValid(userId)) {
+        return emptyResult;
+    }
+
+    const sellerObjectId = new Types.ObjectId(userId);
+    const seller = await UserModel.findById(sellerObjectId).select("referralCode").lean();
+    const referralCode = seller?.referralCode || "";
+
+    let campaign: any = null;
+
+    if (query.campaignId && Types.ObjectId.isValid(query.campaignId as string)) {
+        campaign = await CampaignModel.findOne({
+            _id: new Types.ObjectId(query.campaignId as string),
+            isDeleted: false,
+        });
+    } else {
+        const joinedCampaigns = await CampaignSellerModel.find({
+            sellerId: sellerObjectId,
+            isDeleted: false,
+        })
+            .populate("campaignId")
+            .lean();
+
+        const activeJoin = joinedCampaigns.find(
+            (j: any) => j.campaignId && !j.campaignId.isDeleted && j.campaignId.status === "ACTIVE",
+        );
+
+        if (activeJoin) {
+            campaign = activeJoin.campaignId;
+        } else {
+            const sellerGroup = await SellerGroupModel.findOne({ sellerId: sellerObjectId, isDeleted: false });
+            if (sellerGroup) {
+                campaign = await CampaignModel.findOne({
+                    groupId: sellerGroup.groupId,
+                    status: "ACTIVE",
+                    isDeleted: false,
+                });
+            }
+        }
+    }
+
+    const campaignCode = campaign?.code || "";
+    const baseUrl = config.client_url || "http://localhost:3000";
+    const shopUrl = campaignCode && referralCode
+        ? `${baseUrl}/store?campaign=${campaignCode}&referral=${referralCode}`
+        : "";
+
+    return {
+        campaignId: campaign?._id || null,
+        name: campaign?.name || "",
+        shortDescription: campaign?.shortDescription || "",
+        campaignCode,
+        referralCode,
+        shopUrl,
+    };
+};
+
 export const dashboardServices = {
     getDashboardStats,
     getDashboardStatus,
@@ -854,4 +921,5 @@ export const dashboardServices = {
     getTotalDistributedProfit,
     getActiveCampaignsOverview,
     getAsSellerDashboardStats,
+    getAsSellerCampaignInfo,
 };
