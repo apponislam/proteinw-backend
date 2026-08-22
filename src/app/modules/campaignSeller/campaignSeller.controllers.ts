@@ -25,7 +25,7 @@ const getMyJoinedCampaigns = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Joined campaigns retrieved successfully",
+        message: "My campaigns retrieved successfully",
         data: result.data,
         meta: result.pagination,
     });

@@ -116,6 +116,15 @@ const getMyJoinedCampaigns = async (sellerId: string, query: any = {}) => {
             },
         },
         { $sort: { createdAt: -1 } },
+        { $replaceRoot: { newRoot: "$campaignId" } },
+        {
+            $project: {
+                _id: 1,
+                name: 1,
+                shortDescription: 1,
+                status: 1,
+            },
+        },
         {
             $facet: {
                 data: [{ $skip: skip }, { $limit: limit }],
