@@ -93,22 +93,43 @@ const getMyJoinedCampaigns = async (sellerId: string, query: any = {}) => {
     const limit = parseInt(query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    const joins = await CampaignSellerModel.find({
-        sellerId: new Types.ObjectId(sellerId),
-        isDeleted: false,
-    })
-        .populate("campaignId")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit);
+    const pipeline: any[] = [
+        {
+            $match: {
+                sellerId: new Types.ObjectId(sellerId),
+                isDeleted: false,
+            },
+        },
+        {
+            $lookup: {
+                from: "campaigns",
+                localField: "campaignId",
+                foreignField: "_id",
+                as: "campaignId",
+            },
+        },
+        { $unwind: "$campaignId" },
+        {
+            $match: {
+                "campaignId.isDeleted": false,
+                ...(query.status ? { "campaignId.status": query.status } : {}),
+            },
+        },
+        { $sort: { createdAt: -1 } },
+        {
+            $facet: {
+                data: [{ $skip: skip }, { $limit: limit }],
+                totalCount: [{ $count: "count" }],
+            },
+        },
+    ];
 
-    const total = await CampaignSellerModel.countDocuments({
-        sellerId: new Types.ObjectId(sellerId),
-        isDeleted: false,
-    });
+    const result = await CampaignSellerModel.aggregate(pipeline);
+    const data = result[0]?.data || [];
+    const total = result[0]?.totalCount[0]?.count || 0;
 
     return {
-        data: joins,
+        data,
         pagination: {
             page,
             limit,
