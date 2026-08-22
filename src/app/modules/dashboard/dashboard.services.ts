@@ -711,6 +711,136 @@ const getActiveCampaignsOverview = async () => {
     };
 };
 
+const getAsSellerDashboardStats = async (userId: string, query: any = {}) => {
+    const defaultStats = {
+        totalSales: 0,
+        packagesSold: 0,
+        daysRemaining: 0,
+        goal: 0,
+        current: 0,
+        remaining: 0,
+    };
+
+    if (!userId || !Types.ObjectId.isValid(userId)) {
+        return defaultStats;
+    }
+
+    const sellerObjectId = new Types.ObjectId(userId);
+
+    let campaign: any = null;
+
+    if (query.campaignId && Types.ObjectId.isValid(query.campaignId as string)) {
+        campaign = await CampaignModel.findOne({
+            _id: new Types.ObjectId(query.campaignId as string),
+            isDeleted: false,
+        });
+    } else {
+        const joinedCampaigns = await CampaignSellerModel.find({
+            sellerId: sellerObjectId,
+            isDeleted: false,
+        })
+            .populate("campaignId")
+            .lean();
+
+        const activeJoin = joinedCampaigns.find(
+            (j: any) => j.campaignId && !j.campaignId.isDeleted && j.campaignId.status === "ACTIVE",
+        );
+
+        if (activeJoin) {
+            campaign = activeJoin.campaignId;
+        } else {
+            const sellerGroup = await SellerGroupModel.findOne({ sellerId: sellerObjectId, isDeleted: false });
+            if (sellerGroup) {
+                campaign = await CampaignModel.findOne({
+                    groupId: sellerGroup.groupId,
+                    status: "ACTIVE",
+                    isDeleted: false,
+                });
+            }
+        }
+    }
+
+    const matchStage: any = {
+        memberId: sellerObjectId,
+        isDeleted: false,
+        status: { $ne: "cancelled" },
+    };
+
+    if (campaign?._id) {
+        matchStage.campaignId = campaign._id;
+    }
+
+    const personalOrdersStats = await OrderModel.aggregate([
+        { $match: matchStage },
+        {
+            $group: {
+                _id: null,
+                totalSales: { $sum: "$totalPrice" },
+                packagesSold: { $sum: "$totalPackage" },
+            },
+        },
+    ]);
+
+    const totalSales = personalOrdersStats[0]?.totalSales || 0;
+    const packagesSold = personalOrdersStats[0]?.packagesSold || 0;
+
+    let daysRemaining = 0;
+    let goal = 0;
+    let current = 0;
+
+    if (campaign) {
+        goal = campaign.target || 0;
+        if (campaign.endDate) {
+            const now = new Date();
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const endDate = new Date(campaign.endDate);
+            const endDayStart = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+            daysRemaining = Math.max(0, Math.floor((endDayStart.getTime() - todayStart.getTime()) / (1000 * 60 * 60 * 24)));
+        }
+
+        const overallCampaignStats = await OrderModel.aggregate([
+            {
+                $match: {
+                    campaignId: campaign._id,
+                    isDeleted: false,
+                    status: { $ne: "cancelled" },
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    overallSales: { $sum: "$totalPrice" },
+                },
+            },
+        ]);
+
+        current = overallCampaignStats[0]?.overallSales || 0;
+    }
+
+    const seller = await UserModel.findById(sellerObjectId).select("referralCode").lean();
+    const referralCode = seller?.referralCode || "";
+    const campaignCode = campaign?.code || "";
+
+    const baseUrl = config.client_url || "http://localhost:3000";
+    const shopUrl = campaignCode && referralCode
+        ? `${baseUrl}/store?campaign=${campaignCode}&referral=${referralCode}`
+        : "";
+
+    const remaining = Math.max(0, goal - current);
+
+    return {
+        totalSales,
+        packagesSold,
+        daysRemaining,
+        goal,
+        current,
+        remaining,
+        campaignCode,
+        referralCode,
+        shopUrl,
+    };
+};
+
 export const dashboardServices = {
     getDashboardStats,
     getDashboardStatus,
@@ -723,4 +853,5 @@ export const dashboardServices = {
     getSuperAdminAdminsStats,
     getTotalDistributedProfit,
     getActiveCampaignsOverview,
+    getAsSellerDashboardStats,
 };

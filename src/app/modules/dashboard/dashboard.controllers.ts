@@ -148,6 +148,18 @@ const getActiveCampaignsOverview = catchAsync(async (req: Request, res: Response
     });
 });
 
+const getAsSellerDashboardStats = catchAsync(async (req: Request, res: Response) => {
+    const user = req.user as any;
+    const result = await dashboardServices.getAsSellerDashboardStats(user?._id, req.query);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Seller dashboard stats retrieved successfully",
+        data: result,
+    });
+});
+
 export const dashboardControllers = {
     getDashboardStats,
     getDashboardStatus,
@@ -160,4 +172,5 @@ export const dashboardControllers = {
     getSuperAdminAdminsStats,
     getTotalDistributedProfit,
     getActiveCampaignsOverview,
+    getAsSellerDashboardStats,
 };
