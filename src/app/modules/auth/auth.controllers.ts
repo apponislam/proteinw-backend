@@ -47,10 +47,19 @@ const register = catchAsync(async (req: Request, res: Response) => {
 
     const result = await authServices.registerUser(userData);
 
+    // Previous code:
+    // res.cookie("refreshToken", result.refreshToken, {
+    //     httpOnly: true,
+    //     secure: config.node_env === "production",
+    //     sameSite: "strict",
+    //     maxAge: 30 * 24 * 60 * 60 * 1000,
+    // });
+
+    // New code:
     res.cookie("refreshToken", result.refreshToken, {
         httpOnly: true,
         secure: config.node_env === "production",
-        sameSite: "strict",
+        sameSite: config.node_env === "production" ? "none" : "lax",
         maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
@@ -68,10 +77,19 @@ const register = catchAsync(async (req: Request, res: Response) => {
 const login = catchAsync(async (req: Request, res: Response) => {
     const result = await authServices.loginUser(req.body);
 
+    // Previous code:
+    // res.cookie("refreshToken", result.refreshToken, {
+    //     httpOnly: true,
+    //     secure: config.node_env === "production",
+    //     sameSite: "strict",
+    //     maxAge: 30 * 24 * 60 * 60 * 1000,
+    // });
+
+    // New code:
     res.cookie("refreshToken", result.refreshToken, {
         httpOnly: true,
         secure: config.node_env === "production",
-        sameSite: "strict",
+        sameSite: config.node_env === "production" ? "none" : "lax",
         maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
@@ -89,10 +107,19 @@ const login = catchAsync(async (req: Request, res: Response) => {
 const loginWithInvitationCode = catchAsync(async (req: Request, res: Response) => {
     const result = await authServices.loginWithInvitationCode(req.body);
 
+    // Previous code:
+    // res.cookie("refreshToken", result.refreshToken, {
+    //     httpOnly: true,
+    //     secure: config.node_env === "production",
+    //     sameSite: "strict",
+    //     maxAge: 30 * 24 * 60 * 60 * 1000,
+    // });
+
+    // New code:
     res.cookie("refreshToken", result.refreshToken, {
         httpOnly: true,
         secure: config.node_env === "production",
-        sameSite: "strict",
+        sameSite: config.node_env === "production" ? "none" : "lax",
         maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
@@ -150,7 +177,15 @@ const getMe = catchAsync(async (req: Request, res: Response) => {
 });
 
 const logout = catchAsync(async (req: Request, res: Response) => {
-    res.clearCookie("refreshToken");
+    // Previous code:
+    // res.clearCookie("refreshToken");
+
+    // New code:
+    res.clearCookie("refreshToken", {
+        httpOnly: true,
+        secure: config.node_env === "production",
+        sameSite: config.node_env === "production" ? "none" : "lax",
+    });
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
@@ -161,7 +196,16 @@ const logout = catchAsync(async (req: Request, res: Response) => {
 });
 
 const refreshAccessToken = catchAsync(async (req: Request, res: Response) => {
-    const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
+    // Previous code:
+    // const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
+
+    // New code:
+    const refreshToken = req?.cookies?.refreshToken || req?.body?.refreshToken || (req?.headers?.["x-refresh-token"] as string);
+
+    if (!refreshToken) {
+        throw new ApiError(httpStatus.UNAUTHORIZED, "Refresh token is missing or expired. Please log in again.");
+    }
+
     const result = await authServices.refreshAccessToken(refreshToken);
 
     sendResponse(res, {
