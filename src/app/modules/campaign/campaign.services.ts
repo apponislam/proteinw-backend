@@ -549,17 +549,18 @@ const getRunningCampaignForSeller = async (sellerId: string, groupId: string, qu
         };
     }
 
-    // 2. Build filter matching group ID, joined campaign IDs, and status
+    // 2. Build filter matching group ID, joined campaign IDs, and optional status
     const filter: any = {
         _id: { $in: joinedCampaignIds },
-        groupId: new Types.ObjectId(groupId),
         isDeleted: false,
     };
 
+    if (groupId && Types.ObjectId.isValid(groupId)) {
+        filter.groupId = new Types.ObjectId(groupId);
+    }
+
     if (query.status) {
         filter.status = query.status;
-    } else {
-        filter.status = "ACTIVE";
     }
 
     const page = parseInt(query.page as string) || 1;
