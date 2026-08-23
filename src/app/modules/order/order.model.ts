@@ -31,7 +31,7 @@ const OrderSchema = new Schema<OrderDocument>(
         groupId: { type: Schema.Types.ObjectId, ref: "Group" },
         status: {
             type: String,
-            enum: ["pending", "confirmed", "shipped", "delivered", "cancelled"],
+            enum: ["pending", "delivered", "cancelled"],
             default: "pending",
         },
         isDeleted: { type: Boolean, default: false },

@@ -20,7 +20,7 @@ router.get("/:orderId", auth, orderControllers.getOrderById);
 
 // Admin/Super Admin routes
 router.get("/", auth, authorize(["SUPER_ADMIN"]), orderControllers.getAllOrders);
-router.patch("/:orderId/status", auth, authorize(["ADMIN", "SUPER_ADMIN"]), orderControllers.updateOrderStatus);
+router.patch("/:orderId/status", auth, authorize(["SELLER", "ADMIN", "SUPER_ADMIN"]), orderControllers.updateOrderStatus);
 router.delete("/:orderId", auth, authorize(["ADMIN", "SUPER_ADMIN"]), orderControllers.deleteOrder);
 
 export const orderRoutes = router;

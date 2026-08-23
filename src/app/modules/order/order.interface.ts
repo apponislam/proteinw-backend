@@ -36,7 +36,7 @@ export interface IOrder {
     groupId?: Types.ObjectId; // The group associated
 
     // Order status
-    status: "pending" | "confirmed" | "shipped" | "delivered" | "cancelled";
+    status: "pending" | "delivered" | "cancelled";
     isDeleted: boolean;
 
     createdAt?: Date;

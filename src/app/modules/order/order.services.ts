@@ -333,7 +333,7 @@ const getOrderById = async (orderId: string) => {
 
 // Update order status (admin/super admin only)
 const updateOrderStatus = async (orderId: string, status: string) => {
-    const validStatuses = ["pending", "confirmed", "shipped", "delivered", "cancelled"];
+    const validStatuses = ["pending", "delivered", "cancelled"];
     if (!validStatuses.includes(status)) {
         throw new ApiError(httpStatus.BAD_REQUEST, `Invalid status "${status}". Allowed statuses: ${validStatuses.join(", ")}`);
     }
@@ -380,9 +380,9 @@ const getOrderStats = async () => {
     ]);
     const totalRevenue = totalRevenueResult[0]?.total || 0;
 
-    // 2. Active Orders count: pending, confirmed, shipped status, and not deleted
+    // 2. Active Orders count: pending status, and not deleted
     const activeOrdersCount = await OrderModel.countDocuments({
-        status: { $in: ["pending", "confirmed", "shipped"] },
+        status: "pending",
         isDeleted: false,
     });
 
@@ -507,10 +507,10 @@ const getRunningCampaignStats = async (user: any) => {
     ]);
     const totalRevenue = totalRevenueResult[0]?.total || 0;
 
-    // 2. Active Orders count: pending, confirmed, shipped status
+    // 2. Active Orders count: pending status
     const activeOrdersCount = await OrderModel.countDocuments({
         ...matchStage,
-        status: { $in: ["pending", "confirmed", "shipped"] },
+        status: "pending",
     });
 
     // 3. Month-to-Date (MTD) Sales
@@ -693,11 +693,11 @@ const getMemberOrderStats = async (userId: Types.ObjectId | string, query: any =
     ]);
     const totalRevenue = totalRevenueResult[0]?.total || 0;
 
-    // 2. Active Orders count: pending, confirmed, shipped status, and not deleted for this member in targeted campaign(s)
+    // 2. Active Orders count: pending status, and not deleted for this member in targeted campaign(s)
     const activeOrdersCount = await OrderModel.countDocuments({
         memberId: memberId,
         campaignId: { $in: targetCampaignIds },
-        status: { $in: ["pending", "confirmed", "shipped"] },
+        status: "pending",
         isDeleted: false,
     });
 
