@@ -415,40 +415,44 @@ const getOrderStats = async () => {
 };
 
 const getRunningCampaignOrders = async (user: any, query: any = {}) => {
+    const { GroupModel } = await import("../group/group.model");
+    const { CampaignModel } = await import("../campaign/campaign.model");
+
     const filter: any = { isDeleted: false };
 
-    if (user.role === "SELLER") {
-        // Seller sees only their own orders
-        filter.memberId = new Types.ObjectId(user._id);
-    } else if (user.role === "ADMIN") {
-        const { GroupModel } = await import("../group/group.model");
-        const { CampaignModel } = await import("../campaign/campaign.model");
+    const adminGroups = await GroupModel.find({ createdBy: user._id, isDeleted: false }).select("_id").lean();
+    const groupIds = adminGroups.map((g) => g._id);
 
-        // 1. Find groups created by admin
-        const adminGroups = await GroupModel.find({ createdBy: user._id, isDeleted: false }).select("_id").lean();
-        const groupIds = adminGroups.map((g) => g._id);
+    const activeCampaigns = await CampaignModel.find({
+        $or: [{ createdBy: user._id }, { groupId: { $in: groupIds } }],
+        status: "ACTIVE",
+        isDeleted: false,
+    })
+        .select("_id")
+        .lean();
 
-        // 2. Find campaigns created by admin or belonging to admin groups
-        const adminCampaigns = await CampaignModel.find({
-            $or: [{ createdBy: user._id }, { groupId: { $in: groupIds } }],
-            isDeleted: false,
-        })
-            .select("_id")
-            .lean();
-        const campaignIds = adminCampaigns.map((c) => c._id);
+    const activeCampaignIds = activeCampaigns.map((c) => c._id);
 
-        filter.$or = [{ groupId: { $in: groupIds } }, { campaignId: { $in: campaignIds } }];
+    if (query.campaignId && Types.ObjectId.isValid(query.campaignId as string)) {
+        filter.campaignId = new Types.ObjectId(query.campaignId as string);
+    } else {
+        filter.campaignId = { $in: activeCampaignIds };
     }
 
     if (query.status) filter.status = query.status;
-    if (query.memberId && user.role !== "SELLER") filter.memberId = new Types.ObjectId(query.memberId);
-    if (query.campaignId) filter.campaignId = new Types.ObjectId(query.campaignId);
+    if (query.memberId) filter.memberId = new Types.ObjectId(query.memberId);
 
     const page = parseInt(query.page as string) || 1;
     const limit = parseInt(query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    const orders = await OrderModel.find(filter).populate("memberId", "name email").populate("campaignId", "name code").populate("groupId", "name").sort({ createdAt: -1 }).skip(skip).limit(limit);
+    const orders = await OrderModel.find(filter)
+        .populate("memberId", "name email")
+        .populate("campaignId", "name code")
+        .populate("groupId", "name")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
 
     const total = await OrderModel.countDocuments(filter);
 
@@ -465,29 +469,28 @@ const getRunningCampaignOrders = async (user: any, query: any = {}) => {
     };
 };
 
-const getRunningCampaignStats = async (user: any) => {
+const getRunningCampaignStats = async (user: any, query: any = {}) => {
+    const { GroupModel } = await import("../group/group.model");
+    const { CampaignModel } = await import("../campaign/campaign.model");
+    const adminGroups = await GroupModel.find({ createdBy: user._id, isDeleted: false }).select("_id").lean();
+    const groupIds = adminGroups.map((g) => g._id);
+
+    const activeCampaigns = await CampaignModel.find({
+        $or: [{ createdBy: user._id }, { groupId: { $in: groupIds } }],
+        status: "ACTIVE",
+        isDeleted: false,
+    })
+        .select("_id")
+        .lean();
+    const campaignIds = activeCampaigns.map((c) => c._id);
+
     const matchStage: any = {
         isDeleted: false,
+        campaignId: { $in: campaignIds },
     };
 
-    if (user.role === "SELLER") {
-        matchStage.memberId = new Types.ObjectId(user._id);
-    } else if (user.role === "ADMIN") {
-        const { GroupModel } = await import("../group/group.model");
-        const { CampaignModel } = await import("../campaign/campaign.model");
-
-        const adminGroups = await GroupModel.find({ createdBy: user._id, isDeleted: false }).select("_id").lean();
-        const groupIds = adminGroups.map((g) => g._id);
-
-        const adminCampaigns = await CampaignModel.find({
-            $or: [{ createdBy: user._id }, { groupId: { $in: groupIds } }],
-            isDeleted: false,
-        })
-            .select("_id")
-            .lean();
-        const campaignIds = adminCampaigns.map((c) => c._id);
-
-        matchStage.$or = [{ groupId: { $in: groupIds } }, { campaignId: { $in: campaignIds } }];
+    if (query.campaignId && Types.ObjectId.isValid(query.campaignId as string)) {
+        matchStage.campaignId = new Types.ObjectId(query.campaignId as string);
     }
 
     // 1. Total Revenue: sum of totalPrice of non-cancelled and non-deleted orders

@@ -112,7 +112,7 @@ const getRunningCampaignOrders = catchAsync(async (req: Request, res: Response) 
 // Get stats of the running campaign assigned to the logged-in user
 const getRunningCampaignStats = catchAsync(async (req: Request, res: Response) => {
     const user = req.user as any;
-    const result = await orderServices.getRunningCampaignStats(user);
+    const result = await orderServices.getRunningCampaignStats(user, req.query);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
