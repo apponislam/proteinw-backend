@@ -11,26 +11,17 @@ import config from "../../config";
 import { Types } from "mongoose";
 
 const getDashboardStats = async () => {
-    const ordersResult = await OrderModel.aggregate([
-        { $match: { isDeleted: false } },
-        { $group: { _id: null, totalPackages: { $sum: "$totalPackage" } } },
-    ]);
+    const ordersResult = await OrderModel.aggregate([{ $match: { isDeleted: false } }, { $group: { _id: null, totalPackages: { $sum: "$totalPackage" } } }]);
     const totalPackagesSold = ordersResult.length > 0 ? ordersResult[0].totalPackages : 0;
 
     const now = new Date();
     const firstDayOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const firstDayOfPreviousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
-    const currentMonthOrders = await OrderModel.aggregate([
-        { $match: { isDeleted: false, createdAt: { $gte: firstDayOfCurrentMonth } } },
-        { $group: { _id: null, totalPackages: { $sum: "$totalPackage" } } },
-    ]);
+    const currentMonthOrders = await OrderModel.aggregate([{ $match: { isDeleted: false, createdAt: { $gte: firstDayOfCurrentMonth } } }, { $group: { _id: null, totalPackages: { $sum: "$totalPackage" } } }]);
     const currentMonthPackages = currentMonthOrders.length > 0 ? currentMonthOrders[0].totalPackages : 0;
 
-    const previousMonthOrders = await OrderModel.aggregate([
-        { $match: { isDeleted: false, createdAt: { $gte: firstDayOfPreviousMonth, $lt: firstDayOfCurrentMonth } } },
-        { $group: { _id: null, totalPackages: { $sum: "$totalPackage" } } },
-    ]);
+    const previousMonthOrders = await OrderModel.aggregate([{ $match: { isDeleted: false, createdAt: { $gte: firstDayOfPreviousMonth, $lt: firstDayOfCurrentMonth } } }, { $group: { _id: null, totalPackages: { $sum: "$totalPackage" } } }]);
     const previousMonthPackages = previousMonthOrders.length > 0 ? previousMonthOrders[0].totalPackages : 0;
 
     let packageGrowth = 0;
@@ -87,7 +78,7 @@ const getDashboardStats = async () => {
 
 const getDashboardStatus = async (userId: string) => {
     const group = await GroupModel.findOne({ createdBy: userId, isDeleted: false });
-    
+
     if (!group) {
         return {
             hasGroup: false,
@@ -118,9 +109,7 @@ const getStoreInfo = async (campaignCode: string, referralCode: string) => {
 
     // 3. Validate member association with campaign or group
     const isCampaignSeller = await CampaignSellerModel.exists({ sellerId: member._id, campaignId: campaign._id, isDeleted: false });
-    const isSellerGroup = campaign.groupId
-        ? await SellerGroupModel.exists({ sellerId: member._id, groupId: campaign.groupId, isDeleted: false })
-        : false;
+    const isSellerGroup = campaign.groupId ? await SellerGroupModel.exists({ sellerId: member._id, groupId: campaign.groupId, isDeleted: false }) : false;
 
     if (!isCampaignSeller && !isSellerGroup) {
         return { validation: false };
@@ -169,9 +158,9 @@ const getSellerDashboardStats = async (campaignId?: string, groupId?: string, us
     let campaign = null;
 
     if (campaignId && Types.ObjectId.isValid(campaignId)) {
-        campaign = await CampaignModel.findOne({ _id: new Types.ObjectId(campaignId), isDeleted: false });
+        campaign = await CampaignModel.findOne({ _id: new Types.ObjectId(campaignId), isDeleted: false }).populate("tierId");
     } else if (groupId && Types.ObjectId.isValid(groupId)) {
-        campaign = await CampaignModel.findOne({ groupId: new Types.ObjectId(groupId), isDeleted: false });
+        campaign = await CampaignModel.findOne({ groupId: new Types.ObjectId(groupId), isDeleted: false }).populate("tierId");
     }
 
     if (!campaign) {
@@ -200,13 +189,8 @@ const getSellerDashboardStats = async (campaignId?: string, groupId?: string, us
     const totalSales = ordersStats[0]?.totalRevenue || 0;
     const packagesSold = ordersStats[0]?.totalPackagesSold || 0;
 
-    const tiers = await TierModel.find({ isActive: true, isDeleted: false }).sort({ minSalesVolume: 1 });
-    const currentTier = tiers.find(
-        (t) =>
-            packagesSold >= t.minSalesVolume &&
-            (t.maxSalesVolume === undefined || t.maxSalesVolume === null || packagesSold <= t.maxSalesVolume),
-    );
-    const profitPercentage = currentTier ? currentTier.percentage : 40;
+    const campaignTierPercentage = (campaign.tierId as any)?.percentage;
+    const profitPercentage = typeof campaignTierPercentage === "number" ? campaignTierPercentage : 40;
     const totalProfit = totalSales * (profitPercentage / 100);
 
     const now = new Date();
@@ -216,7 +200,7 @@ const getSellerDashboardStats = async (campaignId?: string, groupId?: string, us
     const daysRemaining = Math.max(0, Math.floor((endDayStart.getTime() - todayStart.getTime()) / (1000 * 60 * 60 * 24)));
 
     const goal = campaign.target || 0;
-    const current = totalSales;
+    const current = totalProfit;
     const remaining = Math.max(0, goal - current);
 
     return {
@@ -274,12 +258,7 @@ const getSuperAdminSellers = async (query: any) => {
 
     const total = await UserModel.countDocuments({ role: "SELLER", isDeleted: false });
 
-    const sellers = await UserModel.find({ role: "SELLER", isDeleted: false })
-        .select("-password")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean();
+    const sellers = await UserModel.find({ role: "SELLER", isDeleted: false }).select("-password").sort({ createdAt: -1 }).skip(skip).limit(limit).lean();
 
     const sellersWithStats = await Promise.all(
         sellers.map(async (seller) => {
@@ -313,14 +292,10 @@ const getSuperAdminSellers = async (query: any) => {
             }
 
             const baseUrl = config.client_url || "http://localhost:3000";
-            const salesLink = campaign?.code
-                ? `${baseUrl}/store?campaign=${campaign.code}&referral=${seller.referralCode}`
-                : "N/A";
+            const salesLink = campaign?.code ? `${baseUrl}/store?campaign=${campaign.code}&referral=${seller.referralCode}` : "N/A";
 
             const nameParts = (seller.name || "").trim().split(/\s+/);
-            const code = nameParts.length > 1
-                ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
-                : (nameParts[0]?.[0] || "").toUpperCase();
+            const code = nameParts.length > 1 ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase() : (nameParts[0]?.[0] || "").toUpperCase();
 
             return {
                 _id: seller._id,
@@ -332,22 +307,26 @@ const getSuperAdminSellers = async (query: any) => {
                 status: seller.isActive ? "Active" : "Inactive",
                 salesLink,
                 code,
-                groupDetails: group ? {
-                    _id: group._id,
-                    name: group.name,
-                    code: group.code,
-                    goal: group.goal,
-                    endDate: group.endDate,
-                } : null,
-                campaignDetails: campaign ? {
-                    _id: campaign._id,
-                    name: campaign.name,
-                    code: campaign.code,
-                    target: campaign.target,
-                    endDate: campaign.endDate,
-                } : null,
+                groupDetails: group
+                    ? {
+                          _id: group._id,
+                          name: group.name,
+                          code: group.code,
+                          goal: group.goal,
+                          endDate: group.endDate,
+                      }
+                    : null,
+                campaignDetails: campaign
+                    ? {
+                          _id: campaign._id,
+                          name: campaign.name,
+                          code: campaign.code,
+                          target: campaign.target,
+                          endDate: campaign.endDate,
+                      }
+                    : null,
             };
-        })
+        }),
     );
 
     return {
@@ -369,11 +348,10 @@ const getSuperAdminGroupsStats = async (query: any) => {
     const skip = (page - 1) * limit;
     const sortBy = query.sortBy || "createdAt";
 
-    const groups = await GroupModel.find({ isDeleted: false })
-        .populate({
-            path: "createdBy",
-            select: "name email phone photo role",
-        });
+    const groups = await GroupModel.find({ isDeleted: false }).populate({
+        path: "createdBy",
+        select: "name email phone photo role",
+    });
 
     const tiers = await TierModel.find({ isActive: true, isDeleted: false }).sort({ minSalesVolume: 1 });
 
@@ -383,7 +361,9 @@ const getSuperAdminGroupsStats = async (query: any) => {
                 groupId: group._id,
                 isDeleted: false,
                 status: "ACTIVE",
-            }).select("_id").lean();
+            })
+                .select("_id")
+                .lean();
 
             const activeCampaignsCount = activeCampaignDocs.length;
             const activeCampaignIds = activeCampaignDocs.map((c) => c._id);
@@ -419,31 +399,28 @@ const getSuperAdminGroupsStats = async (query: any) => {
                 unitsSold = ordersStats[0]?.totalPackagesSold || 0;
                 revenue = ordersStats[0]?.totalRevenue || 0;
 
-                const currentTier = tiers.find(t => 
-                    unitsSold >= t.minSalesVolume && 
-                    (t.maxSalesVolume === undefined || t.maxSalesVolume === null || unitsSold <= t.maxSalesVolume)
-                );
+                const currentTier = tiers.find((t) => unitsSold >= t.minSalesVolume && (t.maxSalesVolume === undefined || t.maxSalesVolume === null || unitsSold <= t.maxSalesVolume));
                 profitPercentage = currentTier ? currentTier.percentage : 40;
             }
 
             const groupProfit = revenue * (profitPercentage / 100);
 
             const nameParts = (group.name || "").trim().split(/\s+/);
-            const groupCode = nameParts.length > 1
-                ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
-                : (nameParts[0]?.[0] || "").toUpperCase();
+            const groupCode = nameParts.length > 1 ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase() : (nameParts[0]?.[0] || "").toUpperCase();
 
             return {
                 _id: group._id,
                 groupCode,
                 groupName: group.name,
-                assignedAdmin: campaignAdmin ? {
-                    _id: campaignAdmin._id,
-                    name: campaignAdmin.name,
-                    email: campaignAdmin.email,
-                    phone: campaignAdmin.phone,
-                    photo: campaignAdmin.photo,
-                } : null,
+                assignedAdmin: campaignAdmin
+                    ? {
+                          _id: campaignAdmin._id,
+                          name: campaignAdmin.name,
+                          email: campaignAdmin.email,
+                          phone: campaignAdmin.phone,
+                          photo: campaignAdmin.photo,
+                      }
+                    : null,
                 sellers: sellersCount,
                 activeCampaigns: activeCampaignsCount,
                 packagesSold: unitsSold,
@@ -452,7 +429,7 @@ const getSuperAdminGroupsStats = async (query: any) => {
                 status: group.isActive,
                 createdAt: group.createdAt,
             };
-        })
+        }),
     );
 
     // Sort groupsStats based on sortBy parameter
@@ -529,7 +506,7 @@ const getSuperAdminGroupsDashboardCards = async () => {
                 profitPercentage = assignedTier.percentage;
             }
         }
-        
+
         if (!campaign.tierId) {
             const campaignOrders = await OrderModel.aggregate([
                 {
@@ -547,10 +524,7 @@ const getSuperAdminGroupsDashboardCards = async () => {
                 },
             ]);
             const campaignPackages = campaignOrders[0]?.totalPackages || 0;
-            const currentTier = tiers.find(t => 
-                campaignPackages >= t.minSalesVolume && 
-                (t.maxSalesVolume === undefined || t.maxSalesVolume === null || campaignPackages <= t.maxSalesVolume)
-            );
+            const currentTier = tiers.find((t) => campaignPackages >= t.minSalesVolume && (t.maxSalesVolume === undefined || t.maxSalesVolume === null || campaignPackages <= t.maxSalesVolume));
             if (currentTier) profitPercentage = currentTier.percentage;
         }
 
@@ -608,7 +582,7 @@ const getSuperAdminAdminsStats = async () => {
     // 4. Admins with no group assigned / created
     // Find IDs of admins who have created a group
     const adminsWithGroup = await GroupModel.distinct("createdBy", { isDeleted: false });
-    
+
     // Count admins whose _id is not in adminsWithGroup
     const unassignedGroupAdmins = await UserModel.countDocuments({
         role: "ADMIN",
@@ -655,10 +629,7 @@ const getTotalDistributedProfit = async () => {
         if (campaign.tierId && typeof campaign.tierId === "object" && (campaign.tierId as any).percentage) {
             profitPercentage = (campaign.tierId as any).percentage;
         } else {
-            const matchedTier = allTiers.find(t =>
-                packages >= t.minSalesVolume &&
-                (t.maxSalesVolume === undefined || t.maxSalesVolume === null || packages <= t.maxSalesVolume)
-            );
+            const matchedTier = allTiers.find((t) => packages >= t.minSalesVolume && (t.maxSalesVolume === undefined || t.maxSalesVolume === null || packages <= t.maxSalesVolume));
             if (matchedTier) {
                 profitPercentage = matchedTier.percentage;
             }
@@ -677,7 +648,9 @@ const getActiveCampaignsOverview = async () => {
     const activeCampaigns = await CampaignModel.find({
         status: "ACTIVE",
         isDeleted: false,
-    }).select("_id target").lean();
+    })
+        .select("_id target")
+        .lean();
 
     const activeCampaignCount = activeCampaigns.length;
     const totalGoal = activeCampaigns.reduce((sum, c) => sum + (c.target || 0), 0);
@@ -733,18 +706,19 @@ const getAsSellerDashboardStats = async (userId: string, query: any = {}) => {
         campaign = await CampaignModel.findOne({
             _id: new Types.ObjectId(query.campaignId as string),
             isDeleted: false,
-        });
+        }).populate("tierId");
     } else {
         const joinedCampaigns = await CampaignSellerModel.find({
             sellerId: sellerObjectId,
             isDeleted: false,
         })
-            .populate("campaignId")
+            .populate({
+                path: "campaignId",
+                populate: { path: "tierId" },
+            })
             .lean();
 
-        const activeJoin = joinedCampaigns.find(
-            (j: any) => j.campaignId && !j.campaignId.isDeleted && j.campaignId.status === "ACTIVE",
-        );
+        const activeJoin = joinedCampaigns.find((j: any) => j.campaignId && !j.campaignId.isDeleted && j.campaignId.status === "ACTIVE");
 
         if (activeJoin) {
             campaign = activeJoin.campaignId;
@@ -755,7 +729,7 @@ const getAsSellerDashboardStats = async (userId: string, query: any = {}) => {
                     groupId: sellerGroup.groupId,
                     status: "ACTIVE",
                     isDeleted: false,
-                });
+                }).populate("tierId");
             }
         }
     }
@@ -783,6 +757,10 @@ const getAsSellerDashboardStats = async (userId: string, query: any = {}) => {
 
     const totalSales = personalOrdersStats[0]?.totalSales || 0;
     const packagesSold = personalOrdersStats[0]?.packagesSold || 0;
+
+    const campaignTierPercentage = (campaign?.tierId as any)?.percentage;
+    const profitPercentage = typeof campaignTierPercentage === "number" ? campaignTierPercentage : 40;
+    const totalProfit = totalSales * (profitPercentage / 100);
 
     let daysRemaining = 0;
     let goal = 0;
@@ -814,7 +792,8 @@ const getAsSellerDashboardStats = async (userId: string, query: any = {}) => {
             },
         ]);
 
-        current = overallCampaignStats[0]?.overallSales || 0;
+        const overallSales = overallCampaignStats[0]?.overallSales || 0;
+        current = overallSales * (profitPercentage / 100);
     }
 
     const seller = await UserModel.findById(sellerObjectId).select("referralCode").lean();
@@ -822,14 +801,14 @@ const getAsSellerDashboardStats = async (userId: string, query: any = {}) => {
     const campaignCode = campaign?.code || "";
 
     const baseUrl = config.client_url || "http://localhost:3000";
-    const shopUrl = campaignCode && referralCode
-        ? `${baseUrl}/store?campaign=${campaignCode}&referral=${referralCode}`
-        : "";
+    const shopUrl = campaignCode && referralCode ? `${baseUrl}/store?campaign=${campaignCode}&referral=${referralCode}` : "";
 
     const remaining = Math.max(0, goal - current);
 
     return {
         totalSales,
+        totalProfit,
+        profitPercentage,
         packagesSold,
         daysRemaining,
         goal,
@@ -874,9 +853,7 @@ const getAsSellerCampaignInfo = async (userId: string, query: any = {}) => {
             .populate("campaignId")
             .lean();
 
-        const activeJoin = joinedCampaigns.find(
-            (j: any) => j.campaignId && !j.campaignId.isDeleted && j.campaignId.status === "ACTIVE",
-        );
+        const activeJoin = joinedCampaigns.find((j: any) => j.campaignId && !j.campaignId.isDeleted && j.campaignId.status === "ACTIVE");
 
         if (activeJoin) {
             campaign = activeJoin.campaignId;
@@ -894,9 +871,7 @@ const getAsSellerCampaignInfo = async (userId: string, query: any = {}) => {
 
     const campaignCode = campaign?.code || "";
     const baseUrl = config.client_url || "http://localhost:3000";
-    const shopUrl = campaignCode && referralCode
-        ? `${baseUrl}/store?campaign=${campaignCode}&referral=${referralCode}`
-        : "";
+    const shopUrl = campaignCode && referralCode ? `${baseUrl}/store?campaign=${campaignCode}&referral=${referralCode}` : "";
 
     return {
         campaignId: campaign?._id || null,
