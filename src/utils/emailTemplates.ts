@@ -1,17 +1,13 @@
 import { sendMail } from "./nodemailer";
 import config from "../app/config/index";
 
-const buttonStyle = "background-color: #7C5800; background-image: linear-gradient(to right, #7C5800, #FFB800); color: #ffffff !important; padding: 12px 30px; text-decoration: none !important; border-radius: 24px; display: inline-block; font-weight: 500; font-size: 14px; text-align: center; border: none;";
-const secondaryButtonStyle = "background-color: #1a1a1a; color: #ffffff !important; padding: 12px 30px; text-decoration: none !important; border-radius: 24px; display: inline-block; font-weight: 500; font-size: 14px; text-align: center; border: none;";
-const containerStyle = "font-family: Arial, sans-serif; width: 100%; max-width: 500px; margin: 0 auto; padding: 24px; background: white; border: 1px solid #f0f0f0; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); box-sizing: border-box;";
-
 export const sendVerificationEmail = (email: string, name: string, verificationUrl: string, otp?: string) => {
     const html = `
-        <div style="${containerStyle}">
+        <div style="font-family: Arial, sans-serif; width: 100%; max-width: 500px; margin: 0 auto; padding: 24px; background: white; border: 1px solid #f0f0f0; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); box-sizing: border-box;">
             <h2 style="color: #1a1a1a; margin-top: 0; font-size: 20px;">Hello ${name},</h2>
             <p style="color: #4a4a4a; line-height: 1.6; font-size: 14px;">Please verify your email address by clicking the button below:</p>
             <div style="text-align: center; margin: 32px 0;">
-                <a href="${verificationUrl}" target="_blank" style="${buttonStyle}">Verify Email</a>
+                <a href="${verificationUrl}" target="_blank" style="background-color: #7C5800; background-image: linear-gradient(to right, #7C5800, #FFB800); color: #ffffff !important; padding: 12px 30px; text-decoration: none !important; border-radius: 24px; display: inline-block; font-weight: 500; font-size: 14px; text-align: center; border: none;">Verify Email</a>
             </div>
             <p style="color: #8a8a8a; font-size: 12px; line-height: 1.6; word-break: break-all;">Or copy this link: <span style="word-break: break-all;">${verificationUrl}</span></p>
             ${
@@ -31,7 +27,7 @@ export const sendVerificationEmail = (email: string, name: string, verificationU
 
 export const sendOtpEmail = (email: string, otp: string, name?: string) => {
     const html = `
-        <div style="${containerStyle} max-width: 420px;">
+        <div style="font-family: Arial, sans-serif; width: 100%; max-width: 420px; margin: 0 auto; padding: 24px; background: white; border: 1px solid #f0f0f0; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); box-sizing: border-box;">
             <h2 style="color: #1a1a1a; margin-top: 0; font-size: 20px;">${name ? `Hello ${name},` : "Hello,"}</h2>
             <p style="color: #4a4a4a; line-height: 1.6; font-size: 14px;">Your OTP code is:</p>
             <div style="background: #fffaf0; border: 1px solid #ffe8b8; padding: 20px; text-align: center; margin: 24px 0; border-radius: 12px;">
@@ -69,7 +65,7 @@ export const sendWelcomeEmail = (email: string, name: string) => {
 export const sendAdminCreatedEmail = (email: string, name: string, password: string) => {
     const loginUrl = `${config.client_url}/auth/login`;
     const html = `
-        <div style="${containerStyle}">
+        <div style="font-family: Arial, sans-serif; width: 100%; max-width: 500px; margin: 0 auto; padding: 24px; background: white; border: 1px solid #f0f0f0; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); box-sizing: border-box;">
             <h2 style="color: #1a1a1a; margin-top: 0; font-size: 20px;">Hello ${name},</h2>
             <p style="color: #4a4a4a; line-height: 1.6; font-size: 14px;">You have been added as an Administrator for ProteinW.</p>
             <p style="color: #4a4a4a; line-height: 1.6; font-size: 14px;">Here are your temporary login credentials:</p>
@@ -79,7 +75,7 @@ export const sendAdminCreatedEmail = (email: string, name: string, password: str
             </div>
             <p style="color: #4a4a4a; line-height: 1.6; font-size: 14px;">Please login using the button below and change your password immediately.</p>
             <div style="text-align: center; margin: 32px 0;">
-                <a href="${loginUrl}" target="_blank" style="${buttonStyle}">Login to Dashboard</a>
+                <a href="${loginUrl}" target="_blank" style="background-color: #7C5800; background-image: linear-gradient(to right, #7C5800, #FFB800); color: #ffffff !important; padding: 12px 30px; text-decoration: none !important; border-radius: 24px; display: inline-block; font-weight: 500; font-size: 14px; text-align: center; border: none;">Login to Dashboard</a>
             </div>
         </div>
     `;
@@ -88,11 +84,11 @@ export const sendAdminCreatedEmail = (email: string, name: string, password: str
 
 export const sendEmailUpdateVerification = (email: string, name: string, verificationUrl: string) => {
     const html = `
-        <div style="${containerStyle}">
+        <div style="font-family: Arial, sans-serif; width: 100%; max-width: 500px; margin: 0 auto; padding: 24px; background: white; border: 1px solid #f0f0f0; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); box-sizing: border-box;">
             <h2 style="color: #1a1a1a; margin-top: 0; font-size: 20px;">Hello ${name},</h2>
             <p style="color: #4a4a4a; line-height: 1.6; font-size: 14px;">Please verify your new email address by clicking the button below:</p>
             <div style="text-align: center; margin: 32px 0;">
-                <a href="${verificationUrl}" target="_blank" style="${buttonStyle}">Verify New Email</a>
+                <a href="${verificationUrl}" target="_blank" style="background-color: #7C5800; background-image: linear-gradient(to right, #7C5800, #FFB800); color: #ffffff !important; padding: 12px 30px; text-decoration: none !important; border-radius: 24px; display: inline-block; font-weight: 500; font-size: 14px; text-align: center; border: none;">Verify New Email</a>
             </div>
             <p style="color: #8a8a8a; font-size: 12px;">This link expires in 24 hours.</p>
         </div>
@@ -104,19 +100,19 @@ export const sendGroupInvitationEmail = (email: string, groupName: string, code:
     const registerUrl = `${config.client_url}/auth/member/register?code=${encodeURIComponent(code)}&email=${encodeURIComponent(email)}`;
     const loginUrl = `${config.client_url}/auth/member/login?code=${encodeURIComponent(code)}&email=${encodeURIComponent(email)}`;
     const html = `
-        <div style="${containerStyle}">
+        <div style="font-family: Arial, sans-serif; width: 100%; max-width: 500px; margin: 0 auto; padding: 24px; background: white; border: 1px solid #f0f0f0; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); box-sizing: border-box;">
             <h2 style="color: #1a1a1a; margin-top: 0; font-size: 20px;">Hello,</h2>
             <p style="color: #4a4a4a; line-height: 1.6; font-size: 14px;">You have been invited to join the group: <strong style="color: #7C5800;">${groupName}</strong>.</p>
             <p style="color: #4a4a4a; line-height: 1.6; font-size: 14px;">Your invitation code is: <strong style="color: #7C5800; font-size: 18px; letter-spacing: 1px;">${code}</strong></p>
             
             <p style="color: #4a4a4a; line-height: 1.6; font-size: 14px;">If you do not have an account, click below to register and join:</p>
             <div style="text-align: center; margin: 24px 0;">
-                <a href="${registerUrl}" target="_blank" style="${buttonStyle}">Join Group & Register</a>
+                <a href="${registerUrl}" target="_blank" style="background-color: #7C5800; background-image: linear-gradient(to right, #7C5800, #FFB800); color: #ffffff !important; padding: 12px 30px; text-decoration: none !important; border-radius: 24px; display: inline-block; font-weight: 500; font-size: 14px; text-align: center; border: none;">Join Group & Register</a>
             </div>
             
             <p style="color: #4a4a4a; line-height: 1.6; font-size: 14px;">If you already have an account, sign in to join:</p>
             <div style="text-align: center; margin: 24px 0;">
-                <a href="${loginUrl}" target="_blank" style="${secondaryButtonStyle}">Sign In & Join</a>
+                <a href="${loginUrl}" target="_blank" style="background-color: #1a1a1a; color: #ffffff !important; padding: 12px 30px; text-decoration: none !important; border-radius: 24px; display: inline-block; font-weight: 500; font-size: 14px; text-align: center; border: none;">Sign In & Join</a>
             </div>
 
             <p style="color: #8a8a8a; font-size: 12px; line-height: 1.6; word-break: break-all;">Registration link: <span style="word-break: break-all;">${registerUrl}</span></p>
@@ -205,7 +201,7 @@ export const sendOrderConfirmationEmail = (email: string, customerName: string, 
 export const sendPasswordChangedEmail = (email: string, name?: string, newPassword?: string) => {
     const loginUrl = `${config.client_url}/auth/login`;
     const html = `
-        <div style="${containerStyle}">
+        <div style="font-family: Arial, sans-serif; width: 100%; max-width: 500px; margin: 0 auto; padding: 24px; background: white; border: 1px solid #f0f0f0; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); box-sizing: border-box;">
             <h2 style="color: #1a1a1a; margin-top: 0; font-size: 20px;">${name ? `Hello ${name},` : "Hello,"}</h2>
             <p style="color: #4a4a4a; line-height: 1.6; font-size: 14px;">Your password for ProteinW has been updated by an administrator.</p>
             ${
@@ -217,11 +213,10 @@ export const sendPasswordChangedEmail = (email: string, name?: string, newPasswo
             }
             <p style="color: #4a4a4a; line-height: 1.6; font-size: 14px;">You can now log in using your updated password.</p>
             <div style="text-align: center; margin: 32px 0;">
-                <a href="${loginUrl}" target="_blank" style="${buttonStyle}">Login to Dashboard</a>
+                <a href="${loginUrl}" target="_blank" style="background-color: #7C5800; background-image: linear-gradient(to right, #7C5800, #FFB800); color: #ffffff !important; padding: 12px 30px; text-decoration: none !important; border-radius: 24px; display: inline-block; font-weight: 500; font-size: 14px; text-align: center; border: none;">Login to Dashboard</a>
             </div>
             <p style="color: #8a8a8a; font-size: 12px; margin-top: 24px;">If you did not request or expect this change, please contact support immediately.</p>
         </div>
     `;
     sendMail(email, "Your Password Has Been Updated - ProteinW", html);
 };
-
