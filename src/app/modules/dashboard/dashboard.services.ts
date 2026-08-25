@@ -283,16 +283,44 @@ const getSuperAdminSellers = async (query: any) => {
             ]);
             const packagesCount = packagesAgg[0]?.totalPackages || 0;
 
-            const sellerGroupJoin = await SellerGroupModel.findOne({ sellerId: seller._id, isDeleted: false }).populate("groupId");
-            const group = sellerGroupJoin?.groupId as any;
+            const sellerGroupJoins = await SellerGroupModel.find({ sellerId: seller._id, isDeleted: false }).populate("groupId").lean();
 
-            let campaign = null;
-            if (group) {
-                campaign = await CampaignModel.findOne({ groupId: group._id, isDeleted: false, status: "ACTIVE" });
+            let groupNames = sellerGroupJoins
+                .map((sg: any) => sg.groupId?.name)
+                .filter((name: any): name is string => typeof name === "string" && name.trim().length > 0);
+
+            if (groupNames.length > 20) {
+                groupNames = [...groupNames.slice(0, 20), "20+"];
             }
 
+            const campaignSellerJoins = await CampaignSellerModel.find({
+                sellerId: seller._id,
+                isDeleted: false,
+            }).populate("campaignId").lean();
+
+            const activeCampaigns = campaignSellerJoins
+                .map((cs: any) => cs.campaignId)
+                .filter((c: any) => c && !c.isDeleted && c.status === "ACTIVE");
+
             const baseUrl = config.client_url || "http://localhost:3000";
-            const salesLink = campaign?.code ? `${baseUrl}/store?campaign=${campaign.code}&referral=${seller.referralCode}` : "N/A";
+            let salesLinks: any[] = activeCampaigns
+                .map((c: any) =>
+                    c.code
+                        ? {
+                              name: c.name,
+                              link: `${baseUrl}/store?campaign=${c.code}&referral=${seller.referralCode}`,
+                          }
+                        : null,
+                )
+                .filter(Boolean);
+
+            if (salesLinks.length > 20) {
+                salesLinks = [...salesLinks.slice(0, 20), { name: "20+", link: "20+" }];
+            }
+
+            const totalGroupsJoined = sellerGroupJoins.filter((sg: any) => sg.groupId && !sg.groupId.isDeleted).length;
+            const totalCampaignsJoined = campaignSellerJoins.filter((cs: any) => cs.campaignId && !cs.campaignId.isDeleted).length;
+            const totalActiveCampaigns = activeCampaigns.length;
 
             const nameParts = (seller.name || "").trim().split(/\s+/);
             const code = nameParts.length > 1 ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase() : (nameParts[0]?.[0] || "").toUpperCase();
@@ -301,30 +329,15 @@ const getSuperAdminSellers = async (query: any) => {
                 _id: seller._id,
                 name: seller.name,
                 email: seller.email,
-                group: group?.name || "N/A",
+                groups: groupNames,
+                totalGroups: totalGroupsJoined,
+                totalCampaigns: totalCampaignsJoined,
+                totalActiveCampaigns: totalActiveCampaigns,
                 orders: ordersCount,
                 packages: packagesCount,
                 status: seller.isActive ? "Active" : "Inactive",
-                salesLink,
+                salesLinks: salesLinks,
                 code,
-                groupDetails: group
-                    ? {
-                          _id: group._id,
-                          name: group.name,
-                          code: group.code,
-                          goal: group.goal,
-                          endDate: group.endDate,
-                      }
-                    : null,
-                campaignDetails: campaign
-                    ? {
-                          _id: campaign._id,
-                          name: campaign.name,
-                          code: campaign.code,
-                          target: campaign.target,
-                          endDate: campaign.endDate,
-                      }
-                    : null,
             };
         }),
     );
