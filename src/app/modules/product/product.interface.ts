@@ -8,6 +8,9 @@ export interface IProduct {
     shortDescription: string;
     category: string;
     subCategory?: string;
+    marginBenefit?: string;
+    qualityHighlight?: string;
+    ecoHighlight?: string;
     productImage?: string;
     createdBy?: Types.ObjectId;
     isActive: boolean;
