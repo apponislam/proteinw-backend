@@ -27,7 +27,15 @@ const createCustomerServiceRequest = catchAsync(async (req: Request, res: Respon
         images,
     };
 
+    if (!payload.orderId || payload.orderId === "" || payload.orderId === "undefined" || payload.orderId === "null") {
+        delete payload.orderId;
+    }
+
+    console.log("Create Customer Service Payload:", payload);
+
     const result = await customerServiceServices.createCustomerServiceRequest(payload);
+
+    console.log("Created Customer Service Record:", result);
 
     sendResponse(res, {
         statusCode: httpStatus.CREATED,
@@ -85,10 +93,22 @@ const deleteCustomerServiceRequest = catchAsync(async (req: Request, res: Respon
     });
 });
 
+const getCustomerServiceStats = catchAsync(async (req: Request, res: Response) => {
+    const result = await customerServiceServices.getCustomerServiceStats();
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Customer service stats retrieved successfully.",
+        data: result,
+    });
+});
+
 export const customerServiceControllers = {
     createCustomerServiceRequest,
     getAllCustomerServiceRequests,
     getCustomerServiceRequestById,
     updateCustomerServiceRequest,
     deleteCustomerServiceRequest,
+    getCustomerServiceStats,
 };

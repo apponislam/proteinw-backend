@@ -11,6 +11,7 @@ router.post("/", uploadCustomerServiceImages, customerServiceControllers.createC
 
 // Admin-only routes
 router.get("/", auth, authorize(["SUPER_ADMIN"]), customerServiceControllers.getAllCustomerServiceRequests);
+router.get("/stats", auth, authorize(["SUPER_ADMIN"]), customerServiceControllers.getCustomerServiceStats);
 router.get("/:id", auth, authorize(["SUPER_ADMIN"]), customerServiceControllers.getCustomerServiceRequestById);
 router.patch("/:id", auth, authorize(["SUPER_ADMIN"]), customerServiceControllers.updateCustomerServiceRequest);
 router.delete("/:id", auth, authorize(["SUPER_ADMIN"]), customerServiceControllers.deleteCustomerServiceRequest);

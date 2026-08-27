@@ -1,4 +1,5 @@
 import httpStatus from "http-status";
+import mongoose from "mongoose";
 import ApiError from "../../../errors/ApiError";
 import {
     sendCustomerServiceConfirmationEmail,
@@ -22,11 +23,24 @@ const createCustomerServiceRequest = async (payload: Partial<ICustomerServiceReq
         throw new ApiError(httpStatus.BAD_REQUEST, "description is required.");
     }
 
+    // Clean optional orderId if invalid or empty
+    if (payload.orderId) {
+        if (typeof payload.orderId === "string" && (!payload.orderId.trim() || !mongoose.Types.ObjectId.isValid(payload.orderId))) {
+            delete payload.orderId;
+        }
+    } else {
+        delete payload.orderId;
+    }
+
+    console.log("[Service] Creating Customer Service Request Payload:", payload);
+
     const customerService = await CustomerServiceModel.create({
         ...payload,
         status: payload.status || "pending",
         isDeleted: false,
     });
+
+    console.log("[Service] Customer Service Request Created Successfully with ID:", customerService._id);
 
     // Send confirmation email asynchronously in background
     sendCustomerServiceConfirmationEmail(customerService.email, customerService.name, {
@@ -65,7 +79,13 @@ const getAllCustomerServiceRequests = async (query: any = {}) => {
     const skip = (page - 1) * limit;
 
     const data = await CustomerServiceModel.find(filter)
-        .populate("orderId")
+        .populate({
+            path: "orderId",
+            populate: [
+                { path: "campaignId", select: "name code" },
+                { path: "groupId", select: "name" },
+            ],
+        })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit);
@@ -88,7 +108,13 @@ const getAllCustomerServiceRequests = async (query: any = {}) => {
 
 // Get single request by ID
 const getCustomerServiceRequestById = async (id: string) => {
-    const request = await CustomerServiceModel.findOne({ _id: id, isDeleted: false }).populate("orderId");
+    const request = await CustomerServiceModel.findOne({ _id: id, isDeleted: false }).populate({
+        path: "orderId",
+        populate: [
+            { path: "campaignId", select: "name code" },
+            { path: "groupId", select: "name" },
+        ],
+    });
     if (!request) {
         throw new ApiError(httpStatus.NOT_FOUND, "Customer service request not found.");
     }
@@ -155,10 +181,33 @@ const deleteCustomerServiceRequest = async (id: string) => {
     return deletedRequest;
 };
 
+// Get customer service request statistics (Admin)
+const getCustomerServiceStats = async () => {
+    const totalRequests = await CustomerServiceModel.countDocuments({ isDeleted: false });
+    const pendingCount = await CustomerServiceModel.countDocuments({ isDeleted: false, status: "pending" });
+    const inProgressCount = await CustomerServiceModel.countDocuments({ isDeleted: false, status: "in_progress" });
+    const resolvedCount = await CustomerServiceModel.countDocuments({ isDeleted: false, status: "resolved" });
+    const rejectedCount = await CustomerServiceModel.countDocuments({ isDeleted: false, status: "rejected" });
+
+    const reklamationCount = await CustomerServiceModel.countDocuments({ isDeleted: false, issueType: "reklamation" });
+    const byteCount = await CustomerServiceModel.countDocuments({ isDeleted: false, issueType: "byte" });
+
+    return {
+        totalRequests,
+        pendingCount,
+        inProgressCount,
+        resolvedCount,
+        rejectedCount,
+        reklamationCount,
+        byteCount,
+    };
+};
+
 export const customerServiceServices = {
     createCustomerServiceRequest,
     getAllCustomerServiceRequests,
     getCustomerServiceRequestById,
     updateCustomerServiceRequest,
     deleteCustomerServiceRequest,
+    getCustomerServiceStats,
 };

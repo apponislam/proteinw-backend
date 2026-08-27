@@ -114,7 +114,10 @@ export const uploadCustomerServiceImages = (req: Request, res: Response, next: N
                     const newName = generateFileName("service", file.originalname);
                     const outputPath = path.join(customerServiceImageDir, newName);
 
-                    await sharp(file.buffer).webp({ quality: 80 }).toFile(outputPath);
+                    await sharp(file.buffer)
+                        .resize(1200, 1200, { fit: "inside", withoutEnlargement: true })
+                        .webp({ quality: 80 })
+                        .toFile(outputPath);
 
                     file.filename = getRelativeImagePath("customer-service", newName);
                     file.path = outputPath;
