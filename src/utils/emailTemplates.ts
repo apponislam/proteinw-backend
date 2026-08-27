@@ -45,7 +45,7 @@ export const sendWelcomeEmail = (email: string, name: string) => {
     const html = `
         <div style="font-family: Arial, sans-serif; width: 100%; max-width: 520px; margin: 0 auto; padding: 0; background: white; border: 1px solid #f0f0f0; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; box-sizing: border-box;">
             <div style="background-color: #7C5800; background-image: linear-gradient(135deg, #7C5800 0%, #FFB800 100%); padding: 32px 24px; text-align: center;">
-                <h1 style="color: white; margin: 0; font-size: 26px; font-weight: bold;">Welcome to ProteinW!</h1>
+                <h1 style="color: white; margin: 0; font-size: 26px; font-weight: bold;">Welcome to Kungsbjörnen!</h1>
                 <p style="color: rgba(255,255,255,0.9); margin: 12px 0 0 0; font-size: 15px;">We're excited to have you on board</p>
             </div>
             <div style="padding: 32px 28px;">
@@ -55,11 +55,11 @@ export const sendWelcomeEmail = (email: string, name: string) => {
                 <p style="color: #8a8a8a; font-size: 13px; line-height: 1.7; margin: 24px 0 0 0;">If you have any questions, feel free to reach out to our support team. We're here to help!</p>
             </div>
             <div style="background: #fafafa; padding: 20px 28px; text-align: center; border-top: 1px solid #f0f0f0;">
-                <p style="color: #8a8a8a; margin: 0; font-size: 12px;">© 2026 ProteinW. All rights reserved.</p>
+                <p style="color: #8a8a8a; margin: 0; font-size: 12px;">© 2026 Kungsbjörnen. All rights reserved.</p>
             </div>
         </div>
     `;
-    sendMail(email, "Welcome to ProteinW!", html);
+    sendMail(email, "Welcome to Kungsbjörnen!", html);
 };
 
 export const sendAdminCreatedEmail = (email: string, name: string, password: string) => {
@@ -67,7 +67,7 @@ export const sendAdminCreatedEmail = (email: string, name: string, password: str
     const html = `
         <div style="font-family: Arial, sans-serif; width: 100%; max-width: 500px; margin: 0 auto; padding: 24px; background: white; border: 1px solid #f0f0f0; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); box-sizing: border-box;">
             <h2 style="color: #1a1a1a; margin-top: 0; font-size: 20px;">Hello ${name},</h2>
-            <p style="color: #4a4a4a; line-height: 1.6; font-size: 14px;">You have been added as an Administrator for ProteinW.</p>
+            <p style="color: #4a4a4a; line-height: 1.6; font-size: 14px;">You have been added as an Administrator for Kungsbjörnen.</p>
             <p style="color: #4a4a4a; line-height: 1.6; font-size: 14px;">Here are your temporary login credentials:</p>
             <div style="background: #fffaf0; border: 1px solid #ffe8b8; padding: 16px; margin: 20px 0; border-radius: 8px;">
                 <p style="margin: 0 0 8px 0; color: #4a4a4a; word-break: break-all;"><strong>Email:</strong> ${email}</p>
@@ -193,12 +193,12 @@ export const sendOrderConfirmationEmail = (email: string, customerName: string, 
             
             <div style="background: #fafafa; padding: 16px 20px; text-align: center; border-top: 1px solid #f0f0f0;">
                 ${orderIdDisplay ? `<p style="color: #8a8a8a; margin: 0 0 6px 0; font-size: 12px;">Order ID: <strong style="color: #4a4a4a;">${orderIdDisplay}</strong></p>` : ""}
-                <p style="color: #8a8a8a; margin: 0; font-size: 12px;">© 2026 ProteinW. All rights reserved.</p>
+                <p style="color: #8a8a8a; margin: 0; font-size: 12px;">© 2026 Kungsbjörnen. All rights reserved.</p>
             </div>
         </div>
     `;
 
-    sendMail(email, "Your Order Confirmation - ProteinW", html);
+    sendMail(email, "Your Order Confirmation - Kungsbjörnen", html);
 };
 
 export const sendPasswordChangedEmail = (email: string, name?: string, newPassword?: string) => {
@@ -206,7 +206,7 @@ export const sendPasswordChangedEmail = (email: string, name?: string, newPasswo
     const html = `
         <div style="font-family: Arial, sans-serif; width: 100%; max-width: 500px; margin: 0 auto; padding: 24px; background: white; border: 1px solid #f0f0f0; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); box-sizing: border-box;">
             <h2 style="color: #1a1a1a; margin-top: 0; font-size: 20px;">${name ? `Hello ${name},` : "Hello,"}</h2>
-            <p style="color: #4a4a4a; line-height: 1.6; font-size: 14px;">Your password for ProteinW has been updated by an administrator.</p>
+            <p style="color: #4a4a4a; line-height: 1.6; font-size: 14px;">Your password for Kungsbjörnen has been updated by an administrator.</p>
             ${
                 newPassword
                     ? `<div style="background: #fffaf0; border: 1px solid #ffe8b8; padding: 16px; margin: 20px 0; border-radius: 8px;">
@@ -221,5 +221,123 @@ export const sendPasswordChangedEmail = (email: string, name?: string, newPasswo
             <p style="color: #8a8a8a; font-size: 12px; margin-top: 24px;">If you did not request or expect this change, please contact support immediately.</p>
         </div>
     `;
-    sendMail(email, "Your Password Has Been Updated - ProteinW", html);
+    sendMail(email, "Your Password Has Been Updated - Kungsbjörnen", html);
+};
+
+export const sendCustomerServiceConfirmationEmail = (
+    email: string,
+    name: string,
+    requestDetails: {
+        _id?: string;
+        issueType: string;
+        orderId?: string;
+        description: string;
+    },
+) => {
+    const { _id, issueType, orderId, description } = requestDetails;
+    const issueTypeName = issueType === "reklamation" ? "Reklamation (Complaint)" : "Byte (Exchange)";
+
+    const html = `
+        <div style="font-family: Arial, sans-serif; width: 100%; max-width: 580px; margin: 0 auto; padding: 0; background: white; border: 1px solid #f0f0f0; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; box-sizing: border-box; word-break: break-word; overflow-wrap: break-word;">
+            <div style="background-color: #7C5800; background-image: linear-gradient(135deg, #7C5800 0%, #FFB800 100%); padding: 24px 16px; text-align: center;">
+                <h1 style="color: white; margin: 0; font-size: 22px; font-weight: bold;">Customer Service Request Received</h1>
+                <p style="color: rgba(255,255,255,0.9); margin: 6px 0 0 0; font-size: 13px;">We've received your request</p>
+                ${_id ? `<p style="color: rgba(255,255,255,0.85); margin: 6px 0 0 0; font-size: 12px; font-family: monospace; word-break: break-all;">Request ID: ${_id}</p>` : ""}
+            </div>
+            
+            <div style="padding: 20px 16px;">
+                <h2 style="color: #1a1a1a; margin: 0 0 14px 0; font-size: 17px;">Hello ${name},</h2>
+                
+                <p style="color: #4a4a4a; line-height: 1.6; margin: 0 0 20px 0; font-size: 14px;">
+                    Thank you for contacting Kungsbjörnen Customer Support. We have successfully received your request and our team will process it shortly.
+                </p>
+                
+                <div style="background: #fffaf0; border: 1px solid #ffe8b8; border-radius: 10px; padding: 14px 16px; margin-bottom: 20px;">
+                    <h3 style="color: #1a1a1a; margin: 0 0 12px 0; font-size: 15px;">Request Details</h3>
+                    <div style="font-size: 14px; color: #4a4a4a; line-height: 1.6;">
+                        <div style="margin-bottom: 8px;">
+                            <strong style="color: #1a1a1a;">Issue Type:</strong>
+                            <span style="color: #7C5800; font-weight: 600; margin-left: 4px;">${issueTypeName}</span>
+                        </div>
+                        ${
+                            orderId
+                                ? `<div style="margin-bottom: 8px; word-break: break-all;">
+                            <strong style="color: #1a1a1a;">Order ID:</strong>
+                            <span style="color: #4a4a4a; margin-left: 4px;">${orderId}</span>
+                        </div>`
+                                : ""
+                        }
+                        <div>
+                            <strong style="color: #1a1a1a; display: block; margin-bottom: 4px;">Description:</strong>
+                            <div style="color: #4a4a4a; white-space: pre-wrap; word-break: break-word; background: #ffffff; padding: 10px; border-radius: 6px; border: 1px solid #f0e0c0;">${description}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <p style="color: #8a8a8a; font-size: 12px; line-height: 1.6; margin: 0;">
+                    Our support team will get back to you as soon as possible. If you need to follow up, please reply to this email.
+                </p>
+            </div>
+            
+            <div style="background: #fafafa; padding: 14px 16px; text-align: center; border-top: 1px solid #f0f0f0;">
+                <p style="color: #8a8a8a; margin: 0; font-size: 12px;">© 2026 Kungsbjörnen. All rights reserved.</p>
+            </div>
+        </div>
+    `;
+
+    sendMail(email, "Customer Service Request Received - Kungsbjörnen", html);
+};
+
+export const sendCustomerServiceReplyEmail = (
+    email: string,
+    name: string,
+    details: {
+        _id: string;
+        issueType: string;
+        orderId?: string;
+        status: string;
+        adminNotes: string;
+    },
+) => {
+    const { _id, issueType, orderId, status, adminNotes } = details;
+    const issueTypeName = issueType === "reklamation" ? "Reklamation (Complaint)" : "Byte (Exchange)";
+    const statusFormatted = status.replace("_", " ").toUpperCase();
+
+    const html = `
+        <div style="font-family: Arial, sans-serif; width: 100%; max-width: 580px; margin: 0 auto; padding: 0; background: white; border: 1px solid #f0f0f0; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; box-sizing: border-box; word-break: break-word; overflow-wrap: break-word;">
+            <div style="background-color: #7C5800; background-image: linear-gradient(135deg, #7C5800 0%, #FFB800 100%); padding: 24px 16px; text-align: center;">
+                <h1 style="color: white; margin: 0; font-size: 22px; font-weight: bold;">Update on Your Support Request</h1>
+                <p style="color: rgba(255,255,255,0.9); margin: 6px 0 0 0; font-size: 13px;">Kungsbjörnen Customer Support Response</p>
+                <p style="color: rgba(255,255,255,0.85); margin: 6px 0 0 0; font-size: 12px; font-family: monospace; word-break: break-all;">Request ID: ${_id}</p>
+            </div>
+            
+            <div style="padding: 20px 16px;">
+                <h2 style="color: #1a1a1a; margin: 0 0 14px 0; font-size: 17px;">Hello ${name},</h2>
+                
+                <p style="color: #4a4a4a; line-height: 1.6; margin: 0 0 18px 0; font-size: 14px;">
+                    Our support team has updated your request. Your current request status is: <strong style="color: #7C5800;">${statusFormatted}</strong>.
+                </p>
+                
+                <div style="background: #fffaf0; border: 1px solid #ffe8b8; border-radius: 10px; padding: 14px 16px; margin-bottom: 20px;">
+                    <h3 style="color: #1a1a1a; margin: 0 0 8px 0; font-size: 15px;">Admin Reply / Message:</h3>
+                    <p style="color: #1a1a1a; margin: 0; line-height: 1.6; font-size: 14px; white-space: pre-wrap; word-break: break-word;">${adminNotes}</p>
+                </div>
+                
+                <div style="background: #f9f9f9; border-radius: 10px; padding: 12px 14px; margin-bottom: 20px; font-size: 13px; color: #666; word-break: break-all;">
+                    <p style="margin: 0 0 4px 0;"><strong>Issue Type:</strong> ${issueTypeName}</p>
+                    ${orderId ? `<p style="margin: 0;"><strong>Order ID:</strong> ${orderId}</p>` : ""}
+                </div>
+
+                <p style="color: #8a8a8a; font-size: 12px; line-height: 1.6; margin: 0;">
+                    If you have further questions or need additional assistance, feel free to reply directly to this email.
+                </p>
+            </div>
+            
+            <div style="background: #fafafa; padding: 14px 16px; text-align: center; border-top: 1px solid #f0f0f0;">
+                <p style="color: #8a8a8a; margin: 0; font-size: 12px;">© 2026 Kungsbjörnen. All rights reserved.</p>
+            </div>
+        </div>
+    `;
+
+    sendMail(email, `Update on Support Request #${_id} - Kungsbjörnen`, html);
 };

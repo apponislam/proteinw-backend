@@ -14,6 +14,7 @@ import { dashboardRoutes } from "../modules/dashboard/dashboard.routes";
 import { activityLogRoutes } from "../modules/activityLog/activityLog.routes";
 import { sellerGroupRoutes } from "../modules/sellerGroup/sellerGroup.routes";
 import { campaignSellerRoutes } from "../modules/campaignSeller/campaignSeller.routes";
+import { customerServiceRoutes } from "../modules/customerService/customerService.routes";
 
 const router = express.Router();
 
@@ -77,6 +78,10 @@ const moduleRoutes = [
     {
         path: "/campaign-sellers",
         route: campaignSellerRoutes,
+    },
+    {
+        path: "/customer-service",
+        route: customerServiceRoutes,
     },
 ];
 

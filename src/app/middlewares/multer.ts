@@ -7,8 +7,10 @@ import sharp from "sharp";
 // Ensure upload directories exist
 const profileImageDir = path.join(process.cwd(), "uploads", "profile-images");
 const productImageDir = path.join(process.cwd(), "uploads", "product-images");
+const customerServiceImageDir = path.join(process.cwd(), "uploads", "customer-service");
 if (!fs.existsSync(profileImageDir)) fs.mkdirSync(profileImageDir, { recursive: true });
 if (!fs.existsSync(productImageDir)) fs.mkdirSync(productImageDir, { recursive: true });
+if (!fs.existsSync(customerServiceImageDir)) fs.mkdirSync(customerServiceImageDir, { recursive: true });
 
 // Multer memory storage
 const storage = multer.memoryStorage();
@@ -90,6 +92,34 @@ export const uploadProductImage = (req: Request, res: Response, next: NextFuncti
                 file.filename = getRelativeImagePath("product-images", newName);
                 file.path = outputPath;
                 file.mimetype = "image/webp";
+            } catch (error) {
+                return next(error);
+            }
+        }
+
+        next();
+    });
+};
+
+// Middleware for multiple customer service images upload
+export const uploadCustomerServiceImages = (req: Request, res: Response, next: NextFunction) => {
+    const uploadArray = upload.array("images", 5);
+
+    uploadArray(req, res, async (err) => {
+        if (err) return next(err);
+
+        if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+            try {
+                for (const file of req.files) {
+                    const newName = generateFileName("service", file.originalname);
+                    const outputPath = path.join(customerServiceImageDir, newName);
+
+                    await sharp(file.buffer).webp({ quality: 80 }).toFile(outputPath);
+
+                    file.filename = getRelativeImagePath("customer-service", newName);
+                    file.path = outputPath;
+                    file.mimetype = "image/webp";
+                }
             } catch (error) {
                 return next(error);
             }
