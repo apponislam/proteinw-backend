@@ -137,6 +137,7 @@ const createOrder = async (payload: any) => {
     // Send order confirmation email
     try {
         sendOrderConfirmationEmail(customerData.customerEmail, customerData.customerName, {
+            _id: order._id,
             items: orderItems,
             totalPrice,
             address: customerData.address,

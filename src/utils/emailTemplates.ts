@@ -122,7 +122,8 @@ export const sendGroupInvitationEmail = (email: string, groupName: string, code:
 };
 
 export const sendOrderConfirmationEmail = (email: string, customerName: string, orderDetails: any) => {
-    const { items, totalPrice, address, status } = orderDetails;
+    const { items, totalPrice, address, status, _id, orderId } = orderDetails;
+    const orderIdDisplay = _id || orderId;
 
     const itemsHtml = items
         .map(
@@ -145,6 +146,7 @@ export const sendOrderConfirmationEmail = (email: string, customerName: string, 
             <div style="background-color: #7C5800; background-image: linear-gradient(135deg, #7C5800 0%, #FFB800 100%); padding: 28px 20px; text-align: center;">
                 <h1 style="color: white; margin: 0; font-size: 24px; font-weight: bold;">Order Confirmed!</h1>
                 <p style="color: rgba(255,255,255,0.9); margin: 8px 0 0 0; font-size: 14px;">Thank you for your order</p>
+                ${orderIdDisplay ? `<p style="color: rgba(255,255,255,0.85); margin: 6px 0 0 0; font-size: 13px; font-family: monospace;">Order ID: ${orderIdDisplay}</p>` : ""}
             </div>
             
             <div style="padding: 24px 20px;">
@@ -190,6 +192,7 @@ export const sendOrderConfirmationEmail = (email: string, customerName: string, 
             </div>
             
             <div style="background: #fafafa; padding: 16px 20px; text-align: center; border-top: 1px solid #f0f0f0;">
+                ${orderIdDisplay ? `<p style="color: #8a8a8a; margin: 0 0 6px 0; font-size: 12px;">Order ID: <strong style="color: #4a4a4a;">${orderIdDisplay}</strong></p>` : ""}
                 <p style="color: #8a8a8a; margin: 0; font-size: 12px;">© 2026 ProteinW. All rights reserved.</p>
             </div>
         </div>
