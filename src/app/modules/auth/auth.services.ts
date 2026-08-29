@@ -13,7 +13,7 @@ import { OrderModel } from "../order/order.model";
 import { SellerGroupModel } from "../sellerGroup/sellerGroup.model";
 import { CampaignSellerModel } from "../campaignSeller/campaignSeller.model";
 import { activityLogServices } from "../activityLog/activityLog.services";
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 
 const registerUser = async (data: any) => {
     // Check existing user
@@ -360,6 +360,75 @@ const changePassword = async (userId: string, currentPassword: string, newPasswo
     const hashedPassword = await bcrypt.hash(newPassword, Number(config.bcrypt_salt_rounds));
     user.password = hashedPassword;
     await user.save();
+};
+
+const deleteAccount = async (userId: string, password: string) => {
+    const user = await UserModel.findById(userId);
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Requested user was not found.");
+
+    const isPasswordValid = await bcrypt.compare(password, user.password as string);
+    if (!isPasswordValid) throw new ApiError(httpStatus.BAD_REQUEST, "Password is incorrect.");
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        const userObjectId = user._id;
+
+        // 1. Seller cleanup
+        await SellerGroupModel.deleteMany({ sellerId: userObjectId }, { session });
+        await CampaignSellerModel.deleteMany({ sellerId: userObjectId }, { session });
+
+        // 2. Admin cleanup (if Admin / Super Admin created groups/campaigns/invitations)
+        if (user.role === "ADMIN" || user.role === "SUPER_ADMIN") {
+            // Find groups created by this admin
+            const adminGroups = await GroupModel.find({ createdBy: userObjectId }).select("_id").session(session).lean();
+            const groupIds = adminGroups.map((g) => g._id);
+
+            // Find campaigns created by this admin or belonging to their groups
+            const adminCampaigns = await CampaignModel.find({
+                $or: [{ createdBy: userObjectId }, { groupId: { $in: groupIds } }],
+            })
+                .select("_id")
+                .session(session)
+                .lean();
+            const campaignIds = adminCampaigns.map((c) => c._id);
+
+            // Clean up invitations sent by admin or for admin groups
+            const { InvitationModel } = await import("../invitation/invitation.model");
+            await InvitationModel.deleteMany(
+                {
+                    $or: [{ inviterId: userObjectId }, { groupId: { $in: groupIds } }],
+                },
+                { session },
+            );
+
+            // Clean up group & campaign seller mappings for admin's groups and campaigns
+            if (groupIds.length > 0) {
+                await SellerGroupModel.deleteMany({ groupId: { $in: groupIds } }, { session });
+            }
+            if (campaignIds.length > 0) {
+                await CampaignSellerModel.deleteMany({ campaignId: { $in: campaignIds } }, { session });
+            }
+
+            // Soft delete groups and campaigns created by this admin
+            await GroupModel.updateMany({ createdBy: userObjectId }, { $set: { isDeleted: true } }, { session });
+            await CampaignModel.updateMany({ $or: [{ createdBy: userObjectId }, { groupId: { $in: groupIds } }] }, { $set: { isDeleted: true } }, { session });
+        }
+
+        // 3. Unlink memberId from past orders so sales history & analytics remain intact without referencing deleted user
+        await OrderModel.updateMany({ memberId: userObjectId }, { $unset: { memberId: "" } }, { session });
+
+        // Delete user document completely so they can re-register with the same email/login credentials in the future
+        await UserModel.findByIdAndDelete(userObjectId, { session });
+
+        await session.commitTransaction();
+        session.endSession();
+    } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        throw error;
+    }
 };
 
 const updateEmail = async (userId: string, newEmail: string, password: string) => {
@@ -782,6 +851,7 @@ export const authServices = {
     resetPassword,
     updateProfile,
     changePassword,
+    deleteAccount,
     updateEmail,
     resendEmailUpdate,
     verifyNewEmail,

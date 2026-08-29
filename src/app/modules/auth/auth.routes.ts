@@ -23,6 +23,7 @@ router.get("/referral-campaign", auth, authControllers.getMyReferralAndCampaign)
 router.post("/logout", auth, authControllers.logout);
 router.patch("/profile", auth, uploadProfileImage, authControllers.updateProfile);
 router.post("/change-password", auth, authControllers.changePassword);
+router.delete("/delete-account", auth, authControllers.deleteAccount);
 router.post("/update-email", auth, authControllers.updateEmail);
 router.get("/verify-new-email", authControllers.verifyNewEmail);
 router.post("/resend-email-update", auth, authControllers.resendEmailUpdate);

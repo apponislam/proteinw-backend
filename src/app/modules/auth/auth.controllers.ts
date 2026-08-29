@@ -319,6 +319,28 @@ const changePassword = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const deleteAccount = catchAsync(async (req: Request, res: Response) => {
+    const { password } = req.body;
+    if (!password) {
+        throw new ApiError(httpStatus.BAD_REQUEST, "Password is required to delete account");
+    }
+
+    await authServices.deleteAccount(req.user._id, password);
+
+    res.clearCookie("refreshToken", {
+        httpOnly: true,
+        secure: config.node_env === "production",
+        sameSite: config.node_env === "production" ? "none" : "lax",
+    });
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Account deleted successfully",
+        data: null,
+    });
+});
+
 const updateEmail = catchAsync(async (req: Request, res: Response) => {
     await authServices.updateEmail(req.user._id, req.body.email, req.body.password);
 
@@ -536,6 +558,7 @@ export const authControllers = {
     resetPassword,
     updateProfile,
     changePassword,
+    deleteAccount,
     updateEmail,
     resendEmailUpdate,
     verifyNewEmail,
