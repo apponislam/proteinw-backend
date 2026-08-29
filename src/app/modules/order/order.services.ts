@@ -735,7 +735,7 @@ const getMemberOrderStats = async (userId: Types.ObjectId | string, query: any =
     };
 };
 
-const getOrdersByCampaign = async (campaignId: string, query: any = {}) => {
+const getOrdersByCampaign = async (campaignId: string, query: any = {}, user?: any) => {
     if (!Types.ObjectId.isValid(campaignId)) {
         throw new ApiError(httpStatus.BAD_REQUEST, "Invalid campaign ID");
     }
@@ -744,6 +744,11 @@ const getOrdersByCampaign = async (campaignId: string, query: any = {}) => {
         campaignId: new Types.ObjectId(campaignId),
         isDeleted: false,
     };
+
+    const isMySales = query.mySales === true || query.mySales === "true";
+    if (isMySales && user?._id) {
+        filter.memberId = new Types.ObjectId(user._id as string);
+    }
 
     if (query.status) {
         filter.status = query.status;
