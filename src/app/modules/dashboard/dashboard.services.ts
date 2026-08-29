@@ -137,6 +137,7 @@ const getStoreInfo = async (campaignCode: string, referralCode: string) => {
 
     return {
         validation: true,
+        sellerName: member.name,
         adminName,
         groupName: group ? group.name : campaign.name,
         campaignName: campaign.name,
