@@ -16,7 +16,7 @@ const ProductSchema = new Schema<ProductDocument>(
         marginBenefit: { type: String, trim: true },
         qualityHighlight: { type: String, trim: true },
         ecoHighlight: { type: String, trim: true },
-        productImage: { type: String },
+        images: [{ type: String }],
         createdBy: { type: Schema.Types.ObjectId, ref: "User" },
         isActive: { type: Boolean, default: true },
         isDeleted: { type: Boolean, default: false },

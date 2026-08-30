@@ -71,27 +71,28 @@ export const uploadProfileImage = (req: Request, res: Response, next: NextFuncti
     });
 };
 
-// Middleware for single product image upload
-export const uploadProductImage = (req: Request, res: Response, next: NextFunction) => {
-    const uploadSingle = upload.single("productImage");
+// Middleware for multiple product images upload
+export const uploadProductImages = (req: Request, res: Response, next: NextFunction) => {
+    const uploadArray = upload.array("images", 3);
 
-    uploadSingle(req, res, async (err) => {
+    uploadArray(req, res, async (err) => {
         if (err) return next(err);
 
-        // Process productImage file if uploaded
-        if (req.file) {
+        // Process images files if uploaded
+        if (req.files && Array.isArray(req.files) && req.files.length > 0) {
             try {
-                const file = req.file;
-                const newName = generateFileName("product", file.originalname);
-                const outputPath = path.join(productImageDir, newName);
+                for (const file of req.files) {
+                    const newName = generateFileName("product", file.originalname);
+                    const outputPath = path.join(productImageDir, newName);
 
-                // Convert to webp
-                await sharp(file.buffer).webp({ quality: 80 }).toFile(outputPath);
+                    // Convert to webp
+                    await sharp(file.buffer).webp({ quality: 80 }).toFile(outputPath);
 
-                // Store the relative path instead of just filename
-                file.filename = getRelativeImagePath("product-images", newName);
-                file.path = outputPath;
-                file.mimetype = "image/webp";
+                    // Store the relative path instead of just filename
+                    file.filename = getRelativeImagePath("product-images", newName);
+                    file.path = outputPath;
+                    file.mimetype = "image/webp";
+                }
             } catch (error) {
                 return next(error);
             }

@@ -4,10 +4,12 @@ import ApiError from "../../../errors/ApiError";
 import { ProductModel } from "./product.model";
 import { CampaignProductModel } from "../campaignProduct/campaignProduct.model";
 
-const createProduct = async (userId: string, payload: any, productImage?: string) => {
+import { removeFiles } from "../../../utils/fileHelper";
+
+const createProduct = async (userId: string, payload: any, images: string[] = []) => {
     const product = await ProductModel.create({
         ...payload,
-        productImage,
+        images,
         createdBy: new Types.ObjectId(userId),
     });
     return product;
@@ -179,14 +181,40 @@ const getProductById = async (productId: string) => {
     return product;
 };
 
-const updateProduct = async (productId: string, payload: any, productImage?: string) => {
-    const updateData: any = { ...payload };
-    if (productImage) {
-        updateData.productImage = productImage;
+const updateProduct = async (productId: string, payload: any, newImages: string[] = [], removeImages: string[] = []) => {
+    const existingProduct = await ProductModel.findOne({ _id: productId, isDeleted: false });
+    if (!existingProduct) throw new ApiError(httpStatus.NOT_FOUND, "Requested product was not found or has been deleted.");
+
+    let currentImages = existingProduct.images || [];
+
+    // Remove specified images from disk and array if any
+    if (removeImages && removeImages.length > 0) {
+        removeFiles(removeImages);
+        currentImages = currentImages.filter((img) => !removeImages.includes(img));
     }
 
-    const product = await ProductModel.findOneAndUpdate({ _id: productId, isDeleted: false }, { $set: updateData }, { returnDocument: "after", runValidators: true });
-    if (!product) throw new ApiError(httpStatus.NOT_FOUND, "Requested product was not found or has been deleted.");
+    // Append newly uploaded images
+    if (newImages && newImages.length > 0) {
+        currentImages = [...currentImages, ...newImages];
+    }
+
+    // Ensure maximum 3 images per product
+    if (currentImages.length > 3) {
+        currentImages = currentImages.slice(0, 3);
+    }
+
+    const { removeImages: _removeImages, ...updatePayload } = payload;
+    const updateData: any = {
+        ...updatePayload,
+        images: currentImages,
+    };
+
+    const product = await ProductModel.findOneAndUpdate(
+        { _id: productId, isDeleted: false },
+        { $set: updateData },
+        { returnDocument: "after", runValidators: true }
+    );
+
     return product;
 };
 

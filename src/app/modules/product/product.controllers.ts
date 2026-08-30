@@ -5,10 +5,11 @@ import { Request, Response } from "express";
 import { productServices } from "./product.services";
 
 const createProduct = catchAsync(async (req: Request, res: Response) => {
-    console.log(req.file);
-    console.log(req.body);
-    const productImage = req.file?.filename;
-    const result = await productServices.createProduct(req.user._id, req.body, productImage);
+    let images: string[] = [];
+    if (req.files && Array.isArray(req.files)) {
+        images = req.files.map((file: any) => file.filename);
+    }
+    const result = await productServices.createProduct(req.user._id, req.body, images);
 
     sendResponse(res, {
         statusCode: httpStatus.CREATED,
@@ -56,8 +57,25 @@ const getProductById = catchAsync(async (req: Request, res: Response) => {
 });
 
 const updateProduct = catchAsync(async (req: Request, res: Response) => {
-    const productImage = req.file?.filename;
-    const result = await productServices.updateProduct(req.params.productId as string, req.body, productImage);
+    let newImages: string[] = [];
+    if (req.files && Array.isArray(req.files)) {
+        newImages = req.files.map((file: any) => file.filename);
+    }
+
+    let removeImages: string[] = [];
+    if (req.body.removeImages) {
+        if (typeof req.body.removeImages === "string") {
+            try {
+                removeImages = JSON.parse(req.body.removeImages);
+            } catch {
+                removeImages = [req.body.removeImages];
+            }
+        } else if (Array.isArray(req.body.removeImages)) {
+            removeImages = req.body.removeImages;
+        }
+    }
+
+    const result = await productServices.updateProduct(req.params.productId as string, req.body, newImages, removeImages);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,

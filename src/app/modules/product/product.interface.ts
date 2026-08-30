@@ -11,7 +11,7 @@ export interface IProduct {
     marginBenefit?: string;
     qualityHighlight?: string;
     ecoHighlight?: string;
-    productImage?: string;
+    images?: string[];
     createdBy?: Types.ObjectId;
     isActive: boolean;
     isDeleted: boolean;
