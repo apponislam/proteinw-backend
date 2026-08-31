@@ -662,26 +662,91 @@ const getMemberOrderStats = async (userId: Types.ObjectId | string, query: any =
         };
     }
 
-    // 1. Total Revenue: sum of totalPrice of non-cancelled and non-deleted orders for this member in targeted campaign(s)
-    const totalRevenueResult = await OrderModel.aggregate([
-        {
-            $match: {
-                memberId: memberId,
-                campaignId: { $in: targetCampaignIds },
-                status: { $ne: "cancelled" },
-                isDeleted: false,
-            },
-        },
-        {
-            $group: {
-                _id: null,
-                total: { $sum: "$totalPrice" },
-            },
-        },
-    ]);
-    const totalRevenue = totalRevenueResult[0]?.total || 0;
+    const tiers = await TierModel.find({ isActive: true, isDeleted: false }).sort({ minSalesVolume: 1 });
+    const campaigns = await CampaignModel.find({ _id: { $in: targetCampaignIds }, isDeleted: false }).lean();
 
-    // 2. Active Orders count: pending status, and not deleted for this member in targeted campaign(s)
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    let totalRevenue = 0;
+    let mtdSales = 0;
+
+    for (const campaign of campaigns) {
+        // Find overall campaign packages sold to determine current tier if needed
+        const campaignOrdersStats = await OrderModel.aggregate([
+            {
+                $match: {
+                    campaignId: campaign._id,
+                    isDeleted: false,
+                    status: { $ne: "cancelled" },
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalPackagesSold: { $sum: "$totalPackage" },
+                },
+            },
+        ]);
+        const totalCampaignPackagesSold = campaignOrdersStats[0]?.totalPackagesSold || 0;
+
+        let currentTier = null;
+        if (campaign.tierId) {
+            currentTier = tiers.find((t) => t._id.toString() === campaign.tierId?.toString()) || null;
+        }
+        if (!currentTier) {
+            currentTier = tiers.find(
+                (t) =>
+                    totalCampaignPackagesSold >= t.minSalesVolume &&
+                    (t.maxSalesVolume === undefined || t.maxSalesVolume === null || totalCampaignPackagesSold <= t.maxSalesVolume)
+            ) || null;
+        }
+
+        const profitPercentage = currentTier?.percentage || 0;
+
+        // Seller's total gross sales for this campaign
+        const sellerRevenueResult = await OrderModel.aggregate([
+            {
+                $match: {
+                    memberId: memberId,
+                    campaignId: campaign._id,
+                    status: { $ne: "cancelled" },
+                    isDeleted: false,
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    total: { $sum: "$totalPrice" },
+                },
+            },
+        ]);
+        const sellerGrossRevenue = sellerRevenueResult[0]?.total || 0;
+        totalRevenue += sellerGrossRevenue * (profitPercentage / 100);
+
+        // Seller's MTD gross sales for this campaign
+        const mtdRevenueResult = await OrderModel.aggregate([
+            {
+                $match: {
+                    memberId: memberId,
+                    campaignId: campaign._id,
+                    status: { $ne: "cancelled" },
+                    isDeleted: false,
+                    createdAt: { $gte: startOfMonth },
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    total: { $sum: "$totalPrice" },
+                },
+            },
+        ]);
+        const mtdGrossRevenue = mtdRevenueResult[0]?.total || 0;
+        mtdSales += mtdGrossRevenue * (profitPercentage / 100);
+    }
+
+    // Active Orders count: pending status, and not deleted for this member in targeted campaign(s)
     const activeOrdersCount = await OrderModel.countDocuments({
         memberId: memberId,
         campaignId: { $in: targetCampaignIds },
@@ -689,33 +754,10 @@ const getMemberOrderStats = async (userId: Types.ObjectId | string, query: any =
         isDeleted: false,
     });
 
-    // 3. Month-to-Date (MTD) Sales: sum of totalPrice of non-cancelled/non-deleted orders since the start of the current month for this member in targeted campaign(s)
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-    const mtdSalesResult = await OrderModel.aggregate([
-        {
-            $match: {
-                memberId: memberId,
-                campaignId: { $in: targetCampaignIds },
-                status: { $ne: "cancelled" },
-                isDeleted: false,
-                createdAt: { $gte: startOfMonth },
-            },
-        },
-        {
-            $group: {
-                _id: null,
-                total: { $sum: "$totalPrice" },
-            },
-        },
-    ]);
-    const mtdSales = mtdSalesResult[0]?.total || 0;
-
     return {
-        totalRevenue,
+        totalRevenue: Math.round(totalRevenue),
         activeOrders: activeOrdersCount,
-        mtdSales,
+        mtdSales: Math.round(mtdSales),
     };
 };
 
