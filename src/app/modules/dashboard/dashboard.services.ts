@@ -2,13 +2,14 @@ import { UserModel } from "../auth/auth.model";
 import { GroupModel } from "../group/group.model";
 import { CampaignModel } from "../campaign/campaign.model";
 import { OrderModel } from "../order/order.model";
-import { ProductModel } from "../product/product.model";
 import { CampaignProductModel } from "../campaignProduct/campaignProduct.model";
 import { TierModel } from "../tier/tier.model";
 import { SellerGroupModel } from "../sellerGroup/sellerGroup.model";
 import { CampaignSellerModel } from "../campaignSeller/campaignSeller.model";
 import config from "../../config";
 import { Types } from "mongoose";
+import httpStatus from "http-status";
+import ApiError from "../../../errors/ApiError";
 
 const getDashboardStats = async () => {
     const ordersResult = await OrderModel.aggregate([{ $match: { isDeleted: false } }, { $group: { _id: null, totalPackages: { $sum: "$totalPackage" } } }]);
@@ -286,9 +287,7 @@ const getSuperAdminSellers = async (query: any) => {
 
             const sellerGroupJoins = await SellerGroupModel.find({ sellerId: seller._id, isDeleted: false }).populate("groupId").lean();
 
-            let groupNames = sellerGroupJoins
-                .map((sg: any) => sg.groupId?.name)
-                .filter((name: any): name is string => typeof name === "string" && name.trim().length > 0);
+            let groupNames = sellerGroupJoins.map((sg: any) => sg.groupId?.name).filter((name: any): name is string => typeof name === "string" && name.trim().length > 0);
 
             if (groupNames.length > 20) {
                 groupNames = [...groupNames.slice(0, 20), "20+"];
@@ -297,11 +296,11 @@ const getSuperAdminSellers = async (query: any) => {
             const campaignSellerJoins = await CampaignSellerModel.find({
                 sellerId: seller._id,
                 isDeleted: false,
-            }).populate("campaignId").lean();
+            })
+                .populate("campaignId")
+                .lean();
 
-            const activeCampaigns = campaignSellerJoins
-                .map((cs: any) => cs.campaignId)
-                .filter((c: any) => c && !c.isDeleted && c.status === "ACTIVE");
+            const activeCampaigns = campaignSellerJoins.map((cs: any) => cs.campaignId).filter((c: any) => c && !c.isDeleted && c.status === "ACTIVE");
 
             const baseUrl = config.client_url || "http://localhost:3000";
             let salesLinks: any[] = activeCampaigns
@@ -897,6 +896,161 @@ const getAsSellerCampaignInfo = async (userId: string, query: any = {}) => {
     };
 };
 
+const getSellerCampaignInfoById = async (userId: string, campaignId: string) => {
+    if (!campaignId || !Types.ObjectId.isValid(campaignId)) {
+        throw new ApiError(httpStatus.BAD_REQUEST, "Invalid campaign ID provided.");
+    }
+    if (!userId || !Types.ObjectId.isValid(userId)) {
+        throw new ApiError(httpStatus.UNAUTHORIZED, "Unauthorized access.");
+    }
+
+    const campaignObjectId = new Types.ObjectId(campaignId);
+    const sellerObjectId = new Types.ObjectId(userId);
+
+    const campaign = await CampaignModel.findOne({ _id: campaignObjectId, isDeleted: false }).lean();
+    if (!campaign) {
+        throw new ApiError(httpStatus.NOT_FOUND, "Requested campaign was not found or has been deleted.");
+    }
+
+    // Fetch Campaign Admin info
+    let campaignAdmin = null;
+    if (campaign.createdBy) {
+        campaignAdmin = await UserModel.findOne({ _id: campaign.createdBy, isDeleted: false }, { name: 1, email: 1, role: 1, phone: 1, profession: 1 }).lean();
+    }
+
+    // Aggregate overall campaign sales
+    const campaignOrdersStats = await OrderModel.aggregate([
+        {
+            $match: {
+                campaignId: campaignObjectId,
+                isDeleted: false,
+                status: { $ne: "cancelled" },
+            },
+        },
+        {
+            $group: {
+                _id: null,
+                totalPackagesSold: { $sum: "$totalPackage" },
+                totalCampaignRevenue: { $sum: "$totalPrice" },
+            },
+        },
+    ]);
+
+    const totalCampaignPackagesSold = campaignOrdersStats[0]?.totalPackagesSold || 0;
+    const totalCampaignRevenue = campaignOrdersStats[0]?.totalCampaignRevenue || 0;
+
+    // Aggregate seller personal sales
+    const sellerOrdersStats = await OrderModel.aggregate([
+        {
+            $match: {
+                campaignId: campaignObjectId,
+                memberId: sellerObjectId,
+                isDeleted: false,
+                status: { $ne: "cancelled" },
+            },
+        },
+        {
+            $group: {
+                _id: null,
+                myPackagesSold: { $sum: "$totalPackage" },
+                myRevenue: { $sum: "$totalPrice" },
+            },
+        },
+    ]);
+
+    const myPackagesSold = sellerOrdersStats[0]?.myPackagesSold || 0;
+    const myRevenue = sellerOrdersStats[0]?.myRevenue || 0;
+
+    // Fetch tiers and calculate current & next tier
+    const tiers = await TierModel.find({ isActive: true, isDeleted: false }).sort({ minSalesVolume: 1 });
+    const formatTier = (t: any) =>
+        t
+            ? {
+                  _id: t._id,
+                  name: t.name,
+                  percentage: t.percentage,
+                  minSalesVolume: t.minSalesVolume,
+                  maxSalesVolume: t.maxSalesVolume,
+              }
+            : null;
+
+    let currentTier = null;
+    if (campaign.tierId) {
+        currentTier = tiers.find((t) => t._id.toString() === campaign.tierId?.toString()) || null;
+    }
+    if (!currentTier) {
+        currentTier = tiers.find((t) => totalCampaignPackagesSold >= t.minSalesVolume && (t.maxSalesVolume === undefined || t.maxSalesVolume === null || totalCampaignPackagesSold <= t.maxSalesVolume)) || null;
+    }
+
+    const currentMinVol = currentTier?.minSalesVolume ?? -1;
+    const nextTier = tiers.find((t) => t.minSalesVolume > (currentMinVol >= 0 ? currentMinVol : totalCampaignPackagesSold)) || null;
+    const packagesNeededForNextTier = nextTier ? Math.max(0, nextTier.minSalesVolume - totalCampaignPackagesSold) : 0;
+
+    const currentTierPercentage = currentTier?.percentage || 0;
+
+    // Calculate profit
+    const totalCampaignProfit = totalCampaignRevenue * (currentTierPercentage / 100);
+    const myProfit = myRevenue * (currentTierPercentage / 100);
+
+    // Calculate days remaining
+    let daysRemaining = 0;
+    if (campaign.endDate) {
+        const now = new Date();
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const endDate = new Date(campaign.endDate);
+        const endDayStart = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+        daysRemaining = Math.max(0, Math.floor((endDayStart.getTime() - todayStart.getTime()) / (1000 * 60 * 60 * 24)));
+    }
+
+    // Referral shop URL
+    const seller = await UserModel.findById(sellerObjectId).select("referralCode").lean();
+    const referralCode = seller?.referralCode || "";
+    const campaignCode = campaign.code || "";
+    const baseUrl = config.client_url || "http://localhost:3000";
+    const shopUrl = campaignCode && referralCode ? `${baseUrl}/store?campaign=${campaignCode}&referral=${referralCode}` : "";
+
+    return {
+        _id: campaign._id,
+        name: campaign.name,
+        shortDescription: campaign.shortDescription,
+        target: campaign.target,
+        endDate: campaign.endDate,
+        groupId: campaign.groupId,
+        createdBy: campaign.createdBy,
+        status: campaign.status,
+        isDeleted: campaign.isDeleted,
+        createdAt: campaign.createdAt,
+        updatedAt: campaign.updatedAt,
+        code: campaign.code,
+        tierAssignDate: campaign.tierAssignDate,
+        tierId: campaign.tierId,
+        totalPackagesSold: totalCampaignPackagesSold,
+        totalRevenueSold: totalCampaignProfit,
+        campaignAdmin,
+        currentTier: formatTier(currentTier),
+        nextTier: formatTier(nextTier),
+        packagesNeededForNextTier,
+
+        // SQUARE 1: Packages & Tier info
+        myPackagesSold,
+        totalCampaignPackagesSold,
+        profitTierPercentage: currentTierPercentage,
+        nextTierPackagesNeeded: packagesNeededForNextTier,
+
+        // SQUARE 2: Profit & Revenue info
+        myProfit,
+        myRevenue,
+        campaignProfit: totalCampaignProfit,
+        campaignRevenue: totalCampaignRevenue,
+
+        // SQUARE 3: Status info
+        daysRemaining,
+        targetReached: totalCampaignPackagesSold >= (campaign.target || 0),
+        referralCode,
+        shopUrl,
+    };
+};
+
 export const dashboardServices = {
     getDashboardStats,
     getDashboardStatus,
@@ -911,4 +1065,5 @@ export const dashboardServices = {
     getActiveCampaignsOverview,
     getAsSellerDashboardStats,
     getAsSellerCampaignInfo,
+    getSellerCampaignInfoById,
 };

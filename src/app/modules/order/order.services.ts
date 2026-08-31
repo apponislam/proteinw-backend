@@ -263,9 +263,7 @@ const getOrdersByMember = async (memberId: string, query: any = {}) => {
             .populate("campaignId")
             .lean();
 
-        const activeCampaignIds: Types.ObjectId[] = joinedCampaigns
-            .filter((j: any) => j.campaignId && !j.campaignId.isDeleted && j.campaignId.status === "ACTIVE")
-            .map((j: any) => j.campaignId._id);
+        const activeCampaignIds: Types.ObjectId[] = joinedCampaigns.filter((j: any) => j.campaignId && !j.campaignId.isDeleted && j.campaignId.status === "ACTIVE").map((j: any) => j.campaignId._id);
 
         const sellerGroup = await SellerGroupModel.findOne({ sellerId: memberObjectId, isDeleted: false });
         if (sellerGroup) {
@@ -301,13 +299,7 @@ const getOrdersByMember = async (memberId: string, query: any = {}) => {
         filter.campaignId = { $in: activeCampaignIds };
     }
 
-    const orders = await OrderModel.find(filter)
-        .populate("memberId", "name email")
-        .populate("campaignId", "name code")
-        .populate("groupId", "name")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit);
+    const orders = await OrderModel.find(filter).populate("memberId", "name email").populate("campaignId", "name code").populate("groupId", "name").sort({ createdAt: -1 }).skip(skip).limit(limit);
 
     const total = await OrderModel.countDocuments(filter);
 
@@ -447,13 +439,7 @@ const getRunningCampaignOrders = async (user: any, query: any = {}) => {
     const limit = parseInt(query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    const orders = await OrderModel.find(filter)
-        .populate("memberId", "name email")
-        .populate("campaignId", "name code")
-        .populate("groupId", "name")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit);
+    const orders = await OrderModel.find(filter).populate("memberId", "name email").populate("campaignId", "name code").populate("groupId", "name").sort({ createdAt: -1 }).skip(skip).limit(limit);
 
     const total = await OrderModel.countDocuments(filter);
 
@@ -560,7 +546,9 @@ const getCampaignContributors = async (user: any) => {
     const adminCampaigns = await CampaignModel.find({
         $or: [{ createdBy: userId }, { groupId: { $in: groupIds } }],
         isDeleted: false,
-    }).select("_id").lean();
+    })
+        .select("_id")
+        .lean();
     const campaignIds = adminCampaigns.map((c) => c._id);
 
     if (campaignIds.length === 0 && groupIds.length === 0) {
@@ -610,11 +598,9 @@ const getCampaignContributors = async (user: any) => {
         },
     ]);
 
-    return ordersAggregation.map(item => {
+    return ordersAggregation.map((item) => {
         const nameParts = (item.name || "").trim().split(/\s+/);
-        const initials = nameParts.length > 1 
-            ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
-            : (nameParts[0]?.[0] || "").toUpperCase();
+        const initials = nameParts.length > 1 ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase() : (nameParts[0]?.[0] || "").toUpperCase();
 
         return {
             _id: item._id,
@@ -647,9 +633,7 @@ const getMemberOrderStats = async (userId: Types.ObjectId | string, query: any =
             .populate("campaignId")
             .lean();
 
-        targetCampaignIds = joinedCampaigns
-            .filter((j: any) => j.campaignId && !j.campaignId.isDeleted && j.campaignId.status === "ACTIVE")
-            .map((j: any) => j.campaignId._id);
+        targetCampaignIds = joinedCampaigns.filter((j: any) => j.campaignId && !j.campaignId.isDeleted && j.campaignId.status === "ACTIVE").map((j: any) => j.campaignId._id);
 
         // Also check seller group active campaigns
         const sellerGroup = await SellerGroupModel.findOne({ sellerId: memberId, isDeleted: false });
@@ -757,24 +741,14 @@ const getOrdersByCampaign = async (campaignId: string, query: any = {}, user?: a
     const searchTerm = query.search || query.searchTerm;
     if (searchTerm) {
         const searchRegex = new RegExp(searchTerm, "i");
-        filter.$or = [
-            { customerName: searchRegex },
-            { customerEmail: searchRegex },
-            { customerPhone: searchRegex },
-        ];
+        filter.$or = [{ customerName: searchRegex }, { customerEmail: searchRegex }, { customerPhone: searchRegex }];
     }
 
     const page = parseInt(query.page as string) || 1;
     const limit = parseInt(query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    const orders = await OrderModel.find(filter)
-        .populate("memberId", "name email referralCode")
-        .populate("campaignId", "name code")
-        .populate("groupId", "name")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit);
+    const orders = await OrderModel.find(filter).populate("memberId", "name email referralCode").populate("campaignId", "name code").populate("groupId", "name").sort({ createdAt: -1 }).skip(skip).limit(limit);
 
     const total = await OrderModel.countDocuments(filter);
 

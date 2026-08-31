@@ -18,5 +18,6 @@ router.get("/active-campaigns-overview", auth, authorize(["SUPER_ADMIN", "ADMIN"
 router.get("/store-info", dashboardControllers.getStoreInfo);
 router.get("/as-seller-stats", auth, dashboardControllers.getAsSellerDashboardStats);
 router.get("/as-seller-campaign-info", auth, dashboardControllers.getAsSellerCampaignInfo);
+router.get("/seller-campaign-info/:campaignId", auth, authorize(["SELLER"]), dashboardControllers.getSellerCampaignInfoById);
 
 export const dashboardRoutes = router;

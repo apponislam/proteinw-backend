@@ -172,6 +172,19 @@ const getAsSellerCampaignInfo = catchAsync(async (req: Request, res: Response) =
     });
 });
 
+const getSellerCampaignInfoById = catchAsync(async (req: Request, res: Response) => {
+    const user = req.user as any;
+    const campaignId = req.params.campaignId as string;
+    const result = await dashboardServices.getSellerCampaignInfoById(user?._id, campaignId);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Campaign retrieved successfully",
+        data: result,
+    });
+});
+
 export const dashboardControllers = {
     getDashboardStats,
     getDashboardStatus,
@@ -186,4 +199,5 @@ export const dashboardControllers = {
     getActiveCampaignsOverview,
     getAsSellerDashboardStats,
     getAsSellerCampaignInfo,
+    getSellerCampaignInfoById,
 };
