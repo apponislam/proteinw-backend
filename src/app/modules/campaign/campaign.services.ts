@@ -226,7 +226,7 @@ const getAllCampaignsWithStats = async (query: any = {}) => {
                 ...campaign,
                 sellersCount,
                 totalPackagesSold,
-                totalRevenueSold: stats.totalRevenueSold,
+                totalRevenueSold: stats.totalRevenueSold * ((currentTier?.percentage || 0) / 100),
                 currentTier: formatTier(currentTier),
                 nextTier: formatTier(nextTier),
                 packagesNeededForNextTier,
@@ -345,7 +345,7 @@ const getCampaignById = async (campaignId: string) => {
     return {
         ...campaign,
         totalPackagesSold,
-        totalRevenueSold: stats.totalRevenueSold,
+        totalRevenueSold: stats.totalRevenueSold * ((currentTier?.percentage || 0) / 100),
         campaignAdmin,
         currentTier: formatTier(currentTier),
         nextTier: formatTier(nextTier),
@@ -358,10 +358,19 @@ const getCampaignByCode = async (code: string) => {
     if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, `Campaign with code "${code}" was not found or has been deleted.`);
 
     const stats = await getCampaignStats(campaign._id as Types.ObjectId);
+    const tiers = await TierModel.find({ isActive: true, isDeleted: false }).sort({ minSalesVolume: 1 });
+    let currentTier = null;
+    if (campaign.tierId) {
+        currentTier = tiers.find((t) => t._id.toString() === campaign.tierId?.toString()) || null;
+    }
+    if (!currentTier) {
+        currentTier = tiers.find((t) => stats.totalPackagesSold >= t.minSalesVolume && (t.maxSalesVolume === undefined || t.maxSalesVolume === null || stats.totalPackagesSold <= t.maxSalesVolume)) || null;
+    }
+
     return {
         ...campaign,
         totalPackagesSold: stats.totalPackagesSold,
-        totalRevenueSold: stats.totalRevenueSold,
+        totalRevenueSold: stats.totalRevenueSold * ((currentTier?.percentage || 0) / 100),
     };
 };
 
@@ -415,7 +424,7 @@ const getCampaignsByGroup = async (groupId: string, query: any = {}) => {
                 ...campaign,
                 sellersCount,
                 totalPackagesSold,
-                totalRevenueSold: stats.totalRevenueSold,
+                totalRevenueSold: stats.totalRevenueSold * ((currentTier?.percentage || 0) / 100),
                 currentTier: formatTier(currentTier),
                 nextTier: formatTier(nextTier),
                 packagesNeededForNextTier,
@@ -516,11 +525,20 @@ const getRunningCampaignByGroup = async (groupId: string) => {
     if (!campaign) return null;
 
     const stats = await getCampaignStats(campaign._id as Types.ObjectId);
+    const tiers = await TierModel.find({ isActive: true, isDeleted: false }).sort({ minSalesVolume: 1 });
+
+    let currentTier = null;
+    if (campaign.tierId) {
+        currentTier = tiers.find((t) => t._id.toString() === campaign.tierId?.toString()) || null;
+    }
+    if (!currentTier) {
+        currentTier = tiers.find((t) => stats.totalPackagesSold >= t.minSalesVolume && (t.maxSalesVolume === undefined || t.maxSalesVolume === null || stats.totalPackagesSold <= t.maxSalesVolume)) || null;
+    }
 
     return {
         ...campaign,
         totalPackagesSold: stats.totalPackagesSold,
-        totalRevenueSold: stats.totalRevenueSold,
+        totalRevenueSold: stats.totalRevenueSold * ((currentTier?.percentage || 0) / 100),
     };
 };
 
@@ -570,14 +588,22 @@ const getRunningCampaignForSeller = async (sellerId: string, groupId: string, qu
     const campaigns = await CampaignModel.find(filter).populate("createdBy", "name email role phone photo").sort({ createdAt: -1 }).skip(skip).limit(limit).lean();
 
     const total = await CampaignModel.countDocuments(filter);
+    const tiers = await TierModel.find({ isActive: true, isDeleted: false }).sort({ minSalesVolume: 1 });
 
     const campaignsWithStats = await Promise.all(
         campaigns.map(async (campaign) => {
             const stats = await getCampaignStats(campaign._id as Types.ObjectId);
+            let currentTier = null;
+            if (campaign.tierId) {
+                currentTier = tiers.find((t) => t._id.toString() === (campaign as any).tierId?.toString()) || null;
+            }
+            if (!currentTier) {
+                currentTier = tiers.find((t) => stats.totalPackagesSold >= t.minSalesVolume && (t.maxSalesVolume === undefined || t.maxSalesVolume === null || stats.totalPackagesSold <= t.maxSalesVolume)) || null;
+            }
             return {
                 ...campaign,
                 totalPackagesSold: stats.totalPackagesSold,
-                totalRevenueSold: stats.totalRevenueSold,
+                totalRevenueSold: stats.totalRevenueSold * ((currentTier?.percentage || 0) / 100),
             };
         }),
     );
