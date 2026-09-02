@@ -227,6 +227,7 @@ const getAllCampaignsWithStats = async (query: any = {}) => {
                 sellersCount,
                 totalPackagesSold,
                 totalRevenueSold: stats.totalRevenueSold * ((currentTier?.percentage || 0) / 100),
+                totalSoldAmount: stats.totalRevenueSold,
                 currentTier: formatTier(currentTier),
                 nextTier: formatTier(nextTier),
                 packagesNeededForNextTier,
@@ -346,6 +347,7 @@ const getCampaignById = async (campaignId: string) => {
         ...campaign,
         totalPackagesSold,
         totalRevenueSold: stats.totalRevenueSold * ((currentTier?.percentage || 0) / 100),
+        totalSoldAmount: stats.totalRevenueSold,
         campaignAdmin,
         currentTier: formatTier(currentTier),
         nextTier: formatTier(nextTier),
@@ -371,6 +373,7 @@ const getCampaignByCode = async (code: string) => {
         ...campaign,
         totalPackagesSold: stats.totalPackagesSold,
         totalRevenueSold: stats.totalRevenueSold * ((currentTier?.percentage || 0) / 100),
+        totalSoldAmount: stats.totalRevenueSold,
     };
 };
 
@@ -425,6 +428,7 @@ const getCampaignsByGroup = async (groupId: string, query: any = {}) => {
                 sellersCount,
                 totalPackagesSold,
                 totalRevenueSold: stats.totalRevenueSold * ((currentTier?.percentage || 0) / 100),
+                totalSoldAmount: stats.totalRevenueSold,
                 currentTier: formatTier(currentTier),
                 nextTier: formatTier(nextTier),
                 packagesNeededForNextTier,
@@ -539,6 +543,7 @@ const getRunningCampaignByGroup = async (groupId: string) => {
         ...campaign,
         totalPackagesSold: stats.totalPackagesSold,
         totalRevenueSold: stats.totalRevenueSold * ((currentTier?.percentage || 0) / 100),
+        totalSoldAmount: stats.totalRevenueSold,
     };
 };
 
@@ -604,6 +609,7 @@ const getRunningCampaignForSeller = async (sellerId: string, groupId: string, qu
                 ...campaign,
                 totalPackagesSold: stats.totalPackagesSold,
                 totalRevenueSold: stats.totalRevenueSold * ((currentTier?.percentage || 0) / 100),
+                totalSoldAmount: stats.totalRevenueSold,
             };
         }),
     );

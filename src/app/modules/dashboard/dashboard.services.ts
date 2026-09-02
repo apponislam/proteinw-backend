@@ -1026,6 +1026,7 @@ const getSellerCampaignInfoById = async (userId: string, campaignId: string) => 
         tierId: campaign.tierId,
         totalPackagesSold: totalCampaignPackagesSold,
         totalRevenueSold: totalCampaignProfit,
+        totalSoldAmount: totalCampaignRevenue,
         campaignAdmin,
         currentTier: formatTier(currentTier),
         nextTier: formatTier(nextTier),
