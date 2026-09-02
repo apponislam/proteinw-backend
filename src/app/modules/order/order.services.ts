@@ -336,9 +336,9 @@ const updateOrderStatus = async (orderId: string, status: string) => {
     if (!existingOrder) throw new ApiError(httpStatus.NOT_FOUND, "Requested order was not found or has been deleted.");
 
     // Check if current status is delivered
-    if (existingOrder.status === "delivered") {
-        throw new ApiError(httpStatus.BAD_REQUEST, "Cannot update status of an order that has already been delivered.");
-    }
+    // if (existingOrder.status === "delivered") {
+    //     throw new ApiError(httpStatus.BAD_REQUEST, "Cannot update status of an order that has already been delivered.");
+    // }
 
     const order = await OrderModel.findOneAndUpdate({ _id: orderId, isDeleted: false }, { $set: { status } }, { returnDocument: "after", runValidators: true });
 
@@ -459,75 +459,94 @@ const getRunningCampaignOrders = async (user: any, query: any = {}) => {
 const getRunningCampaignStats = async (user: any, query: any = {}) => {
     const { GroupModel } = await import("../group/group.model");
     const { CampaignModel } = await import("../campaign/campaign.model");
+    const { TierModel } = await import("../tier/tier.model");
+
     const adminGroups = await GroupModel.find({ createdBy: user._id, isDeleted: false }).select("_id").lean();
     const groupIds = adminGroups.map((g) => g._id);
 
-    const activeCampaigns = await CampaignModel.find({
+    let activeCampaigns = await CampaignModel.find({
         $or: [{ createdBy: user._id }, { groupId: { $in: groupIds } }],
         status: "ACTIVE",
         isDeleted: false,
-    })
-        .select("_id")
-        .lean();
-    const campaignIds = activeCampaigns.map((c) => c._id);
-
-    const matchStage: any = {
-        isDeleted: false,
-        campaignId: { $in: campaignIds },
-    };
+    }).lean();
 
     if (query.campaignId && Types.ObjectId.isValid(query.campaignId as string)) {
-        matchStage.campaignId = new Types.ObjectId(query.campaignId as string);
+        activeCampaigns = activeCampaigns.filter(
+            (c) => c._id.toString() === query.campaignId.toString()
+        );
     }
 
-    // 1. Total Revenue: sum of totalPrice of non-cancelled and non-deleted orders
-    const totalRevenueResult = await OrderModel.aggregate([
-        {
-            $match: {
-                ...matchStage,
-                status: { $ne: "cancelled" },
-            },
-        },
-        {
-            $group: {
-                _id: null,
-                total: { $sum: "$totalPrice" },
-            },
-        },
-    ]);
-    const totalRevenue = totalRevenueResult[0]?.total || 0;
+    if (activeCampaigns.length === 0) {
+        return {
+            totalRevenue: 0,
+            activeOrders: 0,
+            mtdSales: 0,
+        };
+    }
 
-    // 2. Active Orders count: pending status
-    const activeOrdersCount = await OrderModel.countDocuments({
-        ...matchStage,
-        status: "pending",
-    });
+    const tiers = await TierModel.find({ isActive: true, isDeleted: false }).sort({ minSalesVolume: 1 });
+    const campaignIds = activeCampaigns.map((c) => c._id);
 
-    // 3. Month-to-Date (MTD) Sales
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const mtdSalesResult = await OrderModel.aggregate([
-        {
-            $match: {
-                ...matchStage,
-                status: { $ne: "cancelled" },
-                createdAt: { $gte: startOfMonth },
+    let totalRevenue = 0;
+    let mtdSales = 0;
+
+    for (const campaign of activeCampaigns) {
+        // Calculate total packages sold for this campaign to determine current tier
+        const campaignOrdersStats = await OrderModel.aggregate([
+            {
+                $match: {
+                    campaignId: campaign._id,
+                    isDeleted: false,
+                    status: { $ne: "cancelled" },
+                },
             },
-        },
-        {
-            $group: {
-                _id: null,
-                total: { $sum: "$totalPrice" },
+            {
+                $group: {
+                    _id: null,
+                    totalPackagesSold: { $sum: "$totalPackage" },
+                    totalGrossRevenue: { $sum: "$totalPrice" },
+                },
             },
-        },
-    ]);
-    const mtdSales = mtdSalesResult[0]?.total || 0;
+        ]);
+
+        const totalCampaignPackagesSold = campaignOrdersStats[0]?.totalPackagesSold || 0;
+        const totalGrossRevenue = campaignOrdersStats[0]?.totalGrossRevenue || 0;
+
+        let currentTier = null;
+        if (campaign.tierId) {
+            currentTier = tiers.find((t) => t._id.toString() === campaign.tierId?.toString()) || null;
+        }
+        if (!currentTier) {
+            currentTier = tiers.find(
+                (t) =>
+                    totalCampaignPackagesSold >= t.minSalesVolume &&
+                    (t.maxSalesVolume === undefined || t.maxSalesVolume === null || totalCampaignPackagesSold <= t.maxSalesVolume)
+            ) || null;
+        }
+
+        const profitPercentage = currentTier?.percentage || 0;
+
+        // Total gross revenue for this campaign
+        totalRevenue += totalGrossRevenue;
+
+        // Total commission profit based on tier percentage
+        mtdSales += totalGrossRevenue * (profitPercentage / 100);
+    }
+
+    // Active Orders count: pending status
+    const activeOrdersCount = await OrderModel.countDocuments({
+        campaignId: { $in: campaignIds },
+        status: "pending",
+        isDeleted: false,
+    });
 
     return {
-        totalRevenue,
+        totalRevenue: Math.round(totalRevenue),
         activeOrders: activeOrdersCount,
-        mtdSales,
+        mtdSales: Math.round(mtdSales),
     };
 };
 
@@ -695,11 +714,7 @@ const getMemberOrderStats = async (userId: Types.ObjectId | string, query: any =
             currentTier = tiers.find((t) => t._id.toString() === campaign.tierId?.toString()) || null;
         }
         if (!currentTier) {
-            currentTier = tiers.find(
-                (t) =>
-                    totalCampaignPackagesSold >= t.minSalesVolume &&
-                    (t.maxSalesVolume === undefined || t.maxSalesVolume === null || totalCampaignPackagesSold <= t.maxSalesVolume)
-            ) || null;
+            currentTier = tiers.find((t) => totalCampaignPackagesSold >= t.minSalesVolume && (t.maxSalesVolume === undefined || t.maxSalesVolume === null || totalCampaignPackagesSold <= t.maxSalesVolume)) || null;
         }
 
         const profitPercentage = currentTier?.percentage || 0;
@@ -722,28 +737,8 @@ const getMemberOrderStats = async (userId: Types.ObjectId | string, query: any =
             },
         ]);
         const sellerGrossRevenue = sellerRevenueResult[0]?.total || 0;
-        totalRevenue += sellerGrossRevenue * (profitPercentage / 100);
-
-        // Seller's MTD gross sales for this campaign
-        const mtdRevenueResult = await OrderModel.aggregate([
-            {
-                $match: {
-                    memberId: memberId,
-                    campaignId: campaign._id,
-                    status: { $ne: "cancelled" },
-                    isDeleted: false,
-                    createdAt: { $gte: startOfMonth },
-                },
-            },
-            {
-                $group: {
-                    _id: null,
-                    total: { $sum: "$totalPrice" },
-                },
-            },
-        ]);
-        const mtdGrossRevenue = mtdRevenueResult[0]?.total || 0;
-        mtdSales += mtdGrossRevenue * (profitPercentage / 100);
+        totalRevenue += sellerGrossRevenue;
+        mtdSales += sellerGrossRevenue * (profitPercentage / 100);
     }
 
     // Active Orders count: pending status, and not deleted for this member in targeted campaign(s)
