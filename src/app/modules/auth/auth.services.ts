@@ -134,25 +134,25 @@ const loginWithInvitationCode = async (data: { email: string; password: string; 
     }
 
     // 4. Join active campaign if available
-    const activeCampaign = await CampaignModel.findOne({
-        groupId: invitation.groupId,
-        isDeleted: false,
-        status: "ACTIVE",
-        endDate: { $gt: new Date() },
-    });
-    if (activeCampaign) {
-        const existingCampaignSeller = await CampaignSellerModel.findOne({
-            sellerId: user._id,
-            campaignId: activeCampaign._id,
-            isDeleted: false,
-        });
-        if (!existingCampaignSeller) {
-            await CampaignSellerModel.create({
-                sellerId: user._id,
-                campaignId: activeCampaign._id,
-            });
-        }
-    }
+    // const activeCampaign = await CampaignModel.findOne({
+    //     groupId: invitation.groupId,
+    //     isDeleted: false,
+    //     status: "ACTIVE",
+    //     endDate: { $gt: new Date() },
+    // });
+    // if (activeCampaign) {
+    //     const existingCampaignSeller = await CampaignSellerModel.findOne({
+    //         sellerId: user._id,
+    //         campaignId: activeCampaign._id,
+    //         isDeleted: false,
+    //     });
+    //     if (!existingCampaignSeller) {
+    //         await CampaignSellerModel.create({
+    //             sellerId: user._id,
+    //             campaignId: activeCampaign._id,
+    //         });
+    //     }
+    // }
 
     // 5. Mark invitation as accepted
     await invitationServices.acceptInvitation(invitation.email);
@@ -520,7 +520,6 @@ const setUserPassword = async (userId: string, newPassword: string) => {
 };
 
 const registerSeller = async (data: any) => {
-    console.log(data);
     const { code, ...userDataPayload } = data;
 
     if (!code) {
@@ -574,12 +573,12 @@ const registerSeller = async (data: any) => {
     }
 
     // Create campaignSeller entry if active campaign exists
-    if (activeCampaign) {
-        await CampaignSellerModel.create({
-            sellerId: createdUser._id,
-            campaignId: activeCampaign._id,
-        });
-    }
+    // if (activeCampaign) {
+    //     await CampaignSellerModel.create({
+    //         sellerId: createdUser._id,
+    //         campaignId: activeCampaign._id,
+    //     });
+    // }
 
     // Mark invitation as accepted
     await invitationServices.acceptInvitation(invitation.email);
@@ -692,7 +691,9 @@ const getAdminsWithStats = async (query: any) => {
                     groupId: { $in: groupIds },
                     isDeleted: false,
                     status: "ACTIVE",
-                }).select("_id").lean();
+                })
+                    .select("_id")
+                    .lean();
 
                 if (activeCampaigns.length > 0) {
                     const activeCampaignIds = activeCampaigns.map((ac) => ac._id);
