@@ -123,34 +123,26 @@ const getMyJoinedGroups = async (sellerId: string, query: any = {}) => {
 
     const { CampaignModel } = await import("../campaign/campaign.model");
     const { OrderModel } = await import("../order/order.model");
-    const { TierModel } = await import("../tier/tier.model");
-
-    const tiers = await TierModel.find({ isActive: true, isDeleted: false }).sort({ minSalesVolume: 1 });
 
     const groupsWithDetails = await Promise.all(
         joins.map(async (join: any) => {
             const groupDoc = join.groupId;
             if (!groupDoc || groupDoc.isDeleted) return null;
 
-            // Find active campaign for this group
-            const campaign = await CampaignModel.findOne({ groupId: groupDoc._id, isDeleted: false, status: "ACTIVE" }).populate("tierId");
+            const [totalSellers, totalActiveCampaigns, totalCampaigns] = await Promise.all([
+                SellerGroupModel.countDocuments({ groupId: groupDoc._id, isDeleted: false }),
+                CampaignModel.countDocuments({ groupId: groupDoc._id, isDeleted: false, status: "ACTIVE" }),
+                CampaignModel.countDocuments({ groupId: groupDoc._id, isDeleted: false }),
+            ]);
 
-            let totalPackagesSold = 0;
-            let totalRevenue = 0;
-
-            const orderMatch: any = {
-                status: { $ne: "cancelled" },
-                isDeleted: false,
-            };
-
-            if (campaign) {
-                orderMatch.$or = [{ groupId: groupDoc._id }, { campaignId: campaign._id }];
-            } else {
-                orderMatch.groupId = groupDoc._id;
-            }
-
-            const ordersStats = await OrderModel.aggregate([
-                { $match: orderMatch },
+            const groupOrdersStats = await OrderModel.aggregate([
+                {
+                    $match: {
+                        groupId: groupDoc._id,
+                        status: { $ne: "cancelled" },
+                        isDeleted: false,
+                    },
+                },
                 {
                     $group: {
                         _id: null,
@@ -159,23 +151,17 @@ const getMyJoinedGroups = async (sellerId: string, query: any = {}) => {
                     },
                 },
             ]);
-            totalPackagesSold = ordersStats[0]?.totalPackagesSold || 0;
-            totalRevenue = ordersStats[0]?.totalRevenue || 0;
 
-            const currentTier = tiers.find((t) => totalPackagesSold >= t.minSalesVolume && (t.maxSalesVolume === undefined || t.maxSalesVolume === null || totalPackagesSold <= t.maxSalesVolume));
-            const nextTier = tiers.find((t) => t.minSalesVolume > totalPackagesSold);
-            const packagesNeededForNextTier = nextTier ? nextTier.minSalesVolume - totalPackagesSold : 0;
+            const groupPackagesSold = groupOrdersStats[0]?.totalPackagesSold || 0;
+            const groupRevenue = groupOrdersStats[0]?.totalRevenue || 0;
 
             return {
                 ...groupDoc,
-                runningCampaign: campaign || null,
-                tierInfo: {
-                    totalPackagesSold,
-                    totalRevenue,
-                    currentTier: currentTier || null,
-                    nextTier: nextTier || null,
-                    packagesNeededForNextTier,
-                },
+                totalSellers,
+                totalActiveCampaigns,
+                totalCampaigns,
+                totalPackagesSold: groupPackagesSold,
+                totalRevenue: groupRevenue,
             };
         }),
     );
