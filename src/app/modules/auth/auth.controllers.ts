@@ -22,16 +22,23 @@ const register = catchAsync(async (req: Request, res: Response) => {
         data = JSON.parse(req.body.body);
     }
 
+    let addressData = data.address || req.body.address;
+    if (typeof addressData === "string") {
+        try {
+            addressData = JSON.parse(addressData);
+        } catch {}
+    }
+
     // Parse JSON fields
     const userData: any = {
-        name: data.name,
-        email: data.email,
-        password: data.password,
-        role: data.role,
-        phone: data.phone,
+        name: data.name || req.body.name,
+        email: data.email || req.body.email,
+        password: data.password || req.body.password,
+        role: data.role || req.body.role,
+        phone: data.phone || req.body.phone,
         ...(profileImageUrl && { profileImage: profileImageUrl }),
         ...(data.profession && { profession: data.profession }),
-        ...(data.address && { address: data.address }),
+        ...(addressData && { address: addressData }),
         ...(data.goal && { goal: data.goal }),
         ...(data.salesStartDate && { salesStartDate: data.salesStartDate }),
         ...(data.salesEndDate && { salesEndDate: data.salesEndDate }),
@@ -269,6 +276,10 @@ const updateProfile = catchAsync(async (req: Request, res: Response) => {
     }
 
     // Parse the body field if it's a string (standard for multipart/form-data)
+
+    console.log("req.body", req.body);
+    console.log("req.body.body", req.body.body);
+
     let data: any = {};
     if (req.body.body && typeof req.body.body === "string") {
         try {
@@ -286,12 +297,22 @@ const updateProfile = catchAsync(async (req: Request, res: Response) => {
         data = req.body;
     }
 
+    // Parse address if it comes as a JSON string
+    let parsedAddress = data.address;
+    if (typeof parsedAddress === "string") {
+        try {
+            parsedAddress = JSON.parse(parsedAddress);
+        } catch {
+            // Keep original if not JSON
+        }
+    }
+
     // Construct update data based on the provided fields
     const updateData: any = {
         ...(data.name && { name: data.name }),
         ...(data.phone && { phone: data.phone }),
         ...(profileImageUrl && { profileImage: profileImageUrl }),
-        ...(data.address && { address: data.address }),
+        ...(parsedAddress && { address: parsedAddress }),
         ...(data.profession && { profession: data.profession }),
         ...(data.goal && { goal: data.goal }),
         ...(data.salesStartDate && { salesStartDate: data.salesStartDate }),
@@ -404,6 +425,13 @@ const registerSeller = catchAsync(async (req: Request, res: Response) => {
     // Extract code
     const code = data.code || req.body.code || (req.query.code as string);
 
+    let addressData = data.address || req.body.address;
+    if (typeof addressData === "string") {
+        try {
+            addressData = JSON.parse(addressData);
+        } catch {}
+    }
+
     // Parse JSON fields
     const userData: any = {
         code,
@@ -413,7 +441,7 @@ const registerSeller = catchAsync(async (req: Request, res: Response) => {
         phone: data.phone || req.body.phone,
         ...(profileImageUrl && { profileImage: profileImageUrl }),
         ...(data.profession && { profession: data.profession }),
-        ...(data.address && { address: data.address }),
+        ...(addressData && { address: addressData }),
         ...(data.goal && { goal: data.goal }),
         ...(data.salesStartDate && { salesStartDate: data.salesStartDate }),
         ...(data.salesEndDate && { salesEndDate: data.salesEndDate }),
@@ -518,6 +546,14 @@ const updateUserBySuperAdmin = catchAsync(async (req: Request, res: Response) =>
 
     if (req.file) {
         updateData.profileImage = `/uploads/profile-images/${req.file.filename}`;
+    }
+
+    if (typeof updateData.address === "string") {
+        try {
+            updateData.address = JSON.parse(updateData.address);
+        } catch {
+            // Keep original if not JSON
+        }
     }
 
     const result = await authServices.updateUserBySuperAdmin(userId as string, updateData);
