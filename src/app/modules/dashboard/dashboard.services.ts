@@ -78,12 +78,14 @@ const getDashboardStats = async () => {
 };
 
 const getDashboardStatus = async (userId: string) => {
+    const user = await UserModel.findById(userId).select("isApproved");
     const group = await GroupModel.findOne({ createdBy: userId, isDeleted: false });
 
     if (!group) {
         return {
             hasGroup: false,
             hasCampaign: false,
+            isApproved: user?.isApproved ?? false,
         };
     }
 
@@ -92,6 +94,7 @@ const getDashboardStatus = async (userId: string) => {
     return {
         hasGroup: true,
         hasCampaign: !!campaign,
+        isApproved: user?.isApproved ?? false,
     };
 };
 
