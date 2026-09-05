@@ -48,7 +48,7 @@ const UserSchema = new Schema<User>(
             city: String,
             state: String,
             zipCode: String,
-            country: String,
+            locality: String,
         },
         goal: {
             type: Number,

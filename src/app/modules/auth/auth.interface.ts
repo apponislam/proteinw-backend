@@ -18,7 +18,7 @@ export interface User {
         city?: string;
         state?: string;
         zipCode?: string;
-        country?: string;
+        locality?: string;
     };
     goal?: number;
     salesStartDate?: Date;
