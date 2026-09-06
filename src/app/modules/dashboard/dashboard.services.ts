@@ -145,6 +145,7 @@ const getStoreInfo = async (campaignCode: string, referralCode: string) => {
         adminName,
         groupName: group ? group.name : campaign.name,
         campaignName: campaign.name,
+        campaignDescription: campaign.shortDescription || "",
         campaignProductCount: totalProducts,
     };
 };

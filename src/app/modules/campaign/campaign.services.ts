@@ -601,10 +601,28 @@ const getRunningCampaignForSeller = async (sellerId: string, groupId: string, qu
             if (!currentTier) {
                 currentTier = tiers.find((t) => stats.totalPackagesSold >= t.minSalesVolume && (t.maxSalesVolume === undefined || t.maxSalesVolume === null || stats.totalPackagesSold <= t.maxSalesVolume)) || null;
             }
+            const formatTier = (tierObj: any) =>
+                tierObj
+                    ? {
+                          _id: tierObj._id,
+                          name: tierObj.name,
+                          percentage: tierObj.percentage,
+                          minSalesVolume: tierObj.minSalesVolume,
+                          maxSalesVolume: tierObj.maxSalesVolume,
+                      }
+                    : null;
+
+            const currentMinVol = currentTier?.minSalesVolume ?? -1;
+            const nextTier = tiers.find((t) => t.minSalesVolume > (currentMinVol >= 0 ? currentMinVol : stats.totalPackagesSold)) || null;
+            const packagesNeededForNextTier = nextTier ? Math.max(0, nextTier.minSalesVolume - stats.totalPackagesSold) : 0;
+
             return {
                 ...campaign,
                 totalPackagesSold: stats.totalPackagesSold,
                 totalRevenueSold: stats.totalRevenueSold * ((currentTier?.percentage || 0) / 100),
+                currentTier: formatTier(currentTier),
+                nextTier: formatTier(nextTier),
+                packagesNeededForNextTier,
             };
         }),
     );

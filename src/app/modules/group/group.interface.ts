@@ -3,7 +3,6 @@ import { Types } from "mongoose";
 export interface IGroup {
     _id?: string;
     name: string;
-    shortDescription: string;
     code: string;
     createdBy?: Types.ObjectId;
     isActive: boolean;

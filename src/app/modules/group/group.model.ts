@@ -6,7 +6,6 @@ export interface GroupDocument extends Omit<IGroup, "_id">, Document {}
 const GroupSchema = new Schema<GroupDocument>(
     {
         name: { type: String, required: true, trim: true },
-        shortDescription: { type: String, required: true, trim: true },
         code: { type: String, unique: true, trim: true },
         createdBy: { type: Schema.Types.ObjectId, ref: "User" },
         isActive: { type: Boolean, default: true },
