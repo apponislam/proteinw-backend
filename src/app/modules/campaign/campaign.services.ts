@@ -300,6 +300,14 @@ const getAllCampaignsSummary = async (query: any = {}) => {
 };
 
 const getActiveCampaigns = async () => {
+    // Run expiry check to ensure any campaigns whose endDate passed are moved to FULFILMENT
+    try {
+        const { runExpiryCheck } = await import("./campaign.jobs");
+        await runExpiryCheck();
+    } catch (err) {
+        console.error("Error executing runExpiryCheck inside getActiveCampaigns:", err);
+    }
+
     const campaigns = await CampaignModel.find({ status: "ACTIVE", isDeleted: false }).sort({ endDate: 1, createdAt: -1 });
     return campaigns;
 };

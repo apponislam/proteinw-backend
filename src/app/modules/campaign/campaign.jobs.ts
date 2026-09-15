@@ -3,12 +3,28 @@ import { CampaignModel } from "./campaign.model";
 
 /**
  * Deactivates all campaigns whose endDate has passed.
- * Called on server startup and then every 24 hours at midnight.
+ * Called on server startup and then runs every hour.
  */
-const runExpiryCheck = async () => {
+export const runExpiryCheck = async () => {
     try {
         const now = new Date();
 
+        // 1. Log any active campaigns to inspect their endDate vs now
+        const activeCampaigns = await CampaignModel.find({
+            status: "ACTIVE",
+            isDeleted: false,
+        }).select("_id name status endDate");
+
+        if (activeCampaigns.length > 0) {
+            console.log(`[CampaignJob] Active campaigns check at ${now.toISOString()}:`, activeCampaigns.map(c => ({
+                id: c._id,
+                name: c.name,
+                endDate: c.endDate ? c.endDate.toISOString() : null,
+                isExpired: c.endDate ? c.endDate < now : false,
+            })));
+        }
+
+        // 2. Perform update for all expired active campaigns
         const result = await CampaignModel.updateMany(
             {
                 status: "ACTIVE",
@@ -21,7 +37,7 @@ const runExpiryCheck = async () => {
         );
 
         if (result.modifiedCount > 0) {
-            console.log(`[CampaignJob] Deactivated ${result.modifiedCount} expired campaign(s) at ${now.toISOString()}`);
+            console.log(`[CampaignJob] Deactivated ${result.modifiedCount} expired campaign(s) to FULFILMENT at ${now.toISOString()}`);
         } else {
             console.log(`[CampaignJob] No expired campaigns found at ${now.toISOString()}`);
         }
@@ -34,9 +50,10 @@ export const startCampaignExpiryJob = () => {
     // Run immediately on server start to catch anything that expired while server was down
     runExpiryCheck();
 
-    // Then run every day at midnight
-    cron.schedule("0 0 * * *", runExpiryCheck);
+    // Run every hour at minute 0
+    cron.schedule("0 * * * *", runExpiryCheck);
 
-    console.log("[CampaignJob] Campaign expiry cron job scheduled (runs daily at midnight).");
+    console.log("[CampaignJob] Campaign expiry cron job scheduled (runs hourly).");
 };
+
 
