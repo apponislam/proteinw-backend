@@ -40,6 +40,17 @@ const createCampaign = async (userId: string, groupId: string, payload: any) => 
         now: now.toISOString(),
     });
 
+    // Helper function to extract [YYYY, MM, DD] regardless of ISO string format or local timezone offset
+    const parseCalendarDate = (d: Date | string): [number, number, number] => {
+        const dateObj = typeof d === "string" ? new Date(d) : d;
+        // If string starts with YYYY-MM-DD format e.g. "2026-10-06" or "2026-10-06T...", extract directly to prevent timezone shifting
+        if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}/.test(d)) {
+            const parts = d.substring(0, 10).split("-").map(Number);
+            return [parts[0], parts[1] - 1, parts[2]];
+        }
+        return [dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate()];
+    };
+
     if (payload.startDate && payload.endDate) {
         const start = new Date(payload.startDate);
         const end = new Date(payload.endDate);
@@ -53,12 +64,14 @@ const createCampaign = async (userId: string, groupId: string, payload: any) => 
             throw new ApiError(httpStatus.BAD_REQUEST, "The campaign end date must be set to a future date.");
         }
 
-        // Calculate calendar day difference
-        const startDay = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-        const endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
-        const diffInCalendarDays = Math.round((endDay.getTime() - startDay.getTime()) / (1000 * 60 * 60 * 24));
+        const [sY, sM, sD] = parseCalendarDate(payload.startDate);
+        const [eY, eM, eD] = parseCalendarDate(payload.endDate);
 
-        console.log(`📌 [Campaign Duration Check] Start: ${start.toISOString()}, End: ${end.toISOString()}, Calendar Days: ${diffInCalendarDays}`);
+        const startUtc = Date.UTC(sY, sM, sD);
+        const endUtc = Date.UTC(eY, eM, eD);
+        const diffInCalendarDays = Math.round((endUtc - startUtc) / (1000 * 60 * 60 * 24));
+
+        console.log(`📌 [Campaign Duration Check] Start: ${sY}-${sM+1}-${sD}, End: ${eY}-${eM+1}-${eD}, Calendar Days: ${diffInCalendarDays}`);
 
         if (diffInCalendarDays > 21) {
             throw new ApiError(httpStatus.BAD_REQUEST, "Campaign duration cannot exceed 3 weeks (21 days). Please adjust your end date.");
@@ -69,12 +82,14 @@ const createCampaign = async (userId: string, groupId: string, payload: any) => 
             throw new ApiError(httpStatus.BAD_REQUEST, "Please select a valid future date for the campaign end date.");
         }
 
-        // Calculate calendar day difference from today
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
-        const diffInCalendarDays = Math.round((endDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        const [tY, tM, tD] = parseCalendarDate(now);
+        const [eY, eM, eD] = parseCalendarDate(payload.endDate);
 
-        console.log(`📌 [Campaign Duration Check (from today)] End: ${end.toISOString()}, Calendar Days: ${diffInCalendarDays}`);
+        const todayUtc = Date.UTC(tY, tM, tD);
+        const endUtc = Date.UTC(eY, eM, eD);
+        const diffInCalendarDays = Math.round((endUtc - todayUtc) / (1000 * 60 * 60 * 24));
+
+        console.log(`📌 [Campaign Duration Check (from today)] Today: ${tY}-${tM+1}-${tD}, End: ${eY}-${eM+1}-${eD}, Calendar Days: ${diffInCalendarDays}`);
 
         if (diffInCalendarDays > 21) {
             throw new ApiError(httpStatus.BAD_REQUEST, "Campaign duration cannot exceed 3 weeks (21 days). Please adjust your end date.");
