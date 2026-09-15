@@ -894,6 +894,7 @@ const getAsSellerCampaignInfo = async (userId: string, query: any = {}) => {
         campaignId: campaign?._id || null,
         name: campaign?.name || "",
         shortDescription: campaign?.shortDescription || "",
+        status: campaign?.status || "",
         campaignCode,
         referralCode,
         shopUrl,
