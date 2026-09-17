@@ -11,16 +11,16 @@ import { CustomerServiceModel } from "./customerService.model";
 // Create new customer service request
 const createCustomerServiceRequest = async (payload: Partial<ICustomerServiceRequest>) => {
     if (!payload.issueType || !["reklamation", "byte"].includes(payload.issueType)) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "Invalid issueType. Must be 'reklamation' or 'byte'.");
+        throw new ApiError(httpStatus.BAD_REQUEST, "Ogiltig ärendetyp. Måste vara 'reklamation' eller 'byte'.");
     }
     if (!payload.name) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "name is required.");
+        throw new ApiError(httpStatus.BAD_REQUEST, "Namn krävs.");
     }
     if (!payload.email) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "email is required.");
+        throw new ApiError(httpStatus.BAD_REQUEST, "E-postadress krävs.");
     }
     if (!payload.description) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "description is required.");
+        throw new ApiError(httpStatus.BAD_REQUEST, "Beskrivning krävs.");
     }
 
     // Clean optional orderId if invalid or empty
@@ -116,7 +116,7 @@ const getCustomerServiceRequestById = async (id: string) => {
         ],
     });
     if (!request) {
-        throw new ApiError(httpStatus.NOT_FOUND, "Customer service request not found.");
+        throw new ApiError(httpStatus.NOT_FOUND, "Kundserviceärendet hittades inte.");
     }
     return request;
 };
@@ -132,7 +132,7 @@ const updateCustomerServiceRequest = async (
         if (!["pending", "in_progress", "resolved", "rejected"].includes(payload.status)) {
             throw new ApiError(
                 httpStatus.BAD_REQUEST,
-                "Invalid status value. Must be pending, in_progress, resolved, or rejected.",
+                "Ogiltigt statusvärde. Måste vara pending, in_progress, resolved eller rejected.",
             );
         }
         updateData.status = payload.status;
@@ -149,7 +149,7 @@ const updateCustomerServiceRequest = async (
     );
 
     if (!updatedRequest) {
-        throw new ApiError(httpStatus.NOT_FOUND, "Customer service request not found.");
+        throw new ApiError(httpStatus.NOT_FOUND, "Kundserviceärendet hittades inte.");
     }
 
     // If admin added notes or updated status, send email response to customer in background
@@ -175,7 +175,7 @@ const deleteCustomerServiceRequest = async (id: string) => {
     );
 
     if (!deletedRequest) {
-        throw new ApiError(httpStatus.NOT_FOUND, "Customer service request not found.");
+        throw new ApiError(httpStatus.NOT_FOUND, "Kundserviceärendet hittades inte.");
     }
 
     return deletedRequest;

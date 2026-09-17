@@ -14,7 +14,7 @@ const createProduct = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.CREATED,
         success: true,
-        message: "Product created successfully",
+        message: "Produkt skapad framgångsrikt",
         data: result,
     });
 });
@@ -26,7 +26,7 @@ const getAllProducts = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Products retrieved successfully",
+        message: "Produkter hämtades framgångsrikt",
         data: result.data,
         meta: result.meta,
     });
@@ -39,7 +39,7 @@ const getActiveProducts = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Products retrieved successfully",
+        message: "Produkter hämtades framgångsrikt",
         data: result.data,
         meta: result.meta,
     });
@@ -51,7 +51,7 @@ const getProductById = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Product retrieved successfully",
+        message: "Produkt hämtades framgångsrikt",
         data: result,
     });
 });
@@ -80,7 +80,7 @@ const updateProduct = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Product updated successfully",
+        message: "Produkt uppdaterades framgångsrikt",
         data: result,
     });
 });
@@ -91,7 +91,7 @@ const toggleProductStatus = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: `Product ${result.isActive ? "activated" : "deactivated"} successfully`,
+        message: `Produkt ${result.isActive ? "aktiverades" : "inaktiverades"} framgångsrikt`,
         data: result,
     });
 });
@@ -102,7 +102,7 @@ const deleteProduct = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Product deleted successfully",
+        message: "Produkt raderades framgångsrikt",
         data: null,
     });
 });
@@ -113,7 +113,7 @@ const getProductStats = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Product stats retrieved successfully",
+        message: "Produktstatistik hämtades framgångsrikt",
         data: result,
     });
 });
@@ -125,7 +125,7 @@ const getProductsWithCampaignStatus = catchAsync(async (req: Request, res: Respo
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Products with campaign status retrieved successfully",
+        message: "Produkter med försäljningsstatus hämtades framgångsrikt",
         data: result.data,
         meta: result.meta,
     });

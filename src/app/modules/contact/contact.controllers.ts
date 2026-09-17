@@ -17,7 +17,7 @@ const createContact = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.CREATED,
         success: true,
-        message: "Contact message sent successfully",
+        message: "Kontaktmeddelande skickades framgångsrikt",
         data: result,
     });
 });
@@ -28,7 +28,7 @@ const getAllContacts = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Contact messages retrieved successfully",
+        message: "Kontaktmeddelanden hämtades framgångsrikt",
         data: result.data,
         meta: result.pagination,
     });
@@ -40,7 +40,7 @@ const getContactById = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Contact message retrieved successfully",
+        message: "Kontaktmeddelande hämtades framgångsrikt",
         data: result,
     });
 });
@@ -57,7 +57,7 @@ const markAsRead = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Contact message marked as read",
+        message: "Kontaktmeddelande markerat som läst",
         data: result,
     });
 });
@@ -74,7 +74,7 @@ const markAllAsRead = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "All contact messages marked as read",
+        message: "Alla kontaktmeddelanden markerade som lästa",
         data: result,
     });
 });
@@ -85,7 +85,7 @@ const getUnreadCount = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Unread count retrieved successfully",
+        message: "Antal olästa meddelanden hämtades framgångsrikt",
         data: result,
     });
 });
@@ -102,7 +102,7 @@ const deleteContact = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Contact message deleted successfully",
+        message: "Kontaktmeddelande raderades framgångsrikt",
         data: null,
     });
 });

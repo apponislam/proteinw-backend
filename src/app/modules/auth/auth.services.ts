@@ -19,7 +19,7 @@ import mongoose, { Types } from "mongoose";
 const registerUser = async (data: any) => {
     // Check existing user
     const existing = await UserModel.findOne({ email: data.email });
-    if (existing) throw new ApiError(httpStatus.BAD_REQUEST, "Email already in use");
+    if (existing) throw new ApiError(httpStatus.BAD_REQUEST, "E-postadressen används redan");
 
     // Remove balance and percentage if sent in payload to prevent manual setting
     if (data.balance !== undefined) {
@@ -79,14 +79,14 @@ const registerUser = async (data: any) => {
 const loginUser = async (data: { email: string; password: string }) => {
     // Find user
     const user = await UserModel.findOne({ email: data.email });
-    if (!user) throw new ApiError(httpStatus.UNAUTHORIZED, "User with this email was not found");
+    if (!user) throw new ApiError(httpStatus.UNAUTHORIZED, "Användare med denna e-postadress hittades inte");
 
     // Check password
     const isPasswordValid = await bcrypt.compare(data.password, user.password as string);
-    if (!isPasswordValid) throw new ApiError(httpStatus.UNAUTHORIZED, "Incorrect email or password");
+    if (!isPasswordValid) throw new ApiError(httpStatus.UNAUTHORIZED, "Felaktig e-postadress eller lösenord");
 
     // Check if active
-    if (!user.isActive) throw new ApiError(httpStatus.FORBIDDEN, "Your account has been deactivated. Please contact support.");
+    if (!user.isActive) throw new ApiError(httpStatus.FORBIDDEN, "Ditt konto har inaktiverats. Kontakta supporten.");
 
     // Update last login
     await UserModel.updateOne({ _id: user._id }, { $set: { lastLogin: new Date() } });
@@ -110,7 +110,7 @@ const loginUser = async (data: { email: string; password: string }) => {
 const loginWithInvitationCode = async (data: { email: string; password: string; code: string }) => {
     const code = data.code;
     if (!code) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "Invitation code is required.");
+        throw new ApiError(httpStatus.BAD_REQUEST, "Inbjudningskod krävs.");
     }
 
     // 1. Verify invitation by code
@@ -164,7 +164,7 @@ const verifyEmail = async (email: string, token?: string, otp?: string) => {
     const user = await UserModel.findOne({ email });
 
     if (!user) {
-        throw new ApiError(httpStatus.NOT_FOUND, "User with this email was not found.");
+        throw new ApiError(httpStatus.NOT_FOUND, "Användare med denna e-postadress hittades inte.");
     }
 
     if (user.isEmailVerified) {
@@ -172,19 +172,19 @@ const verifyEmail = async (email: string, token?: string, otp?: string) => {
     }
 
     if (!user.verificationExpiry || user.verificationExpiry <= new Date()) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "Verification period has expired.");
+        throw new ApiError(httpStatus.BAD_REQUEST, "Verifieringsperioden har gått ut.");
     }
 
     if (token) {
         if (user.verificationToken !== token) {
-            throw new ApiError(httpStatus.BAD_REQUEST, "Verification token is invalid.");
+            throw new ApiError(httpStatus.BAD_REQUEST, "Verifieringstoken är ogiltig.");
         }
     } else if (otp) {
         if (user.verificationCode !== otp) {
-            throw new ApiError(httpStatus.BAD_REQUEST, "Verification code (OTP) is invalid.");
+            throw new ApiError(httpStatus.BAD_REQUEST, "Verifieringskoden (OTP) är ogiltig.");
         }
     } else {
-        throw new ApiError(httpStatus.BAD_REQUEST, "Token or OTP is required for verification.");
+        throw new ApiError(httpStatus.BAD_REQUEST, "Token eller OTP krävs för verifiering.");
     }
 
     // Mark email verified
@@ -199,10 +199,10 @@ const verifyEmail = async (email: string, token?: string, otp?: string) => {
 
 const resendVerificationEmail = async (email: string) => {
     const user = await UserModel.findOne({ email });
-    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User with this email was not found.");
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Användare med denna e-postadress hittades inte.");
 
     if (user.isEmailVerified) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "This email address is already verified.");
+        throw new ApiError(httpStatus.BAD_REQUEST, "Denna e-postadress är redan verifierad.");
     }
 
     // Generate new verification token
@@ -224,18 +224,18 @@ const resendVerificationEmail = async (email: string) => {
 
 const getUserById = async (userId: string) => {
     const user = await UserModel.findById(userId).select("-password");
-    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Requested user was not found.");
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Begärd användare hittades inte.");
     return user;
 };
 
 const refreshAccessToken = async (refreshToken: string) => {
-    if (!refreshToken) throw new ApiError(httpStatus.UNAUTHORIZED, "Refresh token is required.");
+    if (!refreshToken) throw new ApiError(httpStatus.UNAUTHORIZED, "Refresh-token krävs.");
 
     try {
         const decoded = jwtHelper.verifyToken(refreshToken, config.jwt_refresh_secret as string);
 
         const user = await UserModel.findById(decoded._id).select("-password");
-        if (!user) throw new ApiError(httpStatus.UNAUTHORIZED, "User associated with this token was not found.");
+        if (!user) throw new ApiError(httpStatus.UNAUTHORIZED, "Användaren som är kopplad till denna token hittades inte.");
 
         const jwtPayload = {
             _id: user._id,
@@ -248,13 +248,13 @@ const refreshAccessToken = async (refreshToken: string) => {
 
         return { user, accessToken };
     } catch (error) {
-        throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid or expired refresh token.");
+        throw new ApiError(httpStatus.UNAUTHORIZED, "Ogiltig eller utgången refresh-token.");
     }
 };
 
 const requestPasswordReset = async (email: string) => {
     const user = await UserModel.findOne({ email });
-    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User with this email was not found.");
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Användare med denna e-postadress hittades inte.");
 
     // Generate OTP
     const otp = crypto.randomInt(100000, 999999).toString();
@@ -272,18 +272,18 @@ const requestPasswordReset = async (email: string) => {
 
 const verifyOtp = async (email: string, otp: string) => {
     const user = await UserModel.findOne({ email });
-    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User with this email was not found.");
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Användare med denna e-postadress hittades inte.");
 
     if (!user.resetPasswordOtp || !user.resetPasswordOtpExpiry) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "No password reset OTP request found for this account.");
+        throw new ApiError(httpStatus.BAD_REQUEST, "Ingen begäran om återställning av lösenord hittades för detta konto.");
     }
 
     if (user.resetPasswordOtpExpiry < new Date()) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "OTP has expired. Please request a new one.");
+        throw new ApiError(httpStatus.BAD_REQUEST, "OTP har gått ut. Vänligen begär en ny.");
     }
 
     if (user.resetPasswordOtp !== otp) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "Invalid OTP provided.");
+        throw new ApiError(httpStatus.BAD_REQUEST, "Ogiltig OTP angavs.");
     }
 
     // Generate reset token
@@ -302,7 +302,7 @@ const verifyOtp = async (email: string, otp: string) => {
 
 const resendOtp = async (email: string) => {
     const user = await UserModel.findOne({ email });
-    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User with this email was not found.");
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Användare med denna e-postadress hittades inte.");
 
     // Generate new OTP
     const otp = crypto.randomInt(100000, 999999).toString();
@@ -324,7 +324,7 @@ const resetPassword = async (token: string, newPassword: string) => {
         resetPasswordTokenExpiry: { $gt: new Date() },
     });
 
-    if (!user) throw new ApiError(httpStatus.BAD_REQUEST, "Invalid or expired password reset token.");
+    if (!user) throw new ApiError(httpStatus.BAD_REQUEST, "Ogiltig eller utgången token för återställning av lösenord.");
 
     // Hash new password
     const hashedPassword = await bcrypt.hash(newPassword, Number(config.bcrypt_salt_rounds));
@@ -347,16 +347,16 @@ const updateProfile = async (userId: string, data: any) => {
 
     const user = await UserModel.findByIdAndUpdate(userId, { $set: data }, { returnDocument: "after", runValidators: true }).select("-password");
 
-    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Requested user was not found.");
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Begärd användare hittades inte.");
     return user;
 };
 
 const changePassword = async (userId: string, currentPassword: string, newPassword: string) => {
     const user = await UserModel.findById(userId);
-    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Requested user was not found.");
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Begärd användare hittades inte.");
 
     const isPasswordValid = await bcrypt.compare(currentPassword, user.password as string);
-    if (!isPasswordValid) throw new ApiError(httpStatus.BAD_REQUEST, "Current password is incorrect.");
+    if (!isPasswordValid) throw new ApiError(httpStatus.BAD_REQUEST, "Nuvarande lösenord är felaktigt.");
 
     const hashedPassword = await bcrypt.hash(newPassword, Number(config.bcrypt_salt_rounds));
     user.password = hashedPassword;
@@ -365,14 +365,14 @@ const changePassword = async (userId: string, currentPassword: string, newPasswo
 
 const deleteAccount = async (userId: string, password: string) => {
     const user = await UserModel.findById(userId);
-    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Requested user was not found.");
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Begärd användare hittades inte.");
 
     if (user.role === "SUPER_ADMIN") {
-        throw new ApiError(httpStatus.FORBIDDEN, "Super Admin accounts cannot be deleted.");
+        throw new ApiError(httpStatus.FORBIDDEN, "Super Admin-konton kan inte raderas.");
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password as string);
-    if (!isPasswordValid) throw new ApiError(httpStatus.BAD_REQUEST, "Password is incorrect.");
+    if (!isPasswordValid) throw new ApiError(httpStatus.BAD_REQUEST, "Lösenordet är felaktigt.");
 
     const session = await mongoose.startSession();
     session.startTransaction();
@@ -442,13 +442,13 @@ const deleteAccount = async (userId: string, password: string) => {
 
 const updateEmail = async (userId: string, newEmail: string, password: string) => {
     const user = await UserModel.findById(userId);
-    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Requested user was not found.");
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Begärd användare hittades inte.");
 
     const isPasswordValid = await bcrypt.compare(password, user.password as string);
-    if (!isPasswordValid) throw new ApiError(httpStatus.BAD_REQUEST, "Password is incorrect.");
+    if (!isPasswordValid) throw new ApiError(httpStatus.BAD_REQUEST, "Lösenordet är felaktigt.");
 
     const existingUser = await UserModel.findOne({ email: newEmail });
-    if (existingUser) throw new ApiError(httpStatus.BAD_REQUEST, "This email address is already in use.");
+    if (existingUser) throw new ApiError(httpStatus.BAD_REQUEST, "Denna e-postadress används redan.");
 
     // Generate verification token for new email
     const verificationToken = crypto.randomBytes(32).toString("hex");
@@ -466,14 +466,14 @@ const updateEmail = async (userId: string, newEmail: string, password: string) =
 
 const resendEmailUpdate = async (userId: string, password: string) => {
     const user = await UserModel.findById(userId);
-    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Requested user was not found.");
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Begärd användare hittades inte.");
 
     if (!user.pendingEmail) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "No pending email update request found.");
+        throw new ApiError(httpStatus.BAD_REQUEST, "Ingen väntande begäran om e-postuppdatering hittades.");
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password as string);
-    if (!isPasswordValid) throw new ApiError(httpStatus.BAD_REQUEST, "Password is incorrect.");
+    if (!isPasswordValid) throw new ApiError(httpStatus.BAD_REQUEST, "Lösenordet är felaktigt.");
 
     // Generate new verification token
     const verificationToken = crypto.randomBytes(32).toString("hex");
@@ -497,7 +497,7 @@ const verifyNewEmail = async (token: string, email: string) => {
         emailVerificationExpiry: { $gt: new Date() },
     });
 
-    if (!user) throw new ApiError(httpStatus.BAD_REQUEST, "Invalid or expired email update verification token.");
+    if (!user) throw new ApiError(httpStatus.BAD_REQUEST, "Ogiltig eller utgången verifieringstoken för e-postuppdatering.");
 
     // Update email
     user.email = email;
@@ -512,7 +512,7 @@ const verifyNewEmail = async (token: string, email: string) => {
 
 const setUserPassword = async (userId: string, newPassword: string) => {
     const user = await UserModel.findById(userId);
-    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Requested user was not found.");
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Begärd användare hittades inte.");
 
     const hashedPassword = await bcrypt.hash(newPassword, Number(config.bcrypt_salt_rounds));
     user.password = hashedPassword;
@@ -523,7 +523,7 @@ const registerSeller = async (data: any) => {
     const { code, ...userDataPayload } = data;
 
     if (!code) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "An invitation code is required to register as a seller.");
+        throw new ApiError(httpStatus.BAD_REQUEST, "En inbjudningskod krävs för att registrera sig som säljare.");
     }
 
     // Check invitation exists strictly by invitation code
@@ -531,7 +531,7 @@ const registerSeller = async (data: any) => {
 
     // Check existing user
     const existing = await UserModel.findOne({ email: invitation.email });
-    if (existing) throw new ApiError(httpStatus.BAD_REQUEST, "This email address is already in use.");
+    if (existing) throw new ApiError(httpStatus.BAD_REQUEST, "Denna e-postadress används redan.");
 
     // Find active campaign for the group
     const activeCampaign = await CampaignModel.findOne({
@@ -625,7 +625,7 @@ const registerSeller = async (data: any) => {
 const createAdmin = async (data: any, creatorId?: string) => {
     // Check existing user
     const existing = await UserModel.findOne({ email: data.email });
-    if (existing) throw new ApiError(httpStatus.BAD_REQUEST, "This email address is already in use.");
+    if (existing) throw new ApiError(httpStatus.BAD_REQUEST, "Denna e-postadress används redan.");
 
     // Hash password
     const hashedPassword = await bcrypt.hash(data.password, Number(config.bcrypt_salt_rounds));
@@ -771,7 +771,7 @@ const getMyReferralAndCampaign = async (userId: string) => {
     // 1. Find user by ID
     const user = await UserModel.findOne({ _id: new Types.ObjectId(userId), isDeleted: false });
     if (!user) {
-        throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+        throw new ApiError(httpStatus.NOT_FOUND, "Användaren hittades inte");
     }
 
     // 2. Resolve campaign code
@@ -813,10 +813,10 @@ const getMyReferralAndCampaign = async (userId: string) => {
 
 const approveAdmin = async (adminId: string, superAdminId: string) => {
     const user = await UserModel.findOne({ _id: adminId, isDeleted: false });
-    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Requested user was not found or has been deleted.");
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Begärd användare hittades inte eller har raderats.");
 
     if (user.role !== "ADMIN") {
-        throw new ApiError(httpStatus.BAD_REQUEST, "Only users with role ADMIN can be approved.");
+        throw new ApiError(httpStatus.BAD_REQUEST, "Endast användare med rollen ADMIN kan godkännas.");
     }
 
     user.isApproved = true;
@@ -837,7 +837,7 @@ const updateUserBySuperAdmin = async (userId: string, data: any) => {
     }
 
     const user = await UserModel.findByIdAndUpdate(userId, { $set: data }, { returnDocument: "after", runValidators: true }).select("-password");
-    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Requested user was not found.");
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Begärd användare hittades inte.");
 
     // If password was updated, send notification email
     if (plainPassword && user.email) {

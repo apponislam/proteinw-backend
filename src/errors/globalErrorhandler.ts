@@ -10,11 +10,11 @@ import { TErrorSources } from "../types/error";
 
 const globalErrorHandler: ErrorRequestHandler = (err, req, res, next): void => {
     let statusCode = 500;
-    let message = "Something went wrong!";
+    let message = "Något gick fel!";
     let errorSources: TErrorSources = [
         {
             path: "",
-            message: "Something went wrong",
+            message: "Något gick fel",
         },
     ];
 

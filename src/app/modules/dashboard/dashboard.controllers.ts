@@ -11,7 +11,7 @@ const getDashboardStats = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Dashboard stats retrieved successfully",
+        message: "Instrumentpanelens statistik hämtades framgångsrikt",
         data: result,
     });
 });
@@ -19,7 +19,7 @@ const getDashboardStats = catchAsync(async (req: Request, res: Response) => {
 const getDashboardStatus = catchAsync(async (req: Request, res: Response) => {
     const user = req.user;
     if (!user) {
-        throw new ApiError(httpStatus.UNAUTHORIZED, "Unauthorized access");
+        throw new ApiError(httpStatus.UNAUTHORIZED, "Obehörig åtkomst");
     }
 
     const result = await dashboardServices.getDashboardStatus(user._id);
@@ -27,7 +27,7 @@ const getDashboardStatus = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Dashboard status checked successfully",
+        message: "Instrumentpanelens status kontrollades framgångsrikt",
         data: result,
     });
 });
@@ -40,7 +40,7 @@ const getStoreInfo = catchAsync(async (req: Request, res: Response) => {
         return sendResponse(res, {
             statusCode: httpStatus.OK,
             success: true,
-            message: "Validation failed - missing parameters",
+            message: "Validering misslyckades - parametrar saknas",
             data: { validation: false },
         });
     }
@@ -50,7 +50,7 @@ const getStoreInfo = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Store information retrieved successfully",
+        message: "Butiksinformation hämtades framgångsrikt",
         data: result,
     });
 });
@@ -64,7 +64,7 @@ const getSellerDashboardStats = catchAsync(async (req: Request, res: Response) =
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Seller dashboard stats retrieved successfully",
+        message: "Säljarens instrumentpanelstatistik hämtades framgångsrikt",
         data: result,
     });
 });
@@ -75,7 +75,7 @@ const getSuperAdminSellersStats = catchAsync(async (req: Request, res: Response)
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Super admin sellers statistics retrieved successfully",
+        message: "Superadmin säljarstatistik hämtades framgångsrikt",
         data: result,
     });
 });
@@ -86,7 +86,7 @@ const getSuperAdminSellers = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Super admin sellers retrieved successfully",
+        message: "Superadmin säljare hämtades framgångsrikt",
         data: result.data,
         meta: result.pagination,
     });
@@ -98,7 +98,7 @@ const getSuperAdminGroupsStats = catchAsync(async (req: Request, res: Response) 
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Super admin groups campaign stats retrieved successfully",
+        message: "Superadmin gruppförsäljningsstatistik hämtades framgångsrikt",
         data: result.data,
         meta: result.pagination,
     });
@@ -110,7 +110,7 @@ const getSuperAdminGroupsDashboardCards = catchAsync(async (req: Request, res: R
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Super admin groups dashboard cards retrieved successfully",
+        message: "Superadmin gruppinstrumentpanelskort hämtades framgångsrikt",
         data: result,
     });
 });
@@ -121,7 +121,7 @@ const getSuperAdminAdminsStats = catchAsync(async (req: Request, res: Response) 
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Super admin admins statistics retrieved successfully",
+        message: "Superadmin administratörsstatistik hämtades framgångsrikt",
         data: result,
     });
 });
@@ -132,7 +132,7 @@ const getTotalDistributedProfit = catchAsync(async (req: Request, res: Response)
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Total distributed profit retrieved successfully",
+        message: "Total distribuerad vinst hämtades framgångsrikt",
         data: result,
     });
 });
@@ -143,7 +143,7 @@ const getActiveCampaignsOverview = catchAsync(async (req: Request, res: Response
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Active campaigns overview retrieved successfully",
+        message: "Översikt över aktiva försäljningar hämtades framgångsrikt",
         data: result,
     });
 });
@@ -155,7 +155,7 @@ const getAsSellerDashboardStats = catchAsync(async (req: Request, res: Response)
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Seller dashboard stats retrieved successfully",
+        message: "Säljarens instrumentpanelstatistik hämtades framgångsrikt",
         data: result,
     });
 });
@@ -167,7 +167,7 @@ const getAsSellerCampaignInfo = catchAsync(async (req: Request, res: Response) =
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Seller campaign info retrieved successfully",
+        message: "Säljarens försäljningsinformation hämtades framgångsrikt",
         data: result,
     });
 });
@@ -180,7 +180,7 @@ const getSellerCampaignInfoById = catchAsync(async (req: Request, res: Response)
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Campaign retrieved successfully",
+        message: "Försäljning hämtades framgångsrikt",
         data: result,
     });
 });

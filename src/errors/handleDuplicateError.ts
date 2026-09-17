@@ -8,7 +8,7 @@ const handleDuplicateError = (err: any): TGenericErrorResponse => {
     const errorSources: TErrorSources = [
         {
             path: "",
-            message: `${extractedMessage} is already exists`,
+            message: `${extractedMessage} finns redan`,
         },
     ];
 
@@ -16,7 +16,7 @@ const handleDuplicateError = (err: any): TGenericErrorResponse => {
 
     return {
         statusCode,
-        message: "Invalid ID",
+        message: "Duplicerat värde",
         errorSources,
     };
 };

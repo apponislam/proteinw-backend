@@ -55,13 +55,13 @@ const createCampaign = async (userId: string, groupId: string, payload: any) => 
         const start = new Date(payload.startDate);
         const end = new Date(payload.endDate);
         if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-            throw new ApiError(httpStatus.BAD_REQUEST, "Please provide valid start and end dates for your campaign.");
+            throw new ApiError(httpStatus.BAD_REQUEST, "Ange giltiga start- och slutdatum för din försäljning.");
         }
         if (end <= start) {
-            throw new ApiError(httpStatus.BAD_REQUEST, "The campaign end date must be scheduled after the start date.");
+            throw new ApiError(httpStatus.BAD_REQUEST, "Slutdatumet för försäljningen måste infalla efter startdatumet.");
         }
         if (end <= now) {
-            throw new ApiError(httpStatus.BAD_REQUEST, "The campaign end date must be set to a future date.");
+            throw new ApiError(httpStatus.BAD_REQUEST, "Slutdatumet för försäljningen måste sättas till ett framtida datum.");
         }
 
         const [sY, sM, sD] = parseCalendarDate(payload.startDate);
@@ -74,12 +74,12 @@ const createCampaign = async (userId: string, groupId: string, payload: any) => 
         console.log(`📌 [Campaign Duration Check] Start: ${sY}-${sM+1}-${sD}, End: ${eY}-${eM+1}-${eD}, Calendar Days: ${diffInCalendarDays}`);
 
         if (diffInCalendarDays > 21) {
-            throw new ApiError(httpStatus.BAD_REQUEST, "Campaign duration cannot exceed 3 weeks (21 days). Please adjust your end date.");
+            throw new ApiError(httpStatus.BAD_REQUEST, "Försäljningens varaktighet får inte överskrida 3 veckor (21 dagar). Vänligen justera ditt slutdatum.");
         }
     } else if (payload.endDate) {
         const end = new Date(payload.endDate);
         if (isNaN(end.getTime()) || end <= now) {
-            throw new ApiError(httpStatus.BAD_REQUEST, "Please select a valid future date for the campaign end date.");
+            throw new ApiError(httpStatus.BAD_REQUEST, "Vänligen välj ett giltigt framtida datum för försäljningens slutdatum.");
         }
 
         const [tY, tM, tD] = parseCalendarDate(now);
@@ -92,24 +92,24 @@ const createCampaign = async (userId: string, groupId: string, payload: any) => 
         console.log(`📌 [Campaign Duration Check (from today)] Today: ${tY}-${tM+1}-${tD}, End: ${eY}-${eM+1}-${eD}, Calendar Days: ${diffInCalendarDays}`);
 
         if (diffInCalendarDays > 21) {
-            throw new ApiError(httpStatus.BAD_REQUEST, "Campaign duration cannot exceed 3 weeks (21 days). Please adjust your end date.");
+            throw new ApiError(httpStatus.BAD_REQUEST, "Försäljningens varaktighet får inte överskrida 3 veckor (21 dagar). Vänligen justera ditt slutdatum.");
         }
     }
 
     // Check user approval status
     const user = await UserModel.findById(userId);
-    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User account was not found.");
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Användarkontot hittades inte.");
 
     if (user.role === "ADMIN" && !user.isApproved) {
-        throw new ApiError(httpStatus.FORBIDDEN, "Your admin account is pending approval. You will be able to launch campaigns once your account is verified.");
+        throw new ApiError(httpStatus.FORBIDDEN, "Ditt adminkonto väntar på godkännande. Du kommer att kunna starta försäljningar när ditt konto har verifierats.");
     }
 
     // Check if group exists and is active
     const group = await GroupModel.findOne({ _id: groupId, isDeleted: false });
-    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "The group specified for this campaign could not be found.");
+    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Gruppen som angavs för denna försäljning kunde inte hittas.");
 
     if (!group.isActive) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "Campaigns can only be launched for active groups.");
+        throw new ApiError(httpStatus.BAD_REQUEST, "Försäljningar kan endast startas för aktiva grupper.");
     }
 
     // Destructure transient boolean and array flags from payload (do not store in DB)
@@ -329,7 +329,7 @@ const getActiveCampaigns = async () => {
 
 const getCampaignById = async (campaignId: string) => {
     const campaign = await CampaignModel.findOne({ _id: campaignId, isDeleted: false }).lean();
-    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Requested campaign was not found or has been deleted.");
+    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Begärd försäljning hittades inte eller har raderats.");
 
     const stats = await getCampaignStats(campaign._id as Types.ObjectId);
     const totalPackagesSold = stats.totalPackagesSold;
@@ -379,7 +379,7 @@ const getCampaignById = async (campaignId: string) => {
 
 const getCampaignByCode = async (code: string) => {
     const campaign = await CampaignModel.findOne({ code, isDeleted: false }).lean();
-    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, `Campaign with code "${code}" was not found or has been deleted.`);
+    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, `Försäljning med koden "${code}" hittades inte eller har raderats.`);
 
     const stats = await getCampaignStats(campaign._id as Types.ObjectId);
     const tiers = await TierModel.find({ isActive: true, isDeleted: false }).sort({ minSalesVolume: 1 });
@@ -474,18 +474,18 @@ const updateCampaign = async (campaignId: string, payload: any) => {
         const start = new Date(payload.startDate);
         const end = new Date(payload.endDate);
         if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-            throw new ApiError(httpStatus.BAD_REQUEST, "Invalid start date or end date format.");
+            throw new ApiError(httpStatus.BAD_REQUEST, "Ogiltigt format för start- eller slutdatum.");
         }
         if (end <= start) {
-            throw new ApiError(httpStatus.BAD_REQUEST, "Campaign end date must be after start date.");
+            throw new ApiError(httpStatus.BAD_REQUEST, "Försäljningens slutdatum måste infalla efter startdatumet.");
         }
         if (end <= new Date()) {
-            throw new ApiError(httpStatus.BAD_REQUEST, "Campaign end date must be in the future.");
+            throw new ApiError(httpStatus.BAD_REQUEST, "Försäljningens slutdatum måste vara i framtiden.");
         }
     } else if (payload.endDate) {
         const end = new Date(payload.endDate);
         if (isNaN(end.getTime()) || end <= new Date()) {
-            throw new ApiError(httpStatus.BAD_REQUEST, "Campaign end date must be a valid future date.");
+            throw new ApiError(httpStatus.BAD_REQUEST, "Försäljningens slutdatum måste vara ett giltigt framtida datum.");
         }
     }
 
@@ -502,18 +502,18 @@ const updateCampaign = async (campaignId: string, payload: any) => {
     }
 
     const campaign = await CampaignModel.findOneAndUpdate({ _id: campaignId, isDeleted: false }, { $set: updateData }, { returnDocument: "after", runValidators: true });
-    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Requested campaign was not found or has been deleted.");
+    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Begärd försäljning hittades inte eller har raderats.");
     return campaign;
 };
 
 const updateCampaignStatus = async (campaignId: string, status: "DRAFT" | "ACTIVE" | "FULFILMENT" | "COMPLETED") => {
     const validStatuses = ["DRAFT", "ACTIVE", "FULFILMENT", "COMPLETED"];
     if (!validStatuses.includes(status)) {
-        throw new ApiError(httpStatus.BAD_REQUEST, `Invalid campaign status "${status}". Allowed values: ${validStatuses.join(", ")}`);
+        throw new ApiError(httpStatus.BAD_REQUEST, `Ogiltig försäljningsstatus "${status}". Tillåtna värden: ${validStatuses.join(", ")}`);
     }
 
     const campaign = await CampaignModel.findOne({ _id: campaignId, isDeleted: false });
-    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Requested campaign was not found or has been deleted.");
+    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Begärd försäljning hittades inte eller har raderats.");
 
     campaign.status = status;
     await campaign.save();
@@ -522,17 +522,17 @@ const updateCampaignStatus = async (campaignId: string, status: "DRAFT" | "ACTIV
 
 const deleteCampaign = async (campaignId: string) => {
     const campaign = await CampaignModel.findOneAndUpdate({ _id: campaignId, isDeleted: false }, { $set: { isDeleted: true } }, { returnDocument: "after" });
-    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Requested campaign was not found or has already been deleted.");
+    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Begärd försäljning hittades inte eller har redan raderats.");
 
     return campaign;
 };
 
 const assignTierToCampaign = async (campaignId: string, tierId: string) => {
     const campaign = await CampaignModel.findOne({ _id: campaignId, isDeleted: false });
-    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Requested campaign was not found or has been deleted.");
+    if (!campaign) throw new ApiError(httpStatus.NOT_FOUND, "Begärd försäljning hittades inte eller har raderats.");
 
     const tier = await TierModel.findOne({ _id: tierId, isDeleted: false });
-    if (!tier) throw new ApiError(httpStatus.NOT_FOUND, "Requested tier was not found or has been deleted.");
+    if (!tier) throw new ApiError(httpStatus.NOT_FOUND, "Begärd nivå hittades inte eller har raderats.");
 
     campaign.tierId = new Types.ObjectId(tierId);
     campaign.tierAssignDate = new Date();
@@ -543,7 +543,7 @@ const assignTierToCampaign = async (campaignId: string, tierId: string) => {
 
 const getRunningCampaignByGroup = async (groupId: string) => {
     const group = await GroupModel.findOne({ _id: groupId, isDeleted: false });
-    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Associated group was not found or has been deleted.");
+    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Tillhörande grupp hittades inte eller har raderats.");
 
     const campaign = await CampaignModel.findOne({ groupId: group._id, isDeleted: false, status: "ACTIVE" }).lean();
     if (!campaign) return null;

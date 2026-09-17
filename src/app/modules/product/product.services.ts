@@ -76,7 +76,7 @@ const getAllProducts = async (query: any = {}) => {
 
 const getProductsWithCampaignStatus = async (campaignId: string, query: any = {}) => {
     if (!Types.ObjectId.isValid(campaignId)) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "Invalid campaign ID");
+        throw new ApiError(httpStatus.BAD_REQUEST, "Ogiltigt kampanj-ID");
     }
 
     const campaignObjectId = new Types.ObjectId(campaignId);
@@ -177,13 +177,13 @@ const getActiveProducts = async (query: any = {}) => {
 
 const getProductById = async (productId: string) => {
     const product = await ProductModel.findOne({ _id: productId, isDeleted: false });
-    if (!product) throw new ApiError(httpStatus.NOT_FOUND, "Requested product was not found or has been deleted.");
+    if (!product) throw new ApiError(httpStatus.NOT_FOUND, "Begärd produkt hittades inte eller har raderats.");
     return product;
 };
 
 const updateProduct = async (productId: string, payload: any, newImages: string[] = [], removeImages: string[] = []) => {
     const existingProduct = await ProductModel.findOne({ _id: productId, isDeleted: false });
-    if (!existingProduct) throw new ApiError(httpStatus.NOT_FOUND, "Requested product was not found or has been deleted.");
+    if (!existingProduct) throw new ApiError(httpStatus.NOT_FOUND, "Begärd produkt hittades inte eller har raderats.");
 
     let currentImages = existingProduct.images || [];
 
@@ -220,7 +220,7 @@ const updateProduct = async (productId: string, payload: any, newImages: string[
 
 const toggleProductStatus = async (productId: string) => {
     const product = await ProductModel.findOne({ _id: productId, isDeleted: false });
-    if (!product) throw new ApiError(httpStatus.NOT_FOUND, "Requested product was not found or has been deleted.");
+    if (!product) throw new ApiError(httpStatus.NOT_FOUND, "Begärd produkt hittades inte eller har raderats.");
     product.isActive = !product.isActive;
     await product.save();
     return product;
@@ -228,7 +228,7 @@ const toggleProductStatus = async (productId: string) => {
 
 const deleteProduct = async (productId: string) => {
     const product = await ProductModel.findOneAndUpdate({ _id: productId, isDeleted: false }, { $set: { isDeleted: true, isActive: false } }, { returnDocument: "after" });
-    if (!product) throw new ApiError(httpStatus.NOT_FOUND, "Requested product was not found or has already been deleted.");
+    if (!product) throw new ApiError(httpStatus.NOT_FOUND, "Begärd produkt hittades inte eller har redan raderats.");
     return product;
 };
 

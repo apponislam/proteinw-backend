@@ -13,7 +13,7 @@ const joinCampaign = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.CREATED,
         success: true,
-        message: "Joined campaign successfully",
+        message: "Gick med i försäljningen framgångsrikt",
         data: result,
     });
 });
@@ -25,7 +25,7 @@ const getMyJoinedCampaigns = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "My campaigns retrieved successfully",
+        message: "Mina försäljningar hämtades framgångsrikt",
         data: result.data,
         meta: result.pagination,
     });
@@ -38,7 +38,7 @@ const getCampaignSellers = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Campaign sellers retrieved successfully",
+        message: "Säljare för försäljningen hämtades framgångsrikt",
         data: result.data,
         meta: result.pagination,
     });

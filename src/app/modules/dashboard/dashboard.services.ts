@@ -903,10 +903,10 @@ const getAsSellerCampaignInfo = async (userId: string, query: any = {}) => {
 
 const getSellerCampaignInfoById = async (userId: string, campaignId: string) => {
     if (!campaignId || !Types.ObjectId.isValid(campaignId)) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "Invalid campaign ID provided.");
+        throw new ApiError(httpStatus.BAD_REQUEST, "Ogiltigt kampanj-ID angavs.");
     }
     if (!userId || !Types.ObjectId.isValid(userId)) {
-        throw new ApiError(httpStatus.UNAUTHORIZED, "Unauthorized access.");
+        throw new ApiError(httpStatus.UNAUTHORIZED, "Obehörig åtkomst.");
     }
 
     const campaignObjectId = new Types.ObjectId(campaignId);
@@ -914,7 +914,7 @@ const getSellerCampaignInfoById = async (userId: string, campaignId: string) => 
 
     const campaign = await CampaignModel.findOne({ _id: campaignObjectId, isDeleted: false }).lean();
     if (!campaign) {
-        throw new ApiError(httpStatus.NOT_FOUND, "Requested campaign was not found or has been deleted.");
+        throw new ApiError(httpStatus.NOT_FOUND, "Begärd försäljning hittades inte eller har raderats.");
     }
 
     // Fetch Campaign Admin info

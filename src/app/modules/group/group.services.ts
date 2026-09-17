@@ -12,11 +12,11 @@ import { InvitationModel } from "../invitation/invitation.model";
 const createGroup = async (userId: string, payload: any) => {
     const user = await UserModel.findById(userId);
     if (!user) {
-        throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+        throw new ApiError(httpStatus.NOT_FOUND, "Användaren hittades inte");
     }
 
     if (user.role === "ADMIN" && !user.isApproved) {
-        throw new ApiError(httpStatus.FORBIDDEN, "Your admin account has not been approved yet. You cannot create a group.");
+        throw new ApiError(httpStatus.FORBIDDEN, "Ditt adminkonto har inte godkänts ännu. Du kan inte skapa en grupp.");
     }
 
     const group = await GroupModel.create({
@@ -61,7 +61,7 @@ const getGroupById = async (groupId: string) => {
         .populate("createdBy", "name email phone photo role")
         .lean();
 
-    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Requested group was not found or has been deleted.");
+    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Begärd grupp hittades inte eller har raderats.");
 
     // 1. Seller count in this group
     const sellerCount = await SellerGroupModel.countDocuments({
@@ -98,19 +98,19 @@ const getGroupById = async (groupId: string) => {
 
 const getGroupByCode = async (code: string) => {
     const group = await GroupModel.findOne({ code, isDeleted: false });
-    if (!group) throw new ApiError(httpStatus.NOT_FOUND, `Group with code "${code}" was not found or has been deleted.`);
+    if (!group) throw new ApiError(httpStatus.NOT_FOUND, `Grupp med koden "${code}" hittades inte eller har raderats.`);
     return group;
 };
 
 const updateGroup = async (groupId: string, payload: any) => {
     const group = await GroupModel.findOneAndUpdate({ _id: groupId, isDeleted: false }, { $set: payload }, { returnDocument: "after", runValidators: true });
-    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Requested group was not found or has been deleted.");
+    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Begärd grupp hittades inte eller har raderats.");
     return group;
 };
 
 const toggleGroupStatus = async (groupId: string) => {
     const group = await GroupModel.findOne({ _id: groupId, isDeleted: false });
-    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Requested group was not found or has been deleted.");
+    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Begärd grupp hittades inte eller har raderats.");
     group.isActive = !group.isActive;
     await group.save();
     return group;
@@ -118,7 +118,7 @@ const toggleGroupStatus = async (groupId: string) => {
 
 const deleteGroup = async (groupId: string) => {
     const group = await GroupModel.findOneAndUpdate({ _id: groupId, isDeleted: false }, { $set: { isDeleted: true, isActive: false } }, { returnDocument: "after" });
-    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Requested group was not found or has already been deleted.");
+    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Begärd grupp hittades inte eller har redan raderats.");
     return group;
 };
 
@@ -247,7 +247,7 @@ const getMyCampaignStats = async (userId: string | Types.ObjectId) => {
         }
     }
 
-    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "No group was found for this user.");
+    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Ingen grupp hittades för denna användare.");
 
     const activeCampaign = await CampaignModel.findOne({ groupId: group._id, isDeleted: false, status: "ACTIVE" });
     const campaignId = activeCampaign?._id;

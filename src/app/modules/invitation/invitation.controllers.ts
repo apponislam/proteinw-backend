@@ -10,7 +10,7 @@ const sendInvitation = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Invitation sent successfully",
+        message: "Inbjudan skickades framgångsrikt",
         data: result,
     });
 });
@@ -21,7 +21,7 @@ const getInvitationsByGroup = catchAsync(async (req: Request, res: Response) => 
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Invitations retrieved successfully",
+        message: "Inbjudningar hämtades framgångsrikt",
         data: result.data,
         meta: result.pagination,
     });
@@ -33,7 +33,7 @@ const getInvitationByEmail = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Invitation retrieved successfully",
+        message: "Inbjudan hämtades framgångsrikt",
         data: result,
     });
 });
@@ -44,7 +44,7 @@ const getInvitationByCode = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Invitation retrieved successfully",
+        message: "Inbjudan hämtades framgångsrikt",
         data: result,
     });
 });

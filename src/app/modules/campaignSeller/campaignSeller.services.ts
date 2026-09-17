@@ -10,19 +10,19 @@ const joinCampaign = async (sellerId: string, campaignId: string) => {
     // 1. Check user exists and is SELLER
     const seller = await UserModel.findOne({ _id: sellerId, isDeleted: false });
     if (!seller) {
-        throw new ApiError(httpStatus.NOT_FOUND, "Seller user not found.");
+        throw new ApiError(httpStatus.NOT_FOUND, "Säljaranvändaren hittades inte.");
     }
     if (seller.role !== "SELLER") {
-        throw new ApiError(httpStatus.FORBIDDEN, "Only users with role SELLER can join campaigns.");
+        throw new ApiError(httpStatus.FORBIDDEN, "Endast användare med rollen SÄLJARE kan gå med i försäljningar.");
     }
 
     // 2. Check target campaign exists and is active
     const campaign = await CampaignModel.findOne({ _id: campaignId, isDeleted: false });
     if (!campaign) {
-        throw new ApiError(httpStatus.NOT_FOUND, "Target campaign was not found or has been deleted.");
+        throw new ApiError(httpStatus.NOT_FOUND, "Målförsäljningen hittades inte eller har raderats.");
     }
     if (campaign.status !== "ACTIVE") {
-        throw new ApiError(httpStatus.BAD_REQUEST, "Cannot add sellers because campaign is not active.");
+        throw new ApiError(httpStatus.BAD_REQUEST, "Kan inte lägga till säljare eftersom försäljningen inte är aktiv.");
     }
 
     // 3. Ensure seller is also attached to campaign's group if groupId exists
@@ -56,7 +56,7 @@ const joinCampaign = async (sellerId: string, campaignId: string) => {
 
     if (existingJoin) {
         if (!existingJoin.isDeleted) {
-            throw new ApiError(httpStatus.BAD_REQUEST, "Seller has already joined this campaign.");
+            throw new ApiError(httpStatus.BAD_REQUEST, "Säljaren har redan gått med i denna försäljning.");
         }
         // If previously removed (isDeleted: true), restore it
         existingJoin.isDeleted = false;
@@ -224,7 +224,7 @@ const getCampaignSellers = async (campaignId: string, query: any = {}) => {
 const addSellersToCampaign = async (campaignId: string, sellerIdsInput: string | string[]) => {
     const sellerIds = Array.isArray(sellerIdsInput) ? sellerIdsInput : [sellerIdsInput];
     if (!sellerIds || sellerIds.length === 0) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "sellerId or sellerIds array is required.");
+        throw new ApiError(httpStatus.BAD_REQUEST, "sellerId eller sellerIds-matris krävs.");
     }
 
     const results = [];
@@ -236,13 +236,13 @@ const addSellersToCampaign = async (campaignId: string, sellerIdsInput: string |
             results.push(result);
         } catch (err: any) {
             if (!firstErrorMsg) {
-                firstErrorMsg = err?.message || "Failed to add seller to campaign.";
+                firstErrorMsg = err?.message || "Kunde inte lägga till säljare i försäljningen.";
             }
         }
     }
 
     if (results.length === 0) {
-        throw new ApiError(httpStatus.BAD_REQUEST, firstErrorMsg || "No sellers could be added to this campaign.");
+        throw new ApiError(httpStatus.BAD_REQUEST, firstErrorMsg || "Inga säljare kunde läggas till i denna försäljning.");
     }
 
     return {
@@ -255,7 +255,7 @@ const addSellersToCampaign = async (campaignId: string, sellerIdsInput: string |
 const removeSellersFromCampaign = async (campaignId: string, sellerIdsInput: string | string[]) => {
     const sellerIds = Array.isArray(sellerIdsInput) ? sellerIdsInput : [sellerIdsInput];
     if (!sellerIds || sellerIds.length === 0) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "sellerId or sellerIds array is required.");
+        throw new ApiError(httpStatus.BAD_REQUEST, "sellerId eller sellerIds-matris krävs.");
     }
 
     const objectIds = sellerIds.map((id) => new Types.ObjectId(id));

@@ -10,7 +10,7 @@ const createTier = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.CREATED,
         success: true,
-        message: "Tier created successfully",
+        message: "Nivå skapad framgångsrikt",
         data: result,
     });
 });
@@ -22,7 +22,7 @@ const getAllTiers = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Tiers retrieved successfully",
+        message: "Nivåer hämtades framgångsrikt",
         data: result,
     });
 });
@@ -34,7 +34,7 @@ const getActiveTiers = catchAsync(async (_req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Tiers retrieved successfully",
+        message: "Nivåer hämtades framgångsrikt",
         data: result,
     });
 });
@@ -45,7 +45,7 @@ const getTierById = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Tier retrieved successfully",
+        message: "Nivå hämtades framgångsrikt",
         data: result,
     });
 });
@@ -56,7 +56,7 @@ const updateTier = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Tier updated successfully",
+        message: "Nivå uppdaterades framgångsrikt",
         data: result,
     });
 });
@@ -67,7 +67,7 @@ const toggleTierStatus = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: `Tier ${result.isActive ? "activated" : "deactivated"} successfully`,
+        message: `Nivå ${result.isActive ? "aktiverades" : "inaktiverades"} framgångsrikt`,
         data: result,
     });
 });
@@ -78,7 +78,7 @@ const deleteTier = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Tier deleted successfully",
+        message: "Nivå raderades framgångsrikt",
         data: null,
     });
 });

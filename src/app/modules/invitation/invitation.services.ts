@@ -9,12 +9,12 @@ import { sendGroupInvitationEmail } from "../../../utils/emailTemplates";
 const sendInvitation = async (inviterId: string, groupId: string, email: string) => {
     // Check if group exists
     const group = await GroupModel.findOne({ _id: groupId, isDeleted: false });
-    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Target group was not found or has been deleted.");
+    if (!group) throw new ApiError(httpStatus.NOT_FOUND, "Målgruppen hittades inte eller har raderats.");
 
     // Check if user exists with this email and is an Admin or Super Admin
     const existingUser = await UserModel.findOne({ email, isDeleted: false });
     if (existingUser && ["ADMIN", "SUPER_ADMIN"].includes(existingUser.role)) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "This email address belongs to an administrative account and cannot be invited as a seller.");
+        throw new ApiError(httpStatus.BAD_REQUEST, "Denna e-postadress tillhör ett administrativt konto och kan inte bjudas in som säljare.");
     }
 
     // Check if pending invitation already exists for this email
@@ -22,7 +22,7 @@ const sendInvitation = async (inviterId: string, groupId: string, email: string)
         email,
         status: "pending",
     });
-    if (existingInvitation) throw new ApiError(httpStatus.BAD_REQUEST, "A pending invitation has already been sent to this email address.");
+    if (existingInvitation) throw new ApiError(httpStatus.BAD_REQUEST, "En väntande inbjudan har redan skickats till denna e-postadress.");
 
     // Create invitation
     const invitation = await InvitationModel.create({
@@ -68,7 +68,7 @@ const getInvitationByEmail = async (email: string) => {
         status: "pending",
     }).populate("groupId", "name");
 
-    if (!invitation) throw new ApiError(httpStatus.NOT_FOUND, "No pending invitation was found for this email address.");
+    if (!invitation) throw new ApiError(httpStatus.NOT_FOUND, "Ingen väntande inbjudan hittades för denna e-postadress.");
     return invitation;
 };
 
@@ -92,7 +92,7 @@ const declineInvitation = async (email: string) => {
 
 const cancelInvitation = async (invitationId: string) => {
     const invitation = await InvitationModel.findById(invitationId);
-    if (!invitation) throw new ApiError(httpStatus.NOT_FOUND, "Requested invitation was not found or has already been canceled.");
+    if (!invitation) throw new ApiError(httpStatus.NOT_FOUND, "Begärd inbjudan hittades inte eller har redan avbrutits.");
 
     await InvitationModel.findByIdAndDelete(invitationId);
 
@@ -105,7 +105,7 @@ const getInvitationByCode = async (code: string) => {
         status: "pending",
     }).populate("groupId", "name");
 
-    if (!invitation) throw new ApiError(httpStatus.NOT_FOUND, `No pending invitation was found with code "${code}".`);
+    if (!invitation) throw new ApiError(httpStatus.NOT_FOUND, `Ingen väntande inbjudan hittades med koden "${code}".`);
     return invitation;
 };
 

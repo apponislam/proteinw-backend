@@ -10,7 +10,7 @@ const createGroup = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.CREATED,
         success: true,
-        message: "Group created successfully",
+        message: "Grupp skapad framgångsrikt",
         data: result,
     });
 });
@@ -22,7 +22,7 @@ const getAllGroups = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Groups retrieved successfully",
+        message: "Grupper hämtades framgångsrikt",
         data: result.data,
         meta: result.pagination,
     });
@@ -35,7 +35,7 @@ const getActiveGroups = catchAsync(async (_req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Groups retrieved successfully",
+        message: "Grupper hämtades framgångsrikt",
         data: result,
     });
 });
@@ -46,7 +46,7 @@ const getGroupById = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Group retrieved successfully",
+        message: "Grupp hämtades framgångsrikt",
         data: result,
     });
 });
@@ -57,7 +57,7 @@ const getGroupByCode = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Group retrieved successfully",
+        message: "Grupp hämtades framgångsrikt",
         data: result,
     });
 });
@@ -68,7 +68,7 @@ const updateGroup = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Group updated successfully",
+        message: "Grupp uppdaterades framgångsrikt",
         data: result,
     });
 });
@@ -79,7 +79,7 @@ const toggleGroupStatus = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: `Group ${result.isActive ? "activated" : "deactivated"} successfully`,
+        message: `Grupp ${result.isActive ? "aktiverades" : "inaktiverades"} framgångsrikt`,
         data: result,
     });
 });
@@ -90,7 +90,7 @@ const deleteGroup = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Group deleted successfully",
+        message: "Grupp raderades framgångsrikt",
         data: null,
     });
 });
@@ -102,7 +102,7 @@ const getMyGroup = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Your groups retrieved successfully",
+        message: "Dina grupper hämtades framgångsrikt",
         data: result.data,
         meta: result.pagination,
     });
@@ -115,7 +115,7 @@ const getMyCampaignStats = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Your campaign statistics retrieved successfully",
+        message: "Din försäljningsstatistik hämtades framgångsrikt",
         data: result,
     });
 });

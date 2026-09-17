@@ -13,7 +13,7 @@ const handleCastError = (err: mongoose.Error.CastError): TGenericErrorResponse =
 
     return {
         statusCode,
-        message: "Invalid ID",
+        message: "Ogiltigt ID",
         errorSources,
     };
 };

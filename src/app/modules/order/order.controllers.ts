@@ -11,7 +11,7 @@ const createOrder = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.CREATED,
         success: true,
-        message: "Order placed successfully",
+        message: "Beställning lagd framgångsrikt",
         data: result,
     });
 });
@@ -23,7 +23,7 @@ const getAllOrders = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Orders retrieved successfully",
+        message: "Beställningar hämtades framgångsrikt",
         data: result.data,
         meta: result.pagination,
     });
@@ -37,7 +37,7 @@ const getOrdersByMember = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Member orders retrieved successfully",
+        message: "Medlemsbeställningar hämtades framgångsrikt",
         data: result.data,
         meta: result.pagination,
     });
@@ -51,7 +51,7 @@ const getOrderById = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Order retrieved successfully",
+        message: "Beställning hämtades framgångsrikt",
         data: result,
     });
 });
@@ -65,7 +65,7 @@ const updateOrderStatus = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Order status updated successfully",
+        message: "Beställningsstatus uppdaterades framgångsrikt",
         data: result,
     });
 });
@@ -78,7 +78,7 @@ const deleteOrder = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Order deleted successfully",
+        message: "Beställning raderades framgångsrikt",
         data: result,
     });
 });
@@ -90,7 +90,7 @@ const getOrderStats = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Order statistics retrieved successfully",
+        message: "Beställningsstatistik hämtades framgångsrikt",
         data: result,
     });
 });
@@ -103,7 +103,7 @@ const getRunningCampaignOrders = catchAsync(async (req: Request, res: Response) 
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Running campaign orders retrieved successfully",
+        message: "Beställningar för pågående försäljning hämtades framgångsrikt",
         data: result.data,
         meta: result.pagination,
     });
@@ -117,7 +117,7 @@ const getRunningCampaignStats = catchAsync(async (req: Request, res: Response) =
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Running campaign statistics retrieved successfully",
+        message: "Statistik för pågående försäljning hämtades framgångsrikt",
         data: result,
     });
 });
@@ -129,7 +129,7 @@ const getCampaignContributors = catchAsync(async (req: Request, res: Response) =
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Campaign contributors retrieved successfully",
+        message: "Försäljningsbidragsgivare hämtades framgångsrikt",
         data: result,
     });
 });
@@ -141,7 +141,7 @@ const getMemberOrderStats = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Member order statistics retrieved successfully",
+        message: "Orderstatistik för medlem hämtades framgångsrikt",
         data: result,
     });
 });
@@ -154,7 +154,7 @@ const getOrdersByCampaign = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Campaign orders retrieved successfully",
+        message: "Försäljningsbeställningar hämtades framgångsrikt",
         data: result.data,
         meta: result.pagination,
     });

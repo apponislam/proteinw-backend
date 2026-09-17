@@ -12,7 +12,7 @@ import { TierModel } from "./tier.model";
 const checkRangeOverlap = async (min: number, max: number | undefined | null, excludeTierId?: string) => {
     // Basic validation: min must be less than max (when max is provided)
     if (max !== undefined && max !== null && min >= max) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "Minimum sales volume must be strictly less than maximum sales volume.");
+        throw new ApiError(httpStatus.BAD_REQUEST, "Minsta försäljningsvolym måste vara strikt mindre än maximal försäljningsvolym.");
     }
 
     const filter: any = { isDeleted: false };
@@ -33,7 +33,7 @@ const checkRangeOverlap = async (min: number, max: number | undefined | null, ex
         const tierMax = existingMax ?? Infinity;
 
         if (min < tierMax && newMax > existingMin) {
-            throw new ApiError(httpStatus.CONFLICT, `Sales volume range (${min}–${max ?? "unlimited"}) overlaps with existing tier "${tier.name}" (${existingMin}–${existingMax ?? "unlimited"}).`);
+            throw new ApiError(httpStatus.CONFLICT, `Försäljningsvolymintervallet (${min}–${max ?? "obegränsad"}) överlappar med den befintliga nivån "${tier.name}" (${existingMin}–${existingMax ?? "obegränsad"}).`);
         }
     }
 };
@@ -68,7 +68,7 @@ const getActiveTiers = async () => {
 
 const getTierById = async (tierId: string) => {
     const tier = await TierModel.findOne({ _id: tierId, isDeleted: false });
-    if (!tier) throw new ApiError(httpStatus.NOT_FOUND, "Requested tier was not found or has been deleted.");
+    if (!tier) throw new ApiError(httpStatus.NOT_FOUND, "Begärd nivå hittades inte eller har raderats.");
     return tier;
 };
 
@@ -77,7 +77,7 @@ const updateTier = async (tierId: string, payload: any) => {
     if (payload.minSalesVolume !== undefined || payload.maxSalesVolume !== undefined) {
         // Fetch current tier to merge with incoming changes
         const currentTier = await TierModel.findOne({ _id: tierId, isDeleted: false });
-        if (!currentTier) throw new ApiError(httpStatus.NOT_FOUND, "Requested tier was not found or has been deleted.");
+        if (!currentTier) throw new ApiError(httpStatus.NOT_FOUND, "Begärd nivå hittades inte eller har raderats.");
 
         const newMin = payload.minSalesVolume ?? currentTier.minSalesVolume;
         const newMax = payload.maxSalesVolume !== undefined ? payload.maxSalesVolume : currentTier.maxSalesVolume;
@@ -90,13 +90,13 @@ const updateTier = async (tierId: string, payload: any) => {
     }
 
     const tier = await TierModel.findOneAndUpdate({ _id: tierId, isDeleted: false }, { $set: payload }, { returnDocument: "after", runValidators: true });
-    if (!tier) throw new ApiError(httpStatus.NOT_FOUND, "Requested tier was not found or has been deleted.");
+    if (!tier) throw new ApiError(httpStatus.NOT_FOUND, "Begärd nivå hittades inte eller har raderats.");
     return tier;
 };
 
 const toggleTierStatus = async (tierId: string) => {
     const tier = await TierModel.findOne({ _id: tierId, isDeleted: false });
-    if (!tier) throw new ApiError(httpStatus.NOT_FOUND, "Requested tier was not found or has been deleted.");
+    if (!tier) throw new ApiError(httpStatus.NOT_FOUND, "Begärd nivå hittades inte eller har raderats.");
     tier.isActive = !tier.isActive;
     await tier.save();
     return tier;
@@ -104,7 +104,7 @@ const toggleTierStatus = async (tierId: string) => {
 
 const deleteTier = async (tierId: string) => {
     const tier = await TierModel.findOneAndUpdate({ _id: tierId, isDeleted: false }, { $set: { isDeleted: true, isActive: false } }, { returnDocument: "after" });
-    if (!tier) throw new ApiError(httpStatus.NOT_FOUND, "Requested tier was not found or has already been deleted.");
+    if (!tier) throw new ApiError(httpStatus.NOT_FOUND, "Begärd nivå hittades inte eller har redan raderats.");
     return tier;
 };
 

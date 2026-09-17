@@ -46,7 +46,7 @@ const register = catchAsync(async (req: Request, res: Response) => {
 
     // Basic validation
     if (!userData.name || !userData.email || !userData.password) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "Name, email, and password are required");
+        throw new ApiError(httpStatus.BAD_REQUEST, "Namn, e-postadress och lösenord krävs");
     }
 
     // Location is already parsed
@@ -73,7 +73,7 @@ const register = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.CREATED,
         success: true,
-        message: "User registered successfully",
+        message: "Användaren registrerades framgångsrikt",
         data: {
             user: result.user,
             accessToken: result.accessToken,
@@ -103,7 +103,7 @@ const login = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Login successful",
+        message: "Inloggningen lyckades",
         data: {
             user: result.user,
             accessToken: result.accessToken,
@@ -133,7 +133,7 @@ const loginWithInvitationCode = catchAsync(async (req: Request, res: Response) =
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Logged in and joined group successfully",
+        message: "Inloggad och gick med i gruppen framgångsrikt",
         data: {
             user: result.user,
             accessToken: result.accessToken,
@@ -147,7 +147,7 @@ const verifyEmail = catchAsync(async (req: Request, res: Response) => {
     const email = req.query.email as string;
 
     if (!email) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "Email is required");
+        throw new ApiError(httpStatus.BAD_REQUEST, "E-postadress krävs");
     }
 
     const result = await authServices.verifyEmail(email, token, otp);
@@ -167,7 +167,7 @@ const resendVerificationEmail = catchAsync(async (req: Request, res: Response) =
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Verification email resent successfully",
+        message: "Verifieringsmeddelande skickades igen framgångsrikt",
         data: null,
     });
 });
@@ -178,7 +178,7 @@ const getMe = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "User retrieved successfully",
+        message: "Användaren hämtades framgångsrikt",
         data: user,
     });
 });
@@ -197,7 +197,7 @@ const logout = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Logout successful",
+        message: "Utloggningen lyckades",
         data: null,
     });
 });
@@ -210,7 +210,7 @@ const refreshAccessToken = catchAsync(async (req: Request, res: Response) => {
     const refreshToken = req?.cookies?.refreshToken || req?.body?.refreshToken || (req?.headers?.["x-refresh-token"] as string);
 
     if (!refreshToken) {
-        throw new ApiError(httpStatus.UNAUTHORIZED, "Refresh token is missing or expired. Please log in again.");
+        throw new ApiError(httpStatus.UNAUTHORIZED, "Refresh-token saknas eller har gått ut. Logga in igen.");
     }
 
     const result = await authServices.refreshAccessToken(refreshToken);
@@ -218,7 +218,7 @@ const refreshAccessToken = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Token refreshed successfully",
+        message: "Token förnyades framgångsrikt",
         data: result,
     });
 });
@@ -229,7 +229,7 @@ const requestPasswordReset = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Password reset OTP sent to email",
+        message: "OTP för återställning av lösenord skickades till e-postadressen",
         data: null,
     });
 });
@@ -240,7 +240,7 @@ const verifyOtp = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "OTP verified successfully",
+        message: "OTP verifierades framgångsrikt",
         data: { token: result.token },
     });
 });
@@ -251,7 +251,7 @@ const resendOtp = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "OTP resent successfully",
+        message: "OTP skickades igen framgångsrikt",
         data: null,
     });
 });
@@ -263,7 +263,7 @@ const resetPassword = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Password reset successful",
+        message: "Lösenordet återställdes framgångsrikt",
         data: null,
     });
 });
@@ -324,7 +324,7 @@ const updateProfile = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Profile updated successfully",
+        message: "Profilen uppdaterades framgångsrikt",
         data: updatedUser,
     });
 });
@@ -335,7 +335,7 @@ const changePassword = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Password changed successfully",
+        message: "Lösenordet ändrades framgångsrikt",
         data: null,
     });
 });
@@ -343,7 +343,7 @@ const changePassword = catchAsync(async (req: Request, res: Response) => {
 const deleteAccount = catchAsync(async (req: Request, res: Response) => {
     const { password } = req.body;
     if (!password) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "Password is required to delete account");
+        throw new ApiError(httpStatus.BAD_REQUEST, "Lösenord krävs för att radera kontot");
     }
 
     await authServices.deleteAccount(req.user._id, password);
@@ -357,7 +357,7 @@ const deleteAccount = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Account deleted successfully",
+        message: "Kontot raderades framgångsrikt",
         data: null,
     });
 });
@@ -368,7 +368,7 @@ const updateEmail = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Email update requested. Please verify new email.",
+        message: "E-postuppdatering begärd. Vänligen verifiera den nya e-postadressen.",
         data: null,
     });
 });
@@ -379,7 +379,7 @@ const resendEmailUpdate = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Email verification resent successfully",
+        message: "E-postverifiering skickades igen framgångsrikt",
         data: null,
     });
 });
@@ -391,7 +391,7 @@ const verifyNewEmail = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "New email verified successfully",
+        message: "Ny e-postadress verifierades framgångsrikt",
         data: null,
     });
 });
@@ -404,7 +404,7 @@ const setUserPassword = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Password set successfully",
+        message: "Lösenordet angavs framgångsrikt",
         data: null,
     });
 });
@@ -449,7 +449,7 @@ const registerSeller = catchAsync(async (req: Request, res: Response) => {
 
     // Basic validation
     if (!userData.name || !userData.email || !userData.password) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "Name, email, and password are required");
+        throw new ApiError(httpStatus.BAD_REQUEST, "Namn, e-postadress och lösenord krävs");
     }
 
     const result = await authServices.registerSeller(userData);
@@ -464,7 +464,7 @@ const registerSeller = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.CREATED,
         success: true,
-        message: "Seller registered successfully",
+        message: "Säljaren registrerades framgångsrikt",
         data: {
             user: result.user,
             accessToken: result.accessToken,
@@ -474,7 +474,7 @@ const registerSeller = catchAsync(async (req: Request, res: Response) => {
 
 const createAdmin = catchAsync(async (req: Request, res: Response) => {
     if (!req.body.name || !req.body.email || !req.body.password) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "Name, email, and password are required");
+        throw new ApiError(httpStatus.BAD_REQUEST, "Namn, e-postadress och lösenord krävs");
     }
 
     const result = await authServices.createAdmin(req.body, req.user._id);
@@ -482,7 +482,7 @@ const createAdmin = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.CREATED,
         success: true,
-        message: "Admin created successfully",
+        message: "Admin skapades framgångsrikt",
         data: result,
     });
 });
@@ -493,7 +493,7 @@ const getAdminsWithStats = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Admins stats retrieved successfully",
+        message: "Adminstatistik hämtades framgångsrikt",
         data: result.data,
         meta: result.meta,
     });
@@ -505,7 +505,7 @@ const getGroupSellers = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Group sellers retrieved successfully",
+        message: "Gruppsäljare hämtades framgångsrikt",
         data: result.data,
         meta: result.pagination,
     });
@@ -517,7 +517,7 @@ const getMyReferralAndCampaign = catchAsync(async (req: Request, res: Response) 
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Referral and campaign code retrieved successfully",
+        message: "Värvnings- och försäljningskod hämtades framgångsrikt",
         data: result,
     });
 });
@@ -529,7 +529,7 @@ const approveAdmin = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Admin approved successfully",
+        message: "Admin godkändes framgångsrikt",
         data: result,
     });
 });
@@ -561,7 +561,7 @@ const updateUserBySuperAdmin = catchAsync(async (req: Request, res: Response) =>
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "User updated successfully",
+        message: "Användaren uppdaterades framgångsrikt",
         data: result,
     });
 });
@@ -573,7 +573,7 @@ const getUserById = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "User retrieved successfully",
+        message: "Användaren hämtades framgångsrikt",
         data: user,
     });
 });

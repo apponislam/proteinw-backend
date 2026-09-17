@@ -10,7 +10,7 @@ const createCampaign = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.CREATED,
         success: true,
-        message: "Campaign created successfully",
+        message: "Försäljning skapad framgångsrikt",
         data: result,
     });
 });
@@ -21,7 +21,7 @@ const getAllCampaigns = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Campaigns retrieved successfully",
+        message: "Försäljningar hämtades framgångsrikt",
         data: result.data,
         meta: result.pagination,
     });
@@ -33,7 +33,7 @@ const getAllCampaignsWithStats = catchAsync(async (req: Request, res: Response) 
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Campaigns with stats retrieved successfully",
+        message: "Försäljningar med statistik hämtades framgångsrikt",
         data: result.data,
         meta: result.pagination,
     });
@@ -45,7 +45,7 @@ const getAllCampaignsSummary = catchAsync(async (req: Request, res: Response) =>
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Campaigns summary retrieved successfully",
+        message: "Försäljningssammanfattning hämtades framgångsrikt",
         data: result.data,
         meta: result.pagination,
     });
@@ -57,7 +57,7 @@ const getActiveCampaigns = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Active campaigns retrieved successfully",
+        message: "Aktiva försäljningar hämtades framgångsrikt",
         data: result,
     });
 });
@@ -68,7 +68,7 @@ const getCampaignById = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Campaign retrieved successfully",
+        message: "Försäljning hämtades framgångsrikt",
         data: result,
     });
 });
@@ -79,7 +79,7 @@ const getCampaignByCode = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Campaign retrieved successfully",
+        message: "Försäljning hämtades framgångsrikt",
         data: result,
     });
 });
@@ -90,7 +90,7 @@ const getCampaignsByGroup = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Campaigns retrieved successfully",
+        message: "Försäljningar hämtades framgångsrikt",
         data: result.data,
         meta: result.pagination,
     });
@@ -102,7 +102,7 @@ const updateCampaign = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Campaign updated successfully",
+        message: "Försäljning uppdaterades framgångsrikt",
         data: result,
     });
 });
@@ -114,7 +114,7 @@ const updateCampaignStatus = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: `Campaign status changed to ${status} successfully`,
+        message: `Försäljningsstatus ändrades till ${status} framgångsrikt`,
         data: result,
     });
 });
@@ -125,7 +125,7 @@ const deleteCampaign = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Campaign deleted successfully",
+        message: "Försäljning raderades framgångsrikt",
         data: result,
     });
 });
@@ -136,7 +136,7 @@ const getRunningCampaignByGroup = catchAsync(async (req: Request, res: Response)
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Running campaign for group retrieved successfully",
+        message: "Pågående försäljning för grupp hämtades framgångsrikt",
         data: result,
     });
 });
@@ -147,7 +147,7 @@ const getRunningCampaignForSeller = catchAsync(async (req: Request, res: Respons
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Running campaigns for joined seller group retrieved successfully",
+        message: "Pågående försäljningar för ansluten säljargrupp hämtades framgångsrikt",
         data: result.data,
         meta: result.pagination,
     });
@@ -160,7 +160,7 @@ const assignTierToCampaign = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Tier assigned to campaign successfully",
+        message: "Nivå tilldelades försäljningen framgångsrikt",
         data: result,
     });
 });
@@ -172,7 +172,7 @@ const getMyCampaigns = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "My campaigns retrieved successfully",
+        message: "Mina försäljningar hämtades framgångsrikt",
         data: result.data,
         meta: result.pagination,
     });

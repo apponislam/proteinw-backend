@@ -37,21 +37,21 @@ const getAllContacts = async (query: any = {}) => {
 // Get single contact message by id
 const getContactById = async (contactId: string) => {
     const contact = await ContactModel.findOne({ _id: contactId, isDeleted: false });
-    if (!contact) throw new ApiError(httpStatus.NOT_FOUND, "Contact message not found");
+    if (!contact) throw new ApiError(httpStatus.NOT_FOUND, "Kontaktmeddelandet hittades inte");
     return contact;
 };
 
 // Mark contact as read
 const markAsRead = async (contactId: string) => {
     const contact = await ContactModel.findOneAndUpdate({ _id: contactId, isDeleted: false }, { $set: { isRead: true } }, { returnDocument: "after", runValidators: true });
-    if (!contact) throw new ApiError(httpStatus.NOT_FOUND, "Contact message not found");
+    if (!contact) throw new ApiError(httpStatus.NOT_FOUND, "Kontaktmeddelandet hittades inte");
     return contact;
 };
 
 // Soft delete contact message
 const deleteContact = async (contactId: string) => {
     const contact = await ContactModel.findOneAndUpdate({ _id: contactId, isDeleted: false }, { $set: { isDeleted: true } }, { returnDocument: "after" });
-    if (!contact) throw new ApiError(httpStatus.NOT_FOUND, "Contact message not found");
+    if (!contact) throw new ApiError(httpStatus.NOT_FOUND, "Kontaktmeddelandet hittades inte");
     return contact;
 };
 

@@ -11,7 +11,7 @@ const createFAQ = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.CREATED,
         success: true,
-        message: "FAQ created successfully",
+        message: "FAQ skapades framgångsrikt",
         data: result,
     });
 });
@@ -23,7 +23,7 @@ const getAllFAQs = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "FAQs retrieved successfully",
+        message: "FAQ hämtades framgångsrikt",
         data: result,
     });
 });
@@ -36,7 +36,7 @@ const getActiveFAQs = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "FAQs retrieved successfully",
+        message: "FAQ hämtades framgångsrikt",
         data: result,
     });
 });
@@ -47,7 +47,7 @@ const getFAQById = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "FAQ retrieved successfully",
+        message: "FAQ hämtades framgångsrikt",
         data: result,
     });
 });
@@ -58,7 +58,7 @@ const updateFAQ = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "FAQ updated successfully",
+        message: "FAQ uppdaterades framgångsrikt",
         data: result,
     });
 });
@@ -69,7 +69,7 @@ const toggleFAQStatus = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: `FAQ ${result.isActive ? "activated" : "deactivated"} successfully`,
+        message: `FAQ ${result.isActive ? "aktiverades" : "inaktiverades"} framgångsrikt`,
         data: result,
     });
 });
@@ -80,7 +80,7 @@ const deleteFAQ = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "FAQ deleted successfully",
+        message: "FAQ raderades framgångsrikt",
         data: null,
     });
 });

@@ -28,11 +28,11 @@ const createOrder = async (payload: any) => {
         campaign = await CampaignModel.findOne({ code: targetCampaignCode, isDeleted: false });
 
         if (!campaign) {
-            throw new ApiError(httpStatus.NOT_FOUND, "Target campaign was not found or has been deleted.");
+            throw new ApiError(httpStatus.NOT_FOUND, "Målförsäljningen hittades inte eller har raderats.");
         }
 
         if (campaign.status !== "ACTIVE") {
-            throw new ApiError(httpStatus.BAD_REQUEST, "Target campaign is not currently active for receiving orders.");
+            throw new ApiError(httpStatus.BAD_REQUEST, "Målförsäljningen är för närvarande inte aktiv för att ta emot beställningar.");
         }
 
         resolvedCampaignId = campaign._id as Types.ObjectId;
@@ -45,7 +45,7 @@ const createOrder = async (payload: any) => {
         member = await UserModel.findOne({ referralCode: targetReferralCode, isDeleted: false });
 
         if (!member) {
-            throw new ApiError(httpStatus.NOT_FOUND, "Referral member was not found.");
+            throw new ApiError(httpStatus.NOT_FOUND, "Värvningsmedlemmen hittades inte.");
         }
 
         resolvedMemberId = member._id as Types.ObjectId;
@@ -62,7 +62,7 @@ const createOrder = async (payload: any) => {
     });
 
     if (products.length !== items.length) {
-        throw new ApiError(httpStatus.NOT_FOUND, "One or more requested products were not found or are inactive.");
+        throw new ApiError(httpStatus.NOT_FOUND, "En eller flera begärda produkter hittades inte eller är inaktiva.");
     }
 
     // If campaign is specified, ensure all products are in the campaign
@@ -74,7 +74,7 @@ const createOrder = async (payload: any) => {
         });
 
         if (campaignProducts.length !== items.length) {
-            throw new ApiError(httpStatus.BAD_REQUEST, "One or more requested products are not available in this campaign.");
+            throw new ApiError(httpStatus.BAD_REQUEST, "En eller flera begärda produkter är inte tillgängliga i denna försäljning.");
         }
     }
 
@@ -84,7 +84,7 @@ const createOrder = async (payload: any) => {
     const orderItems = items.map((item: any) => {
         const product = products.find((p: any) => p._id.toString() === item.productId.toString());
         if (!product) {
-            throw new ApiError(httpStatus.NOT_FOUND, "Requested product was not found.");
+            throw new ApiError(httpStatus.NOT_FOUND, "Begärd produkt hittades inte.");
         }
 
         const lineTotal = product.price * item.quantity;
@@ -320,7 +320,7 @@ const getOrdersByMember = async (memberId: string, query: any = {}) => {
 const getOrderById = async (orderId: string) => {
     const order = await OrderModel.findOne({ _id: orderId, isDeleted: false }).populate("memberId", "name email").populate("campaignId", "name code").populate("groupId", "name");
 
-    if (!order) throw new ApiError(httpStatus.NOT_FOUND, "Requested order was not found or has been deleted.");
+    if (!order) throw new ApiError(httpStatus.NOT_FOUND, "Begärd order hittades inte eller har raderats.");
     return order;
 };
 
@@ -328,12 +328,12 @@ const getOrderById = async (orderId: string) => {
 const updateOrderStatus = async (orderId: string, status: string) => {
     const validStatuses = ["pending", "delivered", "cancelled"];
     if (!validStatuses.includes(status)) {
-        throw new ApiError(httpStatus.BAD_REQUEST, `Invalid status "${status}". Allowed statuses: ${validStatuses.join(", ")}`);
+        throw new ApiError(httpStatus.BAD_REQUEST, `Ogiltig status "${status}". Tillåtna statusar: ${validStatuses.join(", ")}`);
     }
 
     // First check if order exists and is not deleted
     const existingOrder = await OrderModel.findOne({ _id: orderId, isDeleted: false });
-    if (!existingOrder) throw new ApiError(httpStatus.NOT_FOUND, "Requested order was not found or has been deleted.");
+    if (!existingOrder) throw new ApiError(httpStatus.NOT_FOUND, "Begärd order hittades inte eller har raderats.");
 
     // Check if current status is delivered
     // if (existingOrder.status === "delivered") {
@@ -342,7 +342,7 @@ const updateOrderStatus = async (orderId: string, status: string) => {
 
     const order = await OrderModel.findOneAndUpdate({ _id: orderId, isDeleted: false }, { $set: { status } }, { returnDocument: "after", runValidators: true });
 
-    if (!order) throw new ApiError(httpStatus.NOT_FOUND, "Requested order was not found or has been deleted.");
+    if (!order) throw new ApiError(httpStatus.NOT_FOUND, "Begärd order hittades inte eller har raderats.");
     return order;
 };
 
@@ -350,7 +350,7 @@ const updateOrderStatus = async (orderId: string, status: string) => {
 const deleteOrder = async (orderId: string) => {
     const order = await OrderModel.findOneAndUpdate({ _id: orderId, isDeleted: false }, { $set: { isDeleted: true } }, { returnDocument: "after" });
 
-    if (!order) throw new ApiError(httpStatus.NOT_FOUND, "Requested order was not found or has already been deleted.");
+    if (!order) throw new ApiError(httpStatus.NOT_FOUND, "Begärd order hittades inte eller har redan raderats.");
     return order;
 };
 
@@ -635,7 +635,7 @@ const getCampaignContributors = async (user: any) => {
 
 const getMemberOrderStats = async (userId: Types.ObjectId | string, query: any = {}) => {
     if (!userId) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "User ID is required");
+        throw new ApiError(httpStatus.BAD_REQUEST, "Användar-ID krävs");
     }
 
     const memberId = new Types.ObjectId(userId);
@@ -758,7 +758,7 @@ const getMemberOrderStats = async (userId: Types.ObjectId | string, query: any =
 
 const getOrdersByCampaign = async (campaignId: string, query: any = {}, user?: any) => {
     if (!Types.ObjectId.isValid(campaignId)) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "Invalid campaign ID");
+        throw new ApiError(httpStatus.BAD_REQUEST, "Ogiltigt kampanj-ID");
     }
 
     const filter: any = {

@@ -8,7 +8,7 @@ import ApiError from "../../../errors/ApiError";
 const getAllActivities = catchAsync(async (req: Request, res: Response) => {
     const user = req.user;
     if (!user) {
-        throw new ApiError(httpStatus.UNAUTHORIZED, "Unauthorized access");
+        throw new ApiError(httpStatus.UNAUTHORIZED, "Obehörig åtkomst");
     }
 
     const result = await activityLogServices.getAllActivities(user, req.query);
@@ -16,7 +16,7 @@ const getAllActivities = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Activities retrieved successfully",
+        message: "Aktiviteter hämtades framgångsrikt",
         data: result.data,
         meta: result.pagination,
     });

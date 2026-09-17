@@ -40,7 +40,7 @@ const createCustomerServiceRequest = catchAsync(async (req: Request, res: Respon
     sendResponse(res, {
         statusCode: httpStatus.CREATED,
         success: true,
-        message: "Customer service request submitted successfully.",
+        message: "Kundtjänstförfrågan skickades framgångsrikt.",
         data: result,
     });
 });
@@ -51,7 +51,7 @@ const getAllCustomerServiceRequests = catchAsync(async (req: Request, res: Respo
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Customer service requests retrieved successfully.",
+        message: "Kundtjänstförfrågningar hämtades framgångsrikt.",
         data: result.data,
         meta: result.pagination,
     });
@@ -64,7 +64,7 @@ const getCustomerServiceRequestById = catchAsync(async (req: Request, res: Respo
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Customer service request details retrieved successfully.",
+        message: "Information om kundtjänstförfrågan hämtades framgångsrikt.",
         data: result,
     });
 });
@@ -76,7 +76,7 @@ const updateCustomerServiceRequest = catchAsync(async (req: Request, res: Respon
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Customer service request updated successfully.",
+        message: "Kundtjänstförfrågan uppdaterades framgångsrikt.",
         data: result,
     });
 });
@@ -88,7 +88,7 @@ const deleteCustomerServiceRequest = catchAsync(async (req: Request, res: Respon
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Customer service request deleted successfully.",
+        message: "Kundtjänstförfrågan raderades framgångsrikt.",
         data: null,
     });
 });
@@ -99,7 +99,7 @@ const getCustomerServiceStats = catchAsync(async (req: Request, res: Response) =
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Customer service stats retrieved successfully.",
+        message: "Kundtjänststatistik hämtades framgångsrikt.",
         data: result,
     });
 });

@@ -10,19 +10,19 @@ const joinGroup = async (sellerId: string, groupId: string) => {
     // 1. Check user exists and is a SELLER
     const seller = await UserModel.findOne({ _id: sellerId, isDeleted: false });
     if (!seller) {
-        throw new ApiError(httpStatus.NOT_FOUND, "Seller user not found.");
+        throw new ApiError(httpStatus.NOT_FOUND, "Säljaranvändaren hittades inte.");
     }
     if (seller.role !== "SELLER") {
-        throw new ApiError(httpStatus.FORBIDDEN, "Only users with role SELLER can join groups.");
+        throw new ApiError(httpStatus.FORBIDDEN, "Endast användare med rollen SÄLJARE kan gå med i grupper.");
     }
 
     // 2. Check target group exists and is active
     const group = await GroupModel.findOne({ _id: groupId, isDeleted: false });
     if (!group) {
-        throw new ApiError(httpStatus.NOT_FOUND, "Target group was not found or has been deleted.");
+        throw new ApiError(httpStatus.NOT_FOUND, "Målgruppen hittades inte eller har raderats.");
     }
     if (!group.isActive) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "Cannot join an inactive group.");
+        throw new ApiError(httpStatus.BAD_REQUEST, "Kan inte gå med i en inaktiv grupp.");
     }
 
     // 3. Check if seller is already joined to this group
@@ -32,7 +32,7 @@ const joinGroup = async (sellerId: string, groupId: string) => {
         isDeleted: false,
     });
     if (existingJoin) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "You have already joined this group.");
+        throw new ApiError(httpStatus.BAD_REQUEST, "Du har redan gått med i denna grupp.");
     }
 
     // 4. Create join record

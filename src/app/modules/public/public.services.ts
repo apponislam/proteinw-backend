@@ -19,13 +19,13 @@ const getAllPolicies = async () => {
 
 const getPolicyByType = async (type: PolicyTypeEnum) => {
     const policy = await PolicyModel.findOne({ type, isDeleted: false });
-    if (!policy) throw new ApiError(httpStatus.NOT_FOUND, `Policy of type "${type}" was not found or has been deleted.`);
+    if (!policy) throw new ApiError(httpStatus.NOT_FOUND, `Policy av typen "${type}" hittades inte eller har raderats.`);
     return policy;
 };
 
 const deletePolicy = async (type: PolicyTypeEnum) => {
     const policy = await PolicyModel.findOneAndUpdate({ type, isDeleted: false }, { $set: { isDeleted: true } }, { returnDocument: "after" });
-    if (!policy) throw new ApiError(httpStatus.NOT_FOUND, `Policy of type "${type}" was not found or has already been deleted.`);
+    if (!policy) throw new ApiError(httpStatus.NOT_FOUND, `Policy av typen "${type}" hittades inte eller har redan raderats.`);
     return policy;
 };
 

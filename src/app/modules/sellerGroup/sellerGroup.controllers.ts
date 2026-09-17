@@ -19,7 +19,7 @@ const joinGroup = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.CREATED,
         success: true,
-        message: "Joined group successfully",
+        message: "Gick med i gruppen framgångsrikt",
         data: result,
     });
 });
@@ -36,7 +36,7 @@ const joinGroupByInvitationCode = catchAsync(async (req: Request, res: Response)
     sendResponse(res, {
         statusCode: httpStatus.CREATED,
         success: true,
-        message: "Joined group via invitation code successfully",
+        message: "Gick med i gruppen via inbjudningskod framgångsrikt",
         data: result,
     });
 });
@@ -48,7 +48,7 @@ const getMyJoinedGroups = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Joined groups retrieved successfully",
+        message: "Anslutna grupper hämtades framgångsrikt",
         data: result.data,
         meta: result.pagination,
     });
@@ -61,7 +61,7 @@ const getGroupSellers = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Group sellers retrieved successfully",
+        message: "Gruppsäljare hämtades framgångsrikt",
         data: result.data,
         meta: result.pagination,
     });

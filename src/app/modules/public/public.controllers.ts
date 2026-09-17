@@ -12,7 +12,7 @@ const upsertPolicy = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Policy saved successfully",
+        message: "Policy sparades framgångsrikt",
         data: result,
     });
 });
@@ -23,7 +23,7 @@ const getAllPolicies = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Policies retrieved successfully",
+        message: "Policys hämtades framgångsrikt",
         data: result,
     });
 });
@@ -35,7 +35,7 @@ const getPolicyByType = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Policy retrieved successfully",
+        message: "Policy hämtades framgångsrikt",
         data: result,
     });
 });
@@ -47,7 +47,7 @@ const deletePolicy = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Policy deleted successfully",
+        message: "Policy raderades framgångsrikt",
         data: null,
     });
 });
