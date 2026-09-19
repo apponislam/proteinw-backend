@@ -702,20 +702,41 @@ const getActiveCampaignsOverview = async () => {
 };
 
 const getAsSellerDashboardStats = async (userId: string, query: any = {}) => {
+    if (!userId || !Types.ObjectId.isValid(userId)) {
+        return {
+            totalSales: 0,
+            totalProfit: 0,
+            profitPercentage: 40,
+            packagesSold: 0,
+            daysRemaining: 0,
+            goal: 0,
+            current: 0,
+            remaining: 0,
+            campaignCode: "",
+            referralCode: "",
+            shopUrl: "",
+            hasCampaign: false,
+        };
+    }
+
+    const sellerObjectId = new Types.ObjectId(userId);
+    const seller = await UserModel.findById(sellerObjectId).select("referralCode").lean();
+    const referralCode = seller?.referralCode || "";
+
     const defaultStats = {
         totalSales: 0,
+        totalProfit: 0,
+        profitPercentage: 40,
         packagesSold: 0,
         daysRemaining: 0,
         goal: 0,
         current: 0,
         remaining: 0,
+        campaignCode: "",
+        referralCode,
+        shopUrl: "",
+        hasCampaign: false,
     };
-
-    if (!userId || !Types.ObjectId.isValid(userId)) {
-        return defaultStats;
-    }
-
-    const sellerObjectId = new Types.ObjectId(userId);
 
     let campaign: any = null;
 
@@ -739,27 +760,19 @@ const getAsSellerDashboardStats = async (userId: string, query: any = {}) => {
 
         if (activeJoin) {
             campaign = activeJoin.campaignId;
-        } else {
-            const sellerGroup = await SellerGroupModel.findOne({ sellerId: sellerObjectId, isDeleted: false });
-            if (sellerGroup) {
-                campaign = await CampaignModel.findOne({
-                    groupId: sellerGroup.groupId,
-                    status: "ACTIVE",
-                    isDeleted: false,
-                }).populate("tierId");
-            }
         }
+    }
+
+    if (!campaign) {
+        return defaultStats;
     }
 
     const matchStage: any = {
         memberId: sellerObjectId,
+        campaignId: campaign._id,
         isDeleted: false,
         status: { $ne: "cancelled" },
     };
-
-    if (campaign?._id) {
-        matchStage.campaignId = campaign._id;
-    }
 
     const personalOrdersStats = await OrderModel.aggregate([
         { $match: matchStage },
@@ -780,43 +793,37 @@ const getAsSellerDashboardStats = async (userId: string, query: any = {}) => {
     const totalProfit = totalSales * (profitPercentage / 100);
 
     let daysRemaining = 0;
-    let goal = 0;
+    let goal = campaign.target || 0;
     let current = 0;
 
-    if (campaign) {
-        goal = campaign.target || 0;
-        if (campaign.endDate) {
-            const now = new Date();
-            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const endDate = new Date(campaign.endDate);
-            const endDayStart = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
-            daysRemaining = Math.max(0, Math.floor((endDayStart.getTime() - todayStart.getTime()) / (1000 * 60 * 60 * 24)));
-        }
-
-        const overallCampaignStats = await OrderModel.aggregate([
-            {
-                $match: {
-                    campaignId: campaign._id,
-                    isDeleted: false,
-                    status: { $ne: "cancelled" },
-                },
-            },
-            {
-                $group: {
-                    _id: null,
-                    overallSales: { $sum: "$totalPrice" },
-                },
-            },
-        ]);
-
-        const overallSales = overallCampaignStats[0]?.overallSales || 0;
-        current = overallSales * (profitPercentage / 100);
+    if (campaign.endDate) {
+        const now = new Date();
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const endDate = new Date(campaign.endDate);
+        const endDayStart = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+        daysRemaining = Math.max(0, Math.floor((endDayStart.getTime() - todayStart.getTime()) / (1000 * 60 * 60 * 24)));
     }
 
-    const seller = await UserModel.findById(sellerObjectId).select("referralCode").lean();
-    const referralCode = seller?.referralCode || "";
-    const campaignCode = campaign?.code || "";
+    const overallCampaignStats = await OrderModel.aggregate([
+        {
+            $match: {
+                campaignId: campaign._id,
+                isDeleted: false,
+                status: { $ne: "cancelled" },
+            },
+        },
+        {
+            $group: {
+                _id: null,
+                overallSales: { $sum: "$totalPrice" },
+            },
+        },
+    ]);
 
+    const overallSales = overallCampaignStats[0]?.overallSales || 0;
+    current = overallSales * (profitPercentage / 100);
+
+    const campaignCode = campaign?.code || "";
     const baseUrl = config.client_url || "http://localhost:3000";
     const shopUrl = campaignCode && referralCode ? `${baseUrl}/store?campaign=${campaignCode}&referral=${referralCode}` : "";
 
@@ -834,6 +841,7 @@ const getAsSellerDashboardStats = async (userId: string, query: any = {}) => {
         campaignCode,
         referralCode,
         shopUrl,
+        hasCampaign: true,
     };
 };
 
@@ -842,9 +850,11 @@ const getAsSellerCampaignInfo = async (userId: string, query: any = {}) => {
         campaignId: null,
         name: "",
         shortDescription: "",
+        status: "",
         campaignCode: "",
         referralCode: "",
         shopUrl: "",
+        hasCampaign: false,
     };
 
     if (!userId || !Types.ObjectId.isValid(userId)) {
@@ -874,16 +884,14 @@ const getAsSellerCampaignInfo = async (userId: string, query: any = {}) => {
 
         if (activeJoin) {
             campaign = activeJoin.campaignId;
-        } else {
-            const sellerGroup = await SellerGroupModel.findOne({ sellerId: sellerObjectId, isDeleted: false });
-            if (sellerGroup) {
-                campaign = await CampaignModel.findOne({
-                    groupId: sellerGroup.groupId,
-                    status: "ACTIVE",
-                    isDeleted: false,
-                });
-            }
         }
+    }
+
+    if (!campaign) {
+        return {
+            ...emptyResult,
+            referralCode,
+        };
     }
 
     const campaignCode = campaign?.code || "";
@@ -898,6 +906,7 @@ const getAsSellerCampaignInfo = async (userId: string, query: any = {}) => {
         campaignCode,
         referralCode,
         shopUrl,
+        hasCampaign: true,
     };
 };
 
