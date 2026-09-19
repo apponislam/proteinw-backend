@@ -13,6 +13,7 @@ import { OrderModel } from "../order/order.model";
 import { SellerGroupModel } from "../sellerGroup/sellerGroup.model";
 import { CampaignSellerModel } from "../campaignSeller/campaignSeller.model";
 import { CampaignProductModel } from "../campaignProduct/campaignProduct.model";
+import { recalculateCampaignTier } from "../campaign/campaign.services";
 import { activityLogServices } from "../activityLog/activityLog.services";
 import mongoose, { Types } from "mongoose";
 
@@ -426,7 +427,15 @@ const deleteAccount = async (userId: string, password: string) => {
         }
 
         // 3. Directly delete orders associated with this user as a seller
+        const sellerOrders = await OrderModel.find({ memberId: userObjectId }).select("campaignId").session(session).lean();
+        const affectedCampaignIds = [...new Set(sellerOrders.map((o) => o.campaignId?.toString()).filter((id): id is string => Boolean(id)))];
+
         await OrderModel.deleteMany({ memberId: userObjectId }, { session });
+
+        // Recalculate campaign tier range based on remaining total packages
+        for (const campaignIdStr of affectedCampaignIds) {
+            await recalculateCampaignTier(campaignIdStr, session);
+        }
 
         // Delete user document completely so they can re-register with the same email/login credentials in the future
         await UserModel.findByIdAndDelete(userObjectId, { session });
@@ -585,7 +594,7 @@ const registerSeller = async (data: any) => {
 
     // Log Activity (New Member Joined)
     try {
-        let groupName = "the team";
+        let groupName = "teamet";
         const group = await GroupModel.findById(invitation.groupId);
         if (group) {
             groupName = group.name;
@@ -593,8 +602,8 @@ const registerSeller = async (data: any) => {
         await activityLogServices.createActivityLog({
             groupId: new Types.ObjectId(invitation.groupId),
             type: "MEMBER",
-            title: "New Member Joined",
-            description: `${createdUser.name} joined the ${groupName} team`,
+            title: "Ny medlem gick med",
+            description: `${createdUser.name} gick med i ${groupName}`,
         });
     } catch (activityError) {
         console.error("Failed to create activity log for member join:", activityError);

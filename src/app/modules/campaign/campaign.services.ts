@@ -157,8 +157,8 @@ const createCampaign = async (userId: string, groupId: string, payload: any) => 
         await activityLogServices.createActivityLog({
             groupId: new Types.ObjectId(groupId),
             type: "CAMPAIGN",
-            title: "Campaign Started",
-            description: `${campaign.name} shop is now officially live`,
+            title: "Försäljning startad",
+            description: `${campaign.name} webbutik är nu officiellt igång`,
         });
     } catch (activityError) {
         console.error("Failed to create activity log for campaign start:", activityError);
@@ -705,6 +705,59 @@ const getMyCampaigns = async (user: any, query: any = {}) => {
     };
 };
 
+export const recalculateCampaignTier = async (campaignId: Types.ObjectId | string, session?: any) => {
+    const campaignObjectId = typeof campaignId === "string" ? new Types.ObjectId(campaignId) : campaignId;
+
+    const campaign = await CampaignModel.findOne({ _id: campaignObjectId, status: "ACTIVE", isDeleted: false }).session(session || null);
+    if (!campaign) return;
+
+    const campaignOrders = await OrderModel.aggregate([
+        {
+            $match: {
+                campaignId: campaignObjectId,
+                status: { $ne: "cancelled" },
+                isDeleted: false,
+            },
+        },
+        {
+            $group: {
+                _id: null,
+                totalPackages: { $sum: "$totalPackage" },
+            },
+        },
+    ]).session(session || null);
+
+    const totalPackagesForCampaign = campaignOrders.length > 0 ? campaignOrders[0].totalPackages : 0;
+
+    let eligibleTier = await TierModel.findOne({
+        isActive: true,
+        isDeleted: false,
+        minSalesVolume: { $lte: totalPackagesForCampaign },
+    })
+        .sort({ minSalesVolume: -1 })
+        .session(session || null);
+
+    if (!eligibleTier) {
+        eligibleTier = await TierModel.findOne({
+            isActive: true,
+            isDeleted: false,
+        })
+            .sort({ minSalesVolume: 1 })
+            .session(session || null);
+    }
+
+    if (eligibleTier) {
+        const currentTierId = campaign.tierId ? campaign.tierId.toString() : null;
+        if (currentTierId !== eligibleTier._id.toString()) {
+            await CampaignModel.updateOne(
+                { _id: campaignObjectId },
+                { $set: { tierId: eligibleTier._id, tierAssignDate: new Date() } },
+                { session: session || undefined },
+            );
+        }
+    }
+};
+
 export const campaignServices = {
     createCampaign,
     getAllCampaigns,
@@ -721,4 +774,5 @@ export const campaignServices = {
     updateCampaign,
     updateCampaignStatus,
     deleteCampaign,
+    recalculateCampaignTier,
 };

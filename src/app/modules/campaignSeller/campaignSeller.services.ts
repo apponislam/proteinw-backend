@@ -77,8 +77,8 @@ const joinCampaign = async (sellerId: string, campaignId: string) => {
             await activityLogServices.createActivityLog({
                 groupId: campaign.groupId as Types.ObjectId,
                 type: "CAMPAIGN",
-                title: "Seller Joined Campaign",
-                description: `${seller.name} joined campaign ${campaign.name}`,
+                title: "Säljare gick med i försäljningen",
+                description: `${seller.name} gick med i försäljningen ${campaign.name}`,
             });
         }
     } catch (activityError) {

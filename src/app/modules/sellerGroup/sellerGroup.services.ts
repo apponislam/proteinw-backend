@@ -76,8 +76,8 @@ const joinGroup = async (sellerId: string, groupId: string) => {
         await activityLogServices.createActivityLog({
             groupId: new Types.ObjectId(groupId),
             type: "MEMBER",
-            title: "New Member Joined Group",
-            description: `${seller.name} joined ${group.name}`,
+            title: "Ny medlem i gruppen",
+            description: `${seller.name} gick med i ${group.name}`,
         });
     } catch (activityError) {
         console.error("Failed to create activity log for seller group join:", activityError);

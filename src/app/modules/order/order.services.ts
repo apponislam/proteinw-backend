@@ -150,13 +150,13 @@ const createOrder = async (payload: any) => {
 
     // Log Activity (New Sale Logged & Milestone Reached)
     try {
-        let sellerName = customerData.customerName || "Someone";
+        let sellerName = customerData.customerName || "Någon";
         if (member) {
             sellerName = member.name;
         }
         const firstItem = orderItems[0];
-        const itemText = firstItem ? `${firstItem.quantity}x '${firstItem.productName}'` : "products";
-        const description = `${sellerName} sold ${itemText}`;
+        const itemText = firstItem ? `${firstItem.quantity}x '${firstItem.productName}'` : "produkter";
+        const description = `${sellerName} sålde ${itemText}`;
 
         const dbGroupId = resolvedGroupId;
 
@@ -164,7 +164,7 @@ const createOrder = async (payload: any) => {
             await activityLogServices.createActivityLog({
                 groupId: dbGroupId,
                 type: "SALE",
-                title: "New Sale Logged",
+                title: "Ny försäljning registrerad",
                 description,
             });
 
@@ -183,7 +183,7 @@ const createOrder = async (payload: any) => {
                     else if (percentage >= 25) thresholdReached = 25;
 
                     if (thresholdReached > 0) {
-                        const milestoneDesc = `${thresholdReached}% of Group Goal Achieved!`;
+                        const milestoneDesc = `${thresholdReached}% av gruppens mål har uppnåtts!`;
                         const alreadyLogged = await ActivityLogModel.findOne({
                             type: "MILESTONE",
                             description: milestoneDesc,
@@ -192,7 +192,7 @@ const createOrder = async (payload: any) => {
                             await activityLogServices.createActivityLog({
                                 groupId: dbGroupId,
                                 type: "MILESTONE",
-                                title: "Milestone Reached",
+                                title: "Delmål uppnått",
                                 description: milestoneDesc,
                             });
                         }
@@ -343,6 +343,10 @@ const updateOrderStatus = async (orderId: string, status: string) => {
     const order = await OrderModel.findOneAndUpdate({ _id: orderId, isDeleted: false }, { $set: { status } }, { returnDocument: "after", runValidators: true });
 
     if (!order) throw new ApiError(httpStatus.NOT_FOUND, "Begärd order hittades inte eller har raderats.");
+    if (order.campaignId) {
+        const { recalculateCampaignTier } = await import("../campaign/campaign.services");
+        await recalculateCampaignTier(order.campaignId);
+    }
     return order;
 };
 
@@ -351,6 +355,10 @@ const deleteOrder = async (orderId: string) => {
     const order = await OrderModel.findOneAndUpdate({ _id: orderId, isDeleted: false }, { $set: { isDeleted: true } }, { returnDocument: "after" });
 
     if (!order) throw new ApiError(httpStatus.NOT_FOUND, "Begärd order hittades inte eller har redan raderats.");
+    if (order.campaignId) {
+        const { recalculateCampaignTier } = await import("../campaign/campaign.services");
+        await recalculateCampaignTier(order.campaignId);
+    }
     return order;
 };
 
