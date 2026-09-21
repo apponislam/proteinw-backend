@@ -10,7 +10,8 @@ export const sendVerificationEmail = (email: string, name: string, verificationU
                 <a href="${verificationUrl}" target="_blank" style="background-color: #7C5800; background-image: linear-gradient(to right, #7C5800, #FFB800); color: #ffffff !important; padding: 12px 30px; text-decoration: none !important; border-radius: 24px; display: inline-block; font-weight: 500; font-size: 14px; text-align: center; border: none;">Verifiera e-post</a>
             </div>
             <p style="color: #8a8a8a; font-size: 12px; line-height: 1.6; word-break: break-all;">Eller kopiera denna länk: <span style="word-break: break-all;">${verificationUrl}</span></p>
-            ${""/*
+            ${
+                "" /*
                 otp
                     ? `<div style="margin-top: 24px; padding: 16px; background: #fffaf0; border-radius: 8px; border: 1px solid #ffe8b8;">
                         <p style="color: #7C5800; font-size: 14px; text-align: center; margin: 0 0 8px 0;">Eller ange denna 6-siffriga kod i appen:</p>
@@ -18,7 +19,8 @@ export const sendVerificationEmail = (email: string, name: string, verificationU
                         <p style="color: #8a8a8a; font-size: 12px; text-align: center; margin: 8px 0 0 0;">OTP-koden går ut om 10 minuter.</p>
                        </div>`
                     : ""
-            */}
+            */
+            }
             <p style="color: #8a8a8a; font-size: 12px; margin-top: 24px;">Denna länk går ut om 24 timmar.</p>
         </div>
     `;
@@ -103,7 +105,6 @@ export const sendGroupInvitationEmail = (email: string, groupName: string, code:
         <div style="font-family: Arial, sans-serif; width: 100%; max-width: 500px; margin: 0 auto; padding: 24px; background: white; border: 1px solid #f0f0f0; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); box-sizing: border-box;">
             <h2 style="color: #1a1a1a; margin-top: 0; font-size: 20px;">Hej,</h2>
             <p style="color: #4a4a4a; line-height: 1.6; font-size: 14px;">Du har blivit inbjuden att gå med i gruppen: <strong style="color: #7C5800;">${groupName}</strong>.</p>
-            <p style="color: #4a4a4a; line-height: 1.6; font-size: 14px;">Din inbjudningskod är: <strong style="color: #7C5800; font-size: 18px; letter-spacing: 1px;">${code}</strong></p>
             
             <p style="color: #4a4a4a; line-height: 1.6; font-size: 14px;">Om du inte har ett konto, klicka nedan för att registrera dig och gå med:</p>
             <div style="text-align: center; margin: 24px 0;">

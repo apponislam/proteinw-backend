@@ -43,35 +43,7 @@ const joinGroup = async (sellerId: string, groupId: string) => {
 
 
 
-    // 5. If active campaign exists for this group, join seller to campaign as well
-    try {
-        const { CampaignModel } = await import("../campaign/campaign.model");
-        const { CampaignSellerModel } = await import("../campaignSeller/campaignSeller.model");
-
-        const activeCampaign = await CampaignModel.findOne({
-            groupId: new Types.ObjectId(groupId),
-            isDeleted: false,
-            status: "ACTIVE",
-        });
-
-        if (activeCampaign) {
-            const existingCampaignSeller = await CampaignSellerModel.findOne({
-                sellerId: new Types.ObjectId(sellerId),
-                campaignId: activeCampaign._id,
-                isDeleted: false,
-            });
-            if (!existingCampaignSeller) {
-                await CampaignSellerModel.create({
-                    sellerId: new Types.ObjectId(sellerId),
-                    campaignId: activeCampaign._id,
-                });
-            }
-        }
-    } catch (campaignError) {
-        console.error("Failed to auto-join seller to active campaign:", campaignError);
-    }
-
-    // 6. Log activity safely without breaking
+    // 5. Log activity safely without breaking
     try {
         await activityLogServices.createActivityLog({
             groupId: new Types.ObjectId(groupId),
@@ -97,7 +69,7 @@ const joinGroupByInvitationCode = async (sellerId: string, invitationCode: strin
         ? (invitation.groupId as any)._id.toString()
         : invitation.groupId.toString();
 
-    // 3. Join group (automatically auto-joins active campaign)
+    // 3. Join group
     const joinRecord = await joinGroup(sellerId, targetGroupId);
 
     // 4. Accept invitation
