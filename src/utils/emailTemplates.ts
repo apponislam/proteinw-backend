@@ -126,6 +126,17 @@ export const sendOrderConfirmationEmail = (email: string, customerName: string, 
     const { items, totalPrice, address, status, _id, orderId } = orderDetails;
     const orderIdDisplay = _id || orderId;
 
+    const orderStatusSwedishMap: Record<string, string> = {
+        pending: "Mottagen",
+        delivered: "Levererad",
+        cancelled: "Avbruten",
+        processing: "Behandlas",
+        shipped: "Skickad",
+        completed: "Slutförd",
+        paid: "Betald",
+    };
+    const translatedStatus = orderStatusSwedishMap[status?.toLowerCase()] || status;
+
     const itemsHtml = items
         .map(
             (item: any) => `
@@ -154,7 +165,7 @@ export const sendOrderConfirmationEmail = (email: string, customerName: string, 
                 <h2 style="color: #1a1a1a; margin: 0 0 16px 0; font-size: 18px;">Hej ${customerName},</h2>
                 
                 <p style="color: #4a4a4a; line-height: 1.6; margin: 0 0 24px 0; font-size: 14px;">
-                    Vi har tagit emot din order! Din orderstatus är: <strong style="color: #7C5800;">${status}</strong>.
+                    Vi har tagit emot din order! Din orderstatus är: <strong style="color: #7C5800;">${translatedStatus}</strong>.
                 </p>
                 
                 <div style="background: #fffaf0; border: 1px solid #ffe8b8; border-radius: 10px; padding: 16px; margin-bottom: 24px;">
@@ -302,7 +313,13 @@ export const sendCustomerServiceReplyEmail = (
 ) => {
     const { _id, issueType, orderId, status, adminNotes } = details;
     const issueTypeName = issueType === "reklamation" ? "Reklamation" : "Byte";
-    const statusFormatted = status.replace("_", " ").toUpperCase();
+    const statusSwedishMap: Record<string, string> = {
+        pending: "Väntande",
+        in_progress: "Behandlas",
+        resolved: "Löst",
+        rejected: "Avvisad",
+    };
+    const statusFormatted = statusSwedishMap[status?.toLowerCase()] || status.replace("_", " ").toUpperCase();
 
     const html = `
         <div style="font-family: Arial, sans-serif; width: 100%; max-width: 580px; margin: 0 auto; padding: 0; background: white; border: 1px solid #f0f0f0; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; box-sizing: border-box; word-break: break-word; overflow-wrap: break-word;">

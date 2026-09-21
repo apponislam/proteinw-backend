@@ -1,10 +1,7 @@
 import httpStatus from "http-status";
 import mongoose from "mongoose";
 import ApiError from "../../../errors/ApiError";
-import {
-    sendCustomerServiceConfirmationEmail,
-    sendCustomerServiceReplyEmail,
-} from "../../../utils/emailTemplates";
+import { sendCustomerServiceConfirmationEmail, sendCustomerServiceReplyEmail } from "../../../utils/emailTemplates";
 import { ICustomerServiceRequest } from "./customerService.interface";
 import { CustomerServiceModel } from "./customerService.model";
 
@@ -67,11 +64,7 @@ const getAllCustomerServiceRequests = async (query: any = {}) => {
 
     if (query.searchTerm) {
         const searchRegex = new RegExp(query.searchTerm as string, "i");
-        filter.$or = [
-            { name: searchRegex },
-            { email: searchRegex },
-            { description: searchRegex },
-        ];
+        filter.$or = [{ name: searchRegex }, { email: searchRegex }, { description: searchRegex }];
     }
 
     const page = parseInt(query.page as string) || 1;
@@ -122,18 +115,12 @@ const getCustomerServiceRequestById = async (id: string) => {
 };
 
 // Update request status and optional admin notes (Admin)
-const updateCustomerServiceRequest = async (
-    id: string,
-    payload: { status?: string; adminNotes?: string },
-) => {
+const updateCustomerServiceRequest = async (id: string, payload: { status?: string; adminNotes?: string }) => {
     const updateData: any = {};
 
     if (payload.status) {
         if (!["pending", "in_progress", "resolved", "rejected"].includes(payload.status)) {
-            throw new ApiError(
-                httpStatus.BAD_REQUEST,
-                "Ogiltigt statusvärde. Måste vara pending, in_progress, resolved eller rejected.",
-            );
+            throw new ApiError(httpStatus.BAD_REQUEST, "Ogiltigt statusvärde. Måste vara pending, in_progress, resolved eller rejected.");
         }
         updateData.status = payload.status;
     }
@@ -142,11 +129,7 @@ const updateCustomerServiceRequest = async (
         updateData.adminNotes = payload.adminNotes;
     }
 
-    const updatedRequest = await CustomerServiceModel.findOneAndUpdate(
-        { _id: id, isDeleted: false },
-        { $set: updateData },
-        { returnDocument: "after", runValidators: true },
-    );
+    const updatedRequest = await CustomerServiceModel.findOneAndUpdate({ _id: id, isDeleted: false }, { $set: updateData }, { returnDocument: "after", runValidators: true });
 
     if (!updatedRequest) {
         throw new ApiError(httpStatus.NOT_FOUND, "Kundserviceärendet hittades inte.");
@@ -159,7 +142,7 @@ const updateCustomerServiceRequest = async (
             issueType: updatedRequest.issueType,
             orderId: updatedRequest.orderId ? updatedRequest.orderId.toString() : undefined,
             status: updatedRequest.status || "pending",
-            adminNotes: updatedRequest.adminNotes || "Your request status has been updated.",
+            adminNotes: updatedRequest.adminNotes || "Ditt ärendestatus har uppdaterats.",
         });
     }
 
@@ -168,11 +151,7 @@ const updateCustomerServiceRequest = async (
 
 // Soft delete customer service request (Admin)
 const deleteCustomerServiceRequest = async (id: string) => {
-    const deletedRequest = await CustomerServiceModel.findOneAndUpdate(
-        { _id: id, isDeleted: false },
-        { $set: { isDeleted: true } },
-        { returnDocument: "after" },
-    );
+    const deletedRequest = await CustomerServiceModel.findOneAndUpdate({ _id: id, isDeleted: false }, { $set: { isDeleted: true } }, { returnDocument: "after" });
 
     if (!deletedRequest) {
         throw new ApiError(httpStatus.NOT_FOUND, "Kundserviceärendet hittades inte.");
