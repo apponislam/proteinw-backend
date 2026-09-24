@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Summary - Campaign Report</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 0;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            background-color: #f1f5f9;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #0f172a;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        /* Top Web Preview Bar */
+        .no-print-bar {
+            max-width: 210mm;
+            margin: 20px auto 10px auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #0f172a;
+            color: #ffffff;
+            padding: 10px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .btn-print {
+            background: #7c5800;
+            color: #ffffff;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .btn-print:hover {
+            background: #926900;
+        }
+
+        /* Fixed A4 Printable Canvas with Explicit Padding */
+        .pdf-page {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto 30px auto;
+            background: #ffffff;
+            padding: 18mm 18mm 18mm 18mm; /* Guaranteed internal margin in both preview and PDF export */
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            border-bottom: 2px solid #0f172a;
+            padding-bottom: 14px;
+            margin-bottom: 20px;
+        }
+
+        .brand-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: #7c5800;
+            letter-spacing: -0.3px;
+            margin: 0;
+            line-height: 1;
+        }
+
+        .brand-subtitle {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
+        .doc-name {
+            font-size: 16px;
+            font-weight: 800;
+            color: #0f172a;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 0;
+            text-align: right;
+        }
+
+        .doc-meta {
+            font-size: 11px;
+            color: #64748b;
+            text-align: right;
+            margin-top: 3px;
+        }
+
+        /* Metadata Block */
+        .meta-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 12px 16px;
+            margin-bottom: 22px;
+        }
+
+        .meta-field {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .meta-label {
+            font-size: 9px;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: #64748b;
+            letter-spacing: 0.5px;
+            margin-bottom: 3px;
+        }
+
+        .meta-val {
+            font-size: 13px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        /* Section Titles */
+        .section-title {
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #0f172a;
+            padding-bottom: 6px;
+            border-bottom: 1.5px solid #0f172a;
+            margin-top: 22px;
+            margin-bottom: 12px;
+        }
+
+        /* Summary Cards */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .summary-box {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 10px 12px;
+        }
+
+        .summary-label {
+            font-size: 9px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            margin-bottom: 4px;
+        }
+
+        .summary-value {
+            font-size: 16px;
+            font-weight: 800;
+            color: #0f172a;
+        }
+
+        .summary-value.brand {
+            color: #7c5800;
+        }
+
+        /* Tables */
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 22px;
+        }
+
+        .table th {
+            background: #f1f5f9;
+            color: #0f172a;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 8px 12px;
+            text-align: left;
+            border-top: 1px solid #cbd5e1;
+            border-bottom: 1px solid #cbd5e1;
+        }
+
+        .table td {
+            padding: 8px 12px;
+            font-size: 12px;
+            color: #1e293b;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .table tr:nth-child(even) td {
+            background-color: #f8fafc;
+        }
+
+        /* Seller List */
+        .seller-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .seller-item {
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            background: #ffffff;
+            page-break-inside: avoid;
+        }
+
+        .seller-head {
+            background: #f8fafc;
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .seller-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .seller-stats {
+            font-size: 11px;
+            color: #475569;
+            display: flex;
+            gap: 16px;
+        }
+
+        .seller-body {
+            padding: 8px 12px;
+        }
+
+        .product-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .chip {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #334155;
+        }
+
+        .chip strong {
+            color: #0f172a;
+        }
+
+        /* Explicit PDF Print Override */
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 0;
+            }
+
+            html, body {
+                background: #ffffff;
+                margin: 0;
+                padding: 0;
+                width: 210mm;
+            }
+
+            .no-print-bar {
+                display: none !important;
+            }
+
+            .pdf-page {
+                box-shadow: none;
+                border: none;
+                margin: 0;
+                width: 210mm;
+                min-height: 297mm;
+                padding: 18mm 18mm 18mm 18mm !important; /* Forces 18mm padding even when user selects Margins: None in Print Dialog */
+            }
+
+            .seller-item {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="no-print-bar">
+        <span>Order Summary PDF Preview</span>
+        <button class="btn-print" onclick="window.print()">Skriv ut / Spara som PDF</button>
+    </div>
+
+    <div class="pdf-page">
+
+        <!-- Header -->
+        <div class="header">
+            <div>
+                <h1 class="brand-title">KUNGSBJÖRNEN</h1>
+                <div class="brand-subtitle">Order & Warehouse Summary</div>
+            </div>
+            <div>
+                <div class="doc-name">Order Summary</div>
+                <div class="doc-meta">Generated: 2026-09-24</div>
+            </div>
+        </div>
+
+        <!-- Campaign Metadata -->
+        <div class="meta-container">
+            <div class="meta-field">
+                <span class="meta-label">Group Name</span>
+                <span class="meta-val">Norra Skolans Klass 9B</span>
+            </div>
+            <div class="meta-field">
+                <span class="meta-label">Campaign Name</span>
+                <span class="meta-val">Höstförsäljning 2026</span>
+            </div>
+            <div class="meta-field">
+                <span class="meta-label">Admin Name</span>
+                <span class="meta-val">Anna Lindgren</span>
+            </div>
+        </div>
+
+        <!-- Total Summary Section -->
+        <div class="section-title">Total Summary</div>
+
+        <div class="summary-grid">
+            <div class="summary-box">
+                <div class="summary-label">Total Products Sold</div>
+                <div class="summary-value">127</div>
+            </div>
+            <div class="summary-box">
+                <div class="summary-label">Tier Level (Förtjänstnivå)</div>
+                <div class="summary-value brand">40%</div>
+            </div>
+            <div class="summary-box">
+                <div class="summary-label">Total Profit</div>
+                <div class="summary-value brand">22,860 SEK</div>
+            </div>
+            <div class="summary-box">
+                <div class="summary-label">Total Sales</div>
+                <div class="summary-value">65 0341 SEK</div>
+            </div>
+        </div>
+
+        <!-- Product Quantities Table -->
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th style="text-align: right; width: 120px;">Quantity</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Bergamot & Jasmine Candle</td>
+                    <td style="text-align: right;"><strong>48</strong></td>
+                </tr>
+                <tr>
+                    <td>Velvet Vanilla Candle</td>
+                    <td style="text-align: right;"><strong>37</strong></td>
+                </tr>
+                <tr>
+                    <td>Reed Diffuser</td>
+                    <td style="text-align: right;"><strong>42</strong></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Per Seller Section -->
+        <div class="section-title">Per Seller</div>
+
+        <div class="seller-list">
+            <!-- Seller 1 -->
+            <div class="seller-item">
+                <div class="seller-head">
+                    <span class="seller-name">Martin Andersson</span>
+                    <div class="seller-stats">
+                        <span>Total products: <strong>31</strong></span>
+                        <span>Total sales: <strong>5,580 SEK</strong></span>
+                    </div>
+                </div>
+                <div class="seller-body">
+                    <div class="product-chips">
+                        <span class="chip">Bergamot & Jasmine Candle × <strong>14</strong></span>
+                        <span class="chip">Velvet Vanilla Candle × <strong>9</strong></span>
+                        <span class="chip">Reed Diffuser × <strong>8</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seller 2 -->
+            <div class="seller-item">
+                <div class="seller-head">
+                    <span class="seller-name">Sofia Karlsson</span>
+                    <div class="seller-stats">
+                        <span>Total products: <strong>54</strong></span>
+                        <span>Total sales: <strong>27,648 SEK</strong></span>
+                    </div>
+                </div>
+                <div class="seller-body">
+                    <div class="product-chips">
+                        <span class="chip">Bergamot & Jasmine Candle × <strong>22</strong></span>
+                        <span class="chip">Reed Diffuser × <strong>18</strong></span>
+                        <span class="chip">Velvet Vanilla Candle × <strong>14</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seller 3 -->
+            <div class="seller-item">
+                <div class="seller-head">
+                    <span class="seller-name">Lucas Eriksson</span>
+                    <div class="seller-stats">
+                        <span>Total products: <strong>42</strong></span>
+                        <span>Total sales: <strong>21,498 SEK</strong></span>
+                    </div>
+                </div>
+                <div class="seller-body">
+                    <div class="product-chips">
+                        <span class="chip">Reed Diffuser × <strong>16</strong></span>
+                        <span class="chip">Velvet Vanilla Candle × <strong>14</strong></span>
+                        <span class="chip">Bergamot & Jasmine Candle × <strong>12</strong></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>

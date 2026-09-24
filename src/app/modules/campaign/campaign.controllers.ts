@@ -3,6 +3,7 @@ import { Request, Response } from "express";
 import catchAsync from "../../../utils/catchAsync";
 import sendResponse from "../../../utils/sendResponse";
 import { campaignServices } from "./campaign.services";
+import { campaignSummaryServices } from "./campaignSummary.services";
 
 const createCampaign = catchAsync(async (req: Request, res: Response) => {
     const result = await campaignServices.createCampaign(req.user._id as string, req.body.groupId as string, req.body);
@@ -178,6 +179,15 @@ const getMyCampaigns = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const downloadOrderSummaryHtml = catchAsync(async (req: Request, res: Response) => {
+    const campaignId = req.params.campaignId as string;
+    const html = await campaignSummaryServices.generateOrderSummaryHtml(campaignId);
+
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.setHeader("Content-Disposition", `inline; filename="Order-Summary-${campaignId}.html"`);
+    res.status(httpStatus.OK).send(html);
+});
+
 export const campaignControllers = {
     createCampaign,
     getAllCampaigns,
@@ -194,4 +204,6 @@ export const campaignControllers = {
     updateCampaign,
     updateCampaignStatus,
     deleteCampaign,
+    downloadOrderSummaryHtml,
 };
+
