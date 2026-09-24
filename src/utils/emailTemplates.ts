@@ -314,10 +314,10 @@ export const sendCustomerServiceReplyEmail = (
     const { _id, issueType, orderId, status, adminNotes } = details;
     const issueTypeName = issueType === "reklamation" ? "Reklamation" : "Byte";
     const statusSwedishMap: Record<string, string> = {
-        pending: "Väntande",
-        in_progress: "Behandlas",
-        resolved: "Löst",
-        rejected: "Avvisad",
+        pending: "Inkommen",
+        in_progress: "Under handläggning",
+        resolved: "Avslutad",
+        rejected: "Avslagen",
     };
     const statusFormatted = statusSwedishMap[status?.toLowerCase()] || status.replace("_", " ").toUpperCase();
 
