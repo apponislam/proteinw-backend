@@ -246,7 +246,7 @@ const addSellersToCampaign = async (campaignId: string, sellerIdsInput: string |
     }
 
     return {
-        message: "Seller(s) added to campaign successfully",
+        message: "Säljare lades till i försäljningen framgångsrikt",
         count: results.length,
         sellers: results,
     };
@@ -269,7 +269,7 @@ const removeSellersFromCampaign = async (campaignId: string, sellerIdsInput: str
         { $set: { isDeleted: true } },
     );
 
-    return { message: "Seller(s) removed from campaign successfully", count: result.modifiedCount };
+    return { message: "Säljare togs bort från försäljningen framgångsrikt", count: result.modifiedCount };
 };
 
 export const campaignSellerServices = {

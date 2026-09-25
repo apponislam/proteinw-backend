@@ -169,7 +169,7 @@ const verifyEmail = async (email: string, token?: string, otp?: string) => {
     }
 
     if (user.isEmailVerified) {
-        return { message: "Email is already verified." };
+        return { message: "E-postadressen är redan verifierad." };
     }
 
     if (!user.verificationExpiry || user.verificationExpiry <= new Date()) {
@@ -195,7 +195,7 @@ const verifyEmail = async (email: string, token?: string, otp?: string) => {
     user.verificationExpiry = undefined;
     await user.save();
 
-    return { message: "Email verified successfully" };
+    return { message: "E-postadressen verifierades framgångsrikt." };
 };
 
 const resendVerificationEmail = async (email: string) => {
@@ -220,7 +220,7 @@ const resendVerificationEmail = async (email: string) => {
     const verificationUrl = `${config.client_url}/verify-email?token=${verificationToken}&email=${user.email}`;
     sendVerificationEmail(user.email as string, user.name as string, verificationUrl, verificationCode);
 
-    return { message: "Verification email sent successfully." };
+    return { message: "Verifieringsmeddelande skickades framgångsrikt." };
 };
 
 const getUserById = async (userId: string) => {
@@ -268,7 +268,7 @@ const requestPasswordReset = async (email: string) => {
     // Send OTP email
     sendOtpEmail(email, otp, user.name as string);
 
-    return { message: "OTP sent" };
+    return { message: "Engångskod (OTP) har skickats." };
 };
 
 const verifyOtp = async (email: string, otp: string) => {
@@ -316,7 +316,7 @@ const resendOtp = async (email: string) => {
     // Send email
     sendOtpEmail(email, otp, user.name as string);
 
-    return { message: "OTP resent successfully." };
+    return { message: "Engångskod (OTP) har skickats igen." };
 };
 
 const resetPassword = async (token: string, newPassword: string) => {
@@ -496,7 +496,7 @@ const resendEmailUpdate = async (userId: string, password: string) => {
     const verificationUrl = `${config.client_url}/verify-new-email?token=${verificationToken}&email=${user.pendingEmail}`;
     sendEmailUpdateVerification(user.pendingEmail as string, user.name as string, verificationUrl);
 
-    return { message: "Verification email resent successfully." };
+    return { message: "Verifieringsmeddelande för ny e-postadress skickades framgångsrikt." };
 };
 
 const verifyNewEmail = async (token: string, email: string) => {
@@ -516,7 +516,7 @@ const verifyNewEmail = async (token: string, email: string) => {
 
     await user.save();
 
-    return { message: "New email verified successfully" };
+    return { message: "Ny e-postadress verifierades framgångsrikt." };
 };
 
 const setUserPassword = async (userId: string, newPassword: string) => {

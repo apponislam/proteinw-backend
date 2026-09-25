@@ -78,7 +78,7 @@ const acceptInvitation = async (email: string) => {
     // Delete the invitation
     await InvitationModel.findByIdAndDelete(invitation._id);
 
-    return { message: "Invitation accepted successfully", groupId: invitation.groupId };
+    return { message: "Inbjudan accepterades framgångsrikt.", groupId: invitation.groupId };
 };
 
 const declineInvitation = async (email: string) => {
@@ -87,7 +87,7 @@ const declineInvitation = async (email: string) => {
     // Delete the invitation
     await InvitationModel.findByIdAndDelete(invitation._id);
 
-    return { message: "Invitation declined successfully" };
+    return { message: "Inbjudan avböjdes framgångsrikt." };
 };
 
 const cancelInvitation = async (invitationId: string) => {
@@ -96,7 +96,7 @@ const cancelInvitation = async (invitationId: string) => {
 
     await InvitationModel.findByIdAndDelete(invitationId);
 
-    return { message: "Invitation canceled successfully" };
+    return { message: "Inbjudan avbröts framgångsrikt." };
 };
 
 const getInvitationByCode = async (code: string) => {
