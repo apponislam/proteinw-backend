@@ -5,19 +5,22 @@ import authorize from "../../middlewares/authorized";
 
 const router = Router();
 
-// Public routes
+// Authenticated & specific static routes (must come BEFORE /:campaignId)
 router.get("/active", campaignControllers.getActiveCampaigns);
 router.get("/code/:code", campaignControllers.getCampaignByCode);
 router.get("/admin/all", auth, authorize(["ADMIN", "SUPER_ADMIN"]), campaignControllers.getAllCampaignsWithStats);
-router.get("/:campaignId/order-summary", auth, authorize(["ADMIN", "SUPER_ADMIN"]), campaignControllers.downloadOrderSummaryHtml);
-router.get("/:campaignId", campaignControllers.getCampaignById);
+router.get("/admin/summary", auth, authorize(["ADMIN", "SUPER_ADMIN"]), campaignControllers.getAllCampaignsSummary);
+router.get("/my-campaigns", auth, authorize(["ADMIN", "SUPER_ADMIN"]), campaignControllers.getMyCampaigns);
 router.get("/seller/running-campaign/:groupId", auth, campaignControllers.getRunningCampaignForSeller);
 router.get("/group/:groupId", auth, campaignControllers.getCampaignsByGroup);
 router.get("/running-campaign/:groupId", auth, campaignControllers.getRunningCampaignByGroup);
 
-// Admin-only routes
+// Parameterized routes
+router.get("/:campaignId/order-summary", auth, authorize(["ADMIN", "SUPER_ADMIN"]), campaignControllers.downloadOrderSummaryHtml);
+router.get("/:campaignId", campaignControllers.getCampaignById);
+
+// Admin-only management routes
 router.post("/", auth, authorize(["ADMIN", "SUPER_ADMIN"]), campaignControllers.createCampaign);
-router.get("/admin/summary", auth, authorize(["ADMIN", "SUPER_ADMIN"]), campaignControllers.getAllCampaignsSummary);
 router.patch("/:campaignId/assign-tier", auth, authorize(["SUPER_ADMIN"]), campaignControllers.assignTierToCampaign);
 router.get("/", auth, authorize(["ADMIN", "SUPER_ADMIN"]), campaignControllers.getAllCampaigns);
 router.patch("/:campaignId/status", auth, authorize(["ADMIN", "SUPER_ADMIN"]), campaignControllers.updateCampaignStatus);
