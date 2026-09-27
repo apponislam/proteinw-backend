@@ -223,12 +223,27 @@ const toggleProductStatus = async (productId: string) => {
     if (!product) throw new ApiError(httpStatus.NOT_FOUND, "Begärd produkt hittades inte eller har raderats.");
     product.isActive = !product.isActive;
     await product.save();
+
+    // If product was set to inactive, mark campaign product links as deleted
+    // If reactivated, restore campaign product links
+    await CampaignProductModel.updateMany(
+        { productId: product._id },
+        { $set: { isDeleted: !product.isActive } }
+    );
+
     return product;
 };
 
 const deleteProduct = async (productId: string) => {
     const product = await ProductModel.findOneAndUpdate({ _id: productId, isDeleted: false }, { $set: { isDeleted: true, isActive: false } }, { returnDocument: "after" });
     if (!product) throw new ApiError(httpStatus.NOT_FOUND, "Begärd produkt hittades inte eller har redan raderats.");
+
+    // Mark campaign product links as deleted
+    await CampaignProductModel.updateMany(
+        { productId: product._id },
+        { $set: { isDeleted: true } }
+    );
+
     return product;
 };
 

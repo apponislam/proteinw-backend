@@ -275,7 +275,7 @@ const getAllCampaignsSummary = async (query: any = {}) => {
     const limit = parseInt(query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    const campaigns = await CampaignModel.find(filter).populate("tierId").populate("createdBy", "name email role phone photo").sort({ createdAt: -1 }).skip(skip).limit(limit).lean();
+    const campaigns = await CampaignModel.find(filter).populate("groupId", "name isApproved createdAt").populate("tierId").populate("createdBy", "name email role phone photo").sort({ createdAt: -1 }).skip(skip).limit(limit).lean();
 
     const total = await CampaignModel.countDocuments(filter);
 
@@ -291,6 +291,7 @@ const getAllCampaignsSummary = async (query: any = {}) => {
                 name: campaign.name,
                 status: campaign.status,
                 membersCount,
+                group: campaign.groupId || null,
                 tier: campaign.tierId || null,
                 tierAssignDate: campaign.tierAssignDate || null,
                 code: campaign.code,

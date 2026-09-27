@@ -113,7 +113,7 @@ const getDashboardStats = async () => {
         ? (categoryTranslations[rawTopCategory.trim().toUpperCase()] || rawTopCategory)
         : "Ej tillgänglig";
 
-    const totalAdmins = await UserModel.countDocuments({ role: "ADMIN", isDeleted: false });
+    const totalAdmins = await UserModel.countDocuments({ role: "ADMIN", isApproved: true, isDeleted: false });
     const totalSellers = await UserModel.countDocuments({ role: "SELLER", isDeleted: false });
     const totalGroups = await GroupModel.countDocuments({ isDeleted: false });
     const activeCampaigns = await CampaignModel.countDocuments({
