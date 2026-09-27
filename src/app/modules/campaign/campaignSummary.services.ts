@@ -95,8 +95,8 @@ export const generateOrderSummaryHtml = async (campaignId: string): Promise<stri
                 <div class="seller-head">
                     <span class="seller-name">${seller.name}</span>
                     <div class="seller-stats">
-                        <span>Total products: <strong>${seller.totalProducts}</strong></span>
-                        <span>Total sales: <strong>${seller.totalSales.toLocaleString("sv-SE")} SEK</strong></span>
+                        <span>Produkter: <strong>${seller.totalProducts} st</strong></span>
+                        <span>Försäljning: <strong>${seller.totalSales.toLocaleString("sv-SE")} kr</strong></span>
                     </div>
                 </div>
                 <div class="seller-body">
@@ -118,7 +118,7 @@ export const generateOrderSummaryHtml = async (campaignId: string): Promise<stri
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Order Summary - ${campaign.name}</title>
+    <title>Beställningssammanställning - ${campaign.name}</title>
     <style>
         @page {
             size: A4 portrait;
@@ -378,55 +378,55 @@ export const generateOrderSummaryHtml = async (campaignId: string): Promise<stri
         <div class="header">
             <div>
                 <h1 class="brand-title">KUNGSBJÖRNEN</h1>
-                <div class="brand-subtitle">Order & Warehouse Summary</div>
+                <div class="brand-subtitle">Beställnings- och lageröversikt</div>
             </div>
             <div>
-                <div class="doc-name">Order Summary</div>
-                <div class="doc-meta">Generated: ${formattedDate}</div>
+                <div class="doc-name">Orderöversikt</div>
+                <div class="doc-meta">Skapad: ${formattedDate}</div>
             </div>
         </div>
 
         <div class="meta-container">
             <div class="meta-field">
-                <span class="meta-label">Group Name</span>
+                <span class="meta-label">Gruppnamn</span>
                 <span class="meta-val">${groupName}</span>
             </div>
             <div class="meta-field">
-                <span class="meta-label">Campaign Name</span>
+                <span class="meta-label">Försäljning</span>
                 <span class="meta-val">${campaign.name}</span>
             </div>
             <div class="meta-field">
-                <span class="meta-label">Admin Name</span>
+                <span class="meta-label">Kontaktperson</span>
                 <span class="meta-val">${adminName}</span>
             </div>
         </div>
 
-        <div class="section-title">Total Summary</div>
+        <div class="section-title">Totalt Sammanställning</div>
 
         <div class="summary-grid">
             <div class="summary-box">
-                <div class="summary-label">Total Products Sold</div>
-                <div class="summary-value">${totalProductsSold}</div>
+                <div class="summary-label">Sålda produkter</div>
+                <div class="summary-value">${totalProductsSold} st</div>
             </div>
             <div class="summary-box">
-                <div class="summary-label">Tier Level (Förtjänstnivå)</div>
+                <div class="summary-label">Förtjänstnivå</div>
                 <div class="summary-value brand">${profitPercentage}%</div>
             </div>
             <div class="summary-box">
-                <div class="summary-label">Total Profit</div>
-                <div class="summary-value brand">${totalProfit.toLocaleString("sv-SE")} SEK</div>
+                <div class="summary-label">Total vinst</div>
+                <div class="summary-value brand">${totalProfit.toLocaleString("sv-SE")} kr</div>
             </div>
             <div class="summary-box">
-                <div class="summary-label">Total Sales</div>
-                <div class="summary-value">${totalSalesRevenue.toLocaleString("sv-SE")} SEK</div>
+                <div class="summary-label">Total försäljning</div>
+                <div class="summary-value">${totalSalesRevenue.toLocaleString("sv-SE")} kr</div>
             </div>
         </div>
 
         <table class="table">
             <thead>
                 <tr>
-                    <th>Product</th>
-                    <th style="text-align: right; width: 120px;">Quantity</th>
+                    <th>Produkt</th>
+                    <th style="text-align: right; width: 120px;">Antal</th>
                 </tr>
             </thead>
             <tbody>
@@ -434,7 +434,7 @@ export const generateOrderSummaryHtml = async (campaignId: string): Promise<stri
             </tbody>
         </table>
 
-        <div class="section-title">Per Seller</div>
+        <div class="section-title">Per säljare</div>
 
         <div class="seller-list">
             ${sellerCardsHtml || '<div style="padding: 12px; color: #64748b;">Inga säljare med registrerade ordrar ännu.</div>'}

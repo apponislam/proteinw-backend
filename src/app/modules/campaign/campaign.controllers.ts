@@ -184,7 +184,7 @@ const downloadOrderSummaryHtml = catchAsync(async (req: Request, res: Response) 
     const html = await campaignSummaryServices.generateOrderSummaryHtml(campaignId);
 
     res.setHeader("Content-Type", "text/html; charset=utf-8");
-    res.setHeader("Content-Disposition", `inline; filename="Order-Summary-${campaignId}.html"`);
+    res.setHeader("Content-Disposition", `attachment; filename="Order-Summary-${campaignId}.html"`);
     res.status(httpStatus.OK).send(html);
 });
 
