@@ -12,17 +12,56 @@ import httpStatus from "http-status";
 import ApiError from "../../../errors/ApiError";
 
 const getDashboardStats = async () => {
-    const ordersResult = await OrderModel.aggregate([{ $match: { isDeleted: false } }, { $group: { _id: null, totalPackages: { $sum: "$totalPackage" } } }]);
+    const ordersResult = await OrderModel.aggregate([
+        { $match: { isDeleted: false, status: { $ne: "cancelled" } } },
+        {
+            $lookup: {
+                from: "campaigns",
+                localField: "campaignId",
+                foreignField: "_id",
+                as: "campaign",
+            },
+        },
+        { $unwind: "$campaign" },
+        { $match: { "campaign.isDeleted": false, "campaign.status": { $in: ["ACTIVE", "FULFILMENT"] } } },
+        { $group: { _id: null, totalPackages: { $sum: "$totalPackage" } } },
+    ]);
     const totalPackagesSold = ordersResult.length > 0 ? ordersResult[0].totalPackages : 0;
 
     const now = new Date();
     const firstDayOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const firstDayOfPreviousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
-    const currentMonthOrders = await OrderModel.aggregate([{ $match: { isDeleted: false, createdAt: { $gte: firstDayOfCurrentMonth } } }, { $group: { _id: null, totalPackages: { $sum: "$totalPackage" } } }]);
+    const currentMonthOrders = await OrderModel.aggregate([
+        { $match: { isDeleted: false, status: { $ne: "cancelled" }, createdAt: { $gte: firstDayOfCurrentMonth } } },
+        {
+            $lookup: {
+                from: "campaigns",
+                localField: "campaignId",
+                foreignField: "_id",
+                as: "campaign",
+            },
+        },
+        { $unwind: "$campaign" },
+        { $match: { "campaign.isDeleted": false, "campaign.status": { $in: ["ACTIVE", "FULFILMENT"] } } },
+        { $group: { _id: null, totalPackages: { $sum: "$totalPackage" } } },
+    ]);
     const currentMonthPackages = currentMonthOrders.length > 0 ? currentMonthOrders[0].totalPackages : 0;
 
-    const previousMonthOrders = await OrderModel.aggregate([{ $match: { isDeleted: false, createdAt: { $gte: firstDayOfPreviousMonth, $lt: firstDayOfCurrentMonth } } }, { $group: { _id: null, totalPackages: { $sum: "$totalPackage" } } }]);
+    const previousMonthOrders = await OrderModel.aggregate([
+        { $match: { isDeleted: false, status: { $ne: "cancelled" }, createdAt: { $gte: firstDayOfPreviousMonth, $lt: firstDayOfCurrentMonth } } },
+        {
+            $lookup: {
+                from: "campaigns",
+                localField: "campaignId",
+                foreignField: "_id",
+                as: "campaign",
+            },
+        },
+        { $unwind: "$campaign" },
+        { $match: { "campaign.isDeleted": false, "campaign.status": { $in: ["ACTIVE", "FULFILMENT"] } } },
+        { $group: { _id: null, totalPackages: { $sum: "$totalPackage" } } },
+    ]);
     const previousMonthPackages = previousMonthOrders.length > 0 ? previousMonthOrders[0].totalPackages : 0;
 
     let packageGrowth = 0;
@@ -34,7 +73,17 @@ const getDashboardStats = async () => {
     packageGrowth = parseFloat(packageGrowth.toFixed(1));
 
     const topCategoryAgg = await OrderModel.aggregate([
-        { $match: { isDeleted: false } },
+        { $match: { isDeleted: false, status: { $ne: "cancelled" } } },
+        {
+            $lookup: {
+                from: "campaigns",
+                localField: "campaignId",
+                foreignField: "_id",
+                as: "campaign",
+            },
+        },
+        { $unwind: "$campaign" },
+        { $match: { "campaign.isDeleted": false, "campaign.status": { $in: ["ACTIVE", "FULFILMENT"] } } },
         { $unwind: "$items" },
         {
             $lookup: {
@@ -54,7 +103,15 @@ const getDashboardStats = async () => {
         { $sort: { count: -1 } },
         { $limit: 1 },
     ]);
-    const topCategory = topCategoryAgg.length > 0 ? topCategoryAgg[0]._id : "N/A";
+    const rawTopCategory = topCategoryAgg.length > 0 ? topCategoryAgg[0]._id : "N/A";
+    const categoryTranslations: Record<string, string> = {
+        "SCENTED CANDLES": "Doftljus",
+        "REED DIFFUSERS": "Doftstickor",
+        "PREMIUM SOCKS": "Strumpor",
+    };
+    const topCategory = rawTopCategory && rawTopCategory !== "N/A"
+        ? (categoryTranslations[rawTopCategory.trim().toUpperCase()] || rawTopCategory)
+        : "Ej tillgänglig";
 
     const totalAdmins = await UserModel.countDocuments({ role: "ADMIN", isDeleted: false });
     const totalSellers = await UserModel.countDocuments({ role: "SELLER", isDeleted: false });
@@ -227,11 +284,23 @@ const getSuperAdminSellersStats = async () => {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const mtdOrdersCount = await OrderModel.countDocuments({
-        isDeleted: false,
-        status: { $ne: "cancelled" },
-        createdAt: { $gte: startOfMonth },
-    });
+    const mtdResult = await OrderModel.aggregate([
+        {
+            $match: {
+                isDeleted: false,
+                status: { $ne: "cancelled" },
+                createdAt: { $gte: startOfMonth },
+            },
+        },
+        {
+            $group: {
+                _id: null,
+                totalPackages: { $sum: "$totalPackage" },
+            },
+        },
+    ]);
+
+    const mtdOrdersCount = mtdResult[0]?.totalPackages || 0;
 
     const revenueResult = await OrderModel.aggregate([
         {
