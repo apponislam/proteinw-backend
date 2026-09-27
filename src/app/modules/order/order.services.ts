@@ -211,10 +211,14 @@ const createOrder = async (payload: any) => {
 const getAllOrders = async (query: any = {}) => {
     const filter: any = { isDeleted: false };
 
+    console.log(query.memberId);
+
     if (query.status) filter.status = query.status;
     if (query.memberId) filter.memberId = new Types.ObjectId(query.memberId);
     if (query.campaignId) filter.campaignId = new Types.ObjectId(query.campaignId);
     if (query.groupId) filter.groupId = new Types.ObjectId(query.groupId);
+
+    console.log(filter.memberId);
 
     const page = parseInt(query.page as string) || 1;
     const limit = parseInt(query.limit as string) || 10;
@@ -479,9 +483,7 @@ const getRunningCampaignStats = async (user: any, query: any = {}) => {
     }).lean();
 
     if (query.campaignId && Types.ObjectId.isValid(query.campaignId as string)) {
-        activeCampaigns = activeCampaigns.filter(
-            (c) => c._id.toString() === query.campaignId.toString()
-        );
+        activeCampaigns = activeCampaigns.filter((c) => c._id.toString() === query.campaignId.toString());
     }
 
     if (activeCampaigns.length === 0) {
@@ -528,11 +530,7 @@ const getRunningCampaignStats = async (user: any, query: any = {}) => {
             currentTier = tiers.find((t) => t._id.toString() === campaign.tierId?.toString()) || null;
         }
         if (!currentTier) {
-            currentTier = tiers.find(
-                (t) =>
-                    totalCampaignPackagesSold >= t.minSalesVolume &&
-                    (t.maxSalesVolume === undefined || t.maxSalesVolume === null || totalCampaignPackagesSold <= t.maxSalesVolume)
-            ) || null;
+            currentTier = tiers.find((t) => totalCampaignPackagesSold >= t.minSalesVolume && (t.maxSalesVolume === undefined || t.maxSalesVolume === null || totalCampaignPackagesSold <= t.maxSalesVolume)) || null;
         }
 
         const profitPercentage = currentTier?.percentage || 0;
