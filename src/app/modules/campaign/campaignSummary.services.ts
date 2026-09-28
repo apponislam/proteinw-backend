@@ -96,7 +96,7 @@ export const generateOrderSummaryHtml = async (campaignId: string): Promise<stri
                     <span class="seller-name">${seller.name}</span>
                     <div class="seller-stats">
                         <span>Produkter: <strong>${seller.totalProducts} st</strong></span>
-                        <span>Försäljning: <strong>${seller.totalSales.toLocaleString("sv-SE")} kr</strong></span>
+                        <span>Omsättning: <strong>${seller.totalSales.toLocaleString("sv-SE")} kr</strong></span>
                     </div>
                 </div>
                 <div class="seller-body">
@@ -392,7 +392,7 @@ export const generateOrderSummaryHtml = async (campaignId: string): Promise<stri
                 <span class="meta-val">${groupName}</span>
             </div>
             <div class="meta-field">
-                <span class="meta-label">Försäljning</span>
+                <span class="meta-label">FÖRSÄLJNINGSNAMN</span>
                 <span class="meta-val">${campaign.name}</span>
             </div>
             <div class="meta-field">
@@ -413,11 +413,11 @@ export const generateOrderSummaryHtml = async (campaignId: string): Promise<stri
                 <div class="summary-value brand">${profitPercentage}%</div>
             </div>
             <div class="summary-box">
-                <div class="summary-label">Total vinst</div>
+                <div class="summary-label">Total förtjänst</div>
                 <div class="summary-value brand">${totalProfit.toLocaleString("sv-SE")} kr</div>
             </div>
             <div class="summary-box">
-                <div class="summary-label">Total försäljning</div>
+                <div class="summary-label">Total omsättning</div>
                 <div class="summary-value">${totalSalesRevenue.toLocaleString("sv-SE")} kr</div>
             </div>
         </div>
