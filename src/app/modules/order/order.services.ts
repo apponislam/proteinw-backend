@@ -273,7 +273,7 @@ const getOrdersByMember = async (memberId: string, query: any = {}) => {
         if (sellerGroup) {
             const groupCampaigns = await CampaignModel.find({
                 groupId: sellerGroup.groupId,
-                status: "ACTIVE",
+                // status: "ACTIVE",
                 isDeleted: false,
             })
                 .select("_id")
@@ -665,7 +665,7 @@ const getMemberOrderStats = async (userId: Types.ObjectId | string, query: any =
         if (sellerGroup) {
             const groupCampaigns = await CampaignModel.find({
                 groupId: sellerGroup.groupId,
-                status: "ACTIVE",
+                // status: "ACTIVE",
                 isDeleted: false,
             })
                 .select("_id")
