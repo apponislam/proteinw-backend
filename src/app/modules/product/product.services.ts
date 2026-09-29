@@ -91,7 +91,7 @@ const getProductsWithCampaignStatus = async (campaignId: string, query: any = {}
 
     const addedProductIdsSet = new Set(campaignProducts.map((cp) => cp.productId.toString()));
 
-    const filter: any = { isDeleted: false };
+    const filter: any = { isDeleted: false, isActive: true };
     if (query.category) filter.category = query.category;
     if (query.subCategory) filter.subCategory = query.subCategory;
     if (query.isActive !== undefined) filter.isActive = query.isActive === "true";
