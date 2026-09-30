@@ -106,19 +106,17 @@ const getDashboardStats = async () => {
     const rawTopCategory = topCategoryAgg.length > 0 ? topCategoryAgg[0]._id : "N/A";
     const categoryTranslations: Record<string, string> = {
         "SCENTED CANDLES": "Doftljus",
-        "REED DIFFUSERS": "Doftstickor",
+        "REED DIFFUSERS": "Doftpinnar",
         "PREMIUM SOCKS": "Strumpor",
     };
-    const topCategory = rawTopCategory && rawTopCategory !== "N/A"
-        ? (categoryTranslations[rawTopCategory.trim().toUpperCase()] || rawTopCategory)
-        : "Ej tillgänglig";
+    const topCategory = rawTopCategory && rawTopCategory !== "N/A" ? categoryTranslations[rawTopCategory.trim().toUpperCase()] || rawTopCategory : "Ej tillgänglig";
 
     const totalAdmins = await UserModel.countDocuments({ role: "ADMIN", isApproved: true, isDeleted: false });
     const totalSellers = await UserModel.countDocuments({ role: "SELLER", isDeleted: false });
     const totalGroups = await GroupModel.countDocuments({ isDeleted: false });
     const activeCampaigns = await CampaignModel.countDocuments({
         isDeleted: false,
-        $or: [{ status: "ACTIVE" }, { endDate: { $gt: new Date() } }],
+        status: "ACTIVE",
     });
     const totalOrders = await OrderModel.countDocuments({ isDeleted: false });
 
