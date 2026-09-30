@@ -7,7 +7,6 @@ export interface IProduct {
     price: number;
     shortDescription: string;
     category: string;
-    subCategory?: string;
     marginBenefit?: string;
     qualityHighlight?: string;
     ecoHighlight?: string;

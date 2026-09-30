@@ -12,7 +12,6 @@ const ProductSchema = new Schema<ProductDocument>(
         },
         shortDescription: { type: String, required: true, trim: true },
         category: { type: String, required: true, trim: true },
-        subCategory: { type: String, trim: true },
         marginBenefit: { type: String, trim: true },
         qualityHighlight: { type: String, trim: true },
         ecoHighlight: { type: String, trim: true },
@@ -27,8 +26,8 @@ const ProductSchema = new Schema<ProductDocument>(
     },
 );
 
-// Index for public product queries (active, not deleted, by category/subcategory, sorted by recent)
-ProductSchema.index({ isActive: 1, isDeleted: 1, category: 1, subCategory: 1, createdAt: -1 });
+// Index for public product queries (active, not deleted, by category, sorted by recent)
+ProductSchema.index({ isActive: 1, isDeleted: 1, category: 1, createdAt: -1 });
 
 // Index for admin product list (all products, sorted by recent)
 ProductSchema.index({ isDeleted: 1, createdAt: -1 });

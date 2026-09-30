@@ -18,7 +18,6 @@ const createProduct = async (userId: string, payload: any, images: string[] = []
 const getAllProducts = async (query: any = {}) => {
     const filter: any = { isDeleted: false };
     if (query.category) filter.category = query.category;
-    if (query.subCategory) filter.subCategory = query.subCategory;
     if (query.isActive !== undefined) filter.isActive = query.isActive === "true";
 
     const page = Number(query.page) || 1;
@@ -93,7 +92,6 @@ const getProductsWithCampaignStatus = async (campaignId: string, query: any = {}
 
     const filter: any = { isDeleted: false, isActive: true };
     if (query.category) filter.category = query.category;
-    if (query.subCategory) filter.subCategory = query.subCategory;
     if (query.isActive !== undefined) filter.isActive = query.isActive === "true";
     if (query.search || query.searchTerm) {
         const searchRegex = new RegExp(query.search || query.searchTerm, "i");
@@ -150,7 +148,6 @@ const getProductsWithCampaignStatus = async (campaignId: string, query: any = {}
 const getActiveProducts = async (query: any = {}) => {
     const filter: any = { isActive: true, isDeleted: false };
     if (query.category) filter.category = query.category;
-    if (query.subCategory) filter.subCategory = query.subCategory;
 
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 10;
