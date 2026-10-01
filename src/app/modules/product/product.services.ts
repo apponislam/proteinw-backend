@@ -222,11 +222,12 @@ const toggleProductStatus = async (productId: string) => {
     await product.save();
 
     // If product was set to inactive, mark campaign product links as deleted
-    // If reactivated, restore campaign product links
-    await CampaignProductModel.updateMany(
-        { productId: product._id },
-        { $set: { isDeleted: !product.isActive } }
-    );
+    if (!product.isActive) {
+        await CampaignProductModel.updateMany(
+            { productId: product._id },
+            { $set: { isDeleted: true } }
+        );
+    }
 
     return product;
 };
