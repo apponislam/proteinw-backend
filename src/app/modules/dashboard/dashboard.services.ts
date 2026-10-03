@@ -116,7 +116,7 @@ const getDashboardStats = async () => {
     const totalGroups = await GroupModel.countDocuments({ isDeleted: false });
     const activeCampaigns = await CampaignModel.countDocuments({
         isDeleted: false,
-        status: "ACTIVE",
+        status: { $in: ["ACTIVE", "FULFILMENT", "DRAFT"] },
     });
     const totalOrders = await OrderModel.countDocuments({ isDeleted: false });
 
